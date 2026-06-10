@@ -297,6 +297,10 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 - Toda operación que toca más de una tabla debe usar `db.transaction()`.
 - Especialmente: crear venta + incrementar consecutivo, crear cierre + snapshot.
 
+### Restricción de caja única abierta
+- SQLite no soporta índices parciales (`WHERE`) via Drizzle ORM — no es posible un `UNIQUE INDEX ... WHERE closed_at IS NULL`.
+- La invariante "solo una caja abierta" se garantiza en el **service layer** de Fase 4: `POST /api/cash-registers/open` consulta si existe una fila con `closed_at IS NULL` dentro de una transacción antes de insertar. SQLite es single-writer — no hay race condition real en este modelo.
+
 ---
 
 ## 8. Variables de Entorno
