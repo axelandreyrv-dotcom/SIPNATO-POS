@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+/* Dark mode via clase .dark — togglable desde localStorage */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Paleta SIPNATO — disponible como bg-brand-navy, text-brand-blue, etc. */
+@theme {
+  --color-brand-navy: #1e3a5f;
+  --color-brand-blue: #2563eb;
+  --color-brand-blue-light: #dbeafe;
+  --color-brand-white: #ffffff;
+  --color-brand-gray-light: #f1f5f9;
+  --color-brand-gray-dark: #0f172a;
+  --color-brand-success: #16a34a;
+  --color-brand-error: #dc2626;
+  --color-brand-warning: #d97706;
+
+  --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}

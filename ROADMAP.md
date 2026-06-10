@@ -10,7 +10,7 @@
 
 | Fase | Nombre | Estado |
 |---|---|---|
-| 0 | Monorepo & Tooling | ⬜ Pendiente |
+| 0 | Monorepo & Tooling | ✅ COMPLETADA 2026-06-10 |
 | 0.5 | Spike de Impresión (validación de hardware) | ⬜ Pendiente |
 | 1 | Schema de BD & Migraciones | ⬜ Pendiente |
 | 2 | Auth & Seguridad | ⬜ Pendiente |
@@ -52,7 +52,7 @@
 ### Criterio de completitud
 `pnpm dev` levanta la SPA en `localhost:5173` y la API en `localhost:3000/health` respondiendo `{ status: "ok" }`.
 
-**Al completar:** invocar `/grill-me` · actualizar `CLAUDE.md` sección 11 · marcar `[x]` aquí.
+**✅ COMPLETADA 2026-06-10** — Verificado: `GET localhost:3000/health` → `{ status: "ok", env: "development" }`. Vite arranca en `localhost:5173`. TypeScript compila sin errores. Nativos `argon2` y `better-sqlite3` compilados con MSVC. Invocar `/grill-me` antes de avanzar a Fase 0.5.
 
 ---
 
