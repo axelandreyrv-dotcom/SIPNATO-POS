@@ -1,19 +1,26 @@
-import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { check, index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 // ─── admin ────────────────────────────────────────────────────────────────────
 // Single row — created once at /auth/setup. id is always 1.
-export const admin = sqliteTable('admin', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  passwordHash: text('password_hash').notNull(),
-  recoveryCodeHash: text('recovery_code_hash').notNull(),
-  createdAt: text('created_at')
-    .notNull()
-    .default(sql`(datetime('now'))`),
-  updatedAt: text('updated_at')
-    .notNull()
-    .default(sql`(datetime('now'))`),
-});
+// CHECK (id = 1) enforced at DB level: a second INSERT is physically impossible.
+export const admin = sqliteTable(
+  'admin',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    passwordHash: text('password_hash').notNull(),
+    recoveryCodeHash: text('recovery_code_hash').notNull(),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  () => ({
+    singleRow: check('admin_single_row', sql`id = 1`),
+  }),
+);
 
 // ─── sessions ─────────────────────────────────────────────────────────────────
 export const sessions = sqliteTable(
