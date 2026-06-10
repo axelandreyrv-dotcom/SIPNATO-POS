@@ -1,0 +1,323 @@
+# CLAUDE.md — Biblia del Proyecto SIPNATO POS
+
+> Este archivo es la fuente de verdad del proyecto. Se actualiza al finalizar cada fase.
+> Última actualización: 2026-06-09 · Fase actual: Pre-desarrollo (documentación aprobada)
+
+---
+
+## 1. Identidad del Proyecto
+
+| Campo | Valor |
+|---|---|
+| Nombre | SIPNATO POS |
+| Propósito | Sistema POS para taller de reparación de celulares y venta de accesorios |
+| País / Zona horaria | Costa Rica · `America/Costa_Rica` |
+| Moneda | Colones costarricenses (₡) únicamente |
+| Usuario operativo | Un solo administrador |
+| Tipo de sistema | Aplicación web privada detrás de login, accesible vía subdominio HTTPS |
+
+---
+
+## 2. Reglas de Desarrollo (NO NEGOCIABLES)
+
+### 2.1 Antes de escribir código
+- Leer este archivo completo.
+- Confirmar en qué fase del ROADMAP se está trabajando.
+- No avanzar a la siguiente fase sin haber completado la actual.
+
+### 2.2 Documentación obligatoria continua
+- **CLAUDE.md**: actualizar al finalizar cada fase (sección de estado, convenciones nuevas, decisiones tomadas).
+- **ROADMAP.md**: marcar la fase como `[x] COMPLETADA` con fecha antes de continuar.
+- Si se crea un nuevo archivo de configuración, migración o módulo, documentar su propósito aquí.
+
+### 2.3 Flujo de trabajo Backend (ESTRICTO)
+1. Desarrollo por fases definidas en el ROADMAP — sin saltarse pasos.
+2. Toda lógica, endpoint, BD y arquitectura: aplicar skill `/using-superpowers`.
+3. Al finalizar CADA fase de backend: invocar skill `/grill-me` para revisión técnica antes de continuar.
+
+### 2.4 Flujo de trabajo Frontend (ESTRICTO)
+1. Para interfaces y componentes: invocar skills `/impeccable` + `/design-taste-frontend`.
+2. Para íconos: invocar skill `/ui-ux-pro-max` (íconos minimalistas, consistentes, escalables).
+3. Diseño estricto: azul ejecutivo + blanco, moderno, minimalista, dark mode nativo.
+
+### 2.5 Regla de oro de seguridad
+> **Nunca confiar en el frontend. Todo control de acceso, validación y autorización vive en el servidor.**
+
+---
+
+## 3. Stack Tecnológico
+
+### Monorepo
+| Herramienta | Versión objetivo | Propósito |
+|---|---|---|
+| pnpm | latest | Gestor de paquetes + workspaces |
+| TypeScript | ~5.x | Lenguaje único en todo el proyecto |
+| ESLint + Prettier | latest | Linting y formateo uniforme |
+
+### `apps/web` — Frontend SPA
+| Herramienta | Propósito |
+|---|---|
+| React 19 | UI framework |
+| Vite | Build tool + dev server |
+| Tailwind CSS v4 | Estilos · paleta azul ejecutivo + dark mode |
+| TanStack Router | Routing type-safe |
+| TanStack Query | Server state + cache |
+| Zod | Validación de formularios (schemas desde `shared`) |
+
+### `apps/server` — Backend API
+| Herramienta | Propósito |
+|---|---|
+| Fastify v5 | Framework HTTP |
+| better-sqlite3 | Driver SQLite síncrono de alto rendimiento |
+| Drizzle ORM | Schema, queries type-safe y migraciones |
+| argon2 (argon2id) | Hash de contraseñas y recovery codes |
+| node-cron | Jobs programados (cierre auto, backup) |
+| pino | Logging estructurado |
+| zod | Validación de env vars y requests |
+
+### `apps/print-bridge` — Servicio local de impresión
+| Herramienta | Propósito |
+|---|---|
+| Node.js | Runtime |
+| ws | Cliente WebSocket con reconexión |
+| node-escpos / escpos-usb | Comunicación ESC/POS con ticketera 80mm |
+
+### `packages/shared` — Contrato común
+| Contenido | Propósito |
+|---|---|
+| `schemas/` | DTOs zod usados por frontend Y backend |
+| `tickets/` | Tipos de payload + render ESC/POS + preview HTML |
+| `money.ts` | Manejo de ₡ como INTEGER — único punto de formateo |
+
+### Infraestructura
+| Componente | Herramienta |
+|---|---|
+| Hosting | VPS Ubuntu 22.04 LTS |
+| Reverse proxy + HTTPS | Caddy (Let's Encrypt automático) |
+| Contenedores | Docker Compose (server + caddy) |
+| Base de datos | SQLite · archivo único · WAL mode |
+| Respaldo | backup diario interno (better-sqlite3 backup API) · rotación 30 días |
+
+---
+
+## 4. Arquitectura
+
+```
+[Navegador — SPA React]
+        │ HTTPS (Caddy)
+        ▼
+   API Fastify ──── node-cron (cierre auto + backup diario)
+        │
+        ▼
+   SQLite /app/data/sipnato.db  +  /app/data/backups/
+        ▲
+        │ WebSocket (token hash 256-bit)
+[PC del taller] print-bridge ──ESC/POS──► Ticketera 80mm
+```
+
+### Principio de módulos
+Cada módulo de negocio sigue el patrón:
+```
+web/src/features/<modulo>/          # página(s) + componentes propios + api.ts
+server/src/modules/<modulo>/        # routes.ts + service.ts + repository.ts
+packages/shared/schemas/<modulo>.ts # DTOs zod compartidos
+```
+Agregar un módulo nuevo = crear esas carpetas. **Nada existente se modifica.**
+
+---
+
+## 5. Diseño Visual
+
+### Paleta de colores
+| Nombre | Hex | Uso |
+|---|---|---|
+| Azul ejecutivo | `#1E3A5F` | Color primario, sidebar, botones principales |
+| Azul medio | `#2563EB` | Acciones interactivas, links, focus |
+| Azul claro | `#DBEAFE` | Fondos de tarjetas en light mode, badges |
+| Blanco | `#FFFFFF` | Fondo principal light mode, texto en dark |
+| Gris claro | `#F1F5F9` | Fondos secundarios light |
+| Gris oscuro | `#0F172A` | Fondo principal dark mode |
+| Éxito | `#16A34A` | Confirmaciones, ventas completadas |
+| Error | `#DC2626` | Errores, alertas críticas |
+| Advertencia | `#D97706` | Advertencias, estados pendientes |
+
+### Dark mode
+- Estrategia: `class` de Tailwind (`dark:` prefix).
+- Toggle persistente en `localStorage`.
+- Respeta `prefers-color-scheme` del sistema en primera visita.
+
+### Branding
+| Archivo fuente | Uso en la app |
+|---|---|
+| `BRAND/LOGO SVG.svg` | Logo en sidebar, topbar · copiado a `web/public/favicon.svg` |
+| `BRAND/SIPNATO-LOGO.ico` | Favicon fallback · copiado a `web/public/favicon.ico` |
+| `BRAND/SIPNATO LOGO.png` | Open Graph / Twitter meta tags · copiado a `web/public/og-image.png` |
+
+### Tipografía
+- Fuente: `Inter` (Google Fonts o bundleada con Fontsource).
+- Tamaños: escala de Tailwind estándar (base 16px).
+
+### Íconos
+- Biblioteca: **Lucide React** — minimalista, consistente, tree-shakeable.
+- Siempre invocar `/ui-ux-pro-max` antes de seleccionar íconos nuevos.
+
+---
+
+## 6. Seguridad — Decisiones Cerradas
+
+### 6.1 Autenticación
+| Decisión | Valor |
+|---|---|
+| Hash de contraseñas | `argon2id` con `{ memoryCost: 65536, timeCost: 3, parallelism: 4 }` |
+| Sesión — duración absoluta | **8 horas** |
+| Sesión — timeout de inactividad | **60 minutos** |
+| Almacenamiento de sesión | Cookie `HttpOnly` + `Secure` + `SameSite=Strict` · tabla `sessions` en BD |
+| Al cambiar contraseña | Invalidar **todas** las filas de `sessions` del usuario |
+| Recovery code | Generado con `crypto.randomBytes(16).toString('hex')` · mostrado UNA vez · almacenado hasheado con argon2id · invalidado al usarse (genera uno nuevo) |
+
+### 6.2 Print-bridge token
+- Generado con `crypto.randomBytes(32).toString('hex')` (256 bits de entropía).
+- Almacenado **hasheado** (argon2id) en la BD, en tabla `settings`.
+- Mostrado UNA sola vez en Configuración al generarlo.
+- WebSocket valida el token en el handshake (header `Authorization: Bearer <token>`).
+- El bridge solo puede recibir trabajos de impresión y enviar ACK — sin acceso a ningún dato de negocio.
+
+### 6.3 Endpoint de descarga de backup
+- Verificación de sesión activa **server-side** obligatoria antes de servir el archivo.
+- La ruta del archivo está **hardcodeada** en el servidor (`/app/data/backups/sipnato-latest.db`).
+- El endpoint **nunca** acepta parámetros del cliente para construir la ruta (previene path traversal · CWE-22).
+- Respuesta con header `Content-Disposition: attachment` — nunca inline.
+- Rate limit: máximo **5 descargas por hora** por sesión.
+
+### 6.4 Rate limiting (Fastify `@fastify/rate-limit`)
+| Endpoint | Límite |
+|---|---|
+| `POST /auth/login` | 5 intentos por IP cada 15 minutos |
+| `POST /auth/recover` | 3 intentos por IP cada 30 minutos |
+| `GET /api/settings/backup/download` | 5 descargas por hora por sesión |
+| WebSocket print-bridge | 3 reconexiones fallidas por minuto → blacklist temporal de IP |
+
+### 6.5 CORS
+- Configuración: `origin: ['https://<tu-subdominio>']` — **nunca `*`** en endpoints autenticados.
+- Configurar en Fastify con `@fastify/cors`.
+
+### 6.6 Headers de seguridad HTTP (en `Caddyfile`)
+```
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: strict-origin-when-cross-origin
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'
+```
+- Todos los endpoints de la API responden con `Cache-Control: no-store`.
+
+### 6.7 Soft deletes
+- Tablas `sales` y `expenses`: columna `deleted_at DATETIME NULL`.
+- Los registros financieros **nunca se borran permanentemente** — solo se marca `deleted_at`.
+- Las consultas normales filtran `WHERE deleted_at IS NULL`.
+
+### 6.8 Audit log
+- Tabla `audit_log` desde **Fase 1**.
+- Registra: ventas creadas/eliminadas, aperturas/cierres de caja, gastos, cambios en configuración, backups descargados, sesiones iniciadas/cerradas.
+- Campos: `id, action, entity_type, entity_id, payload_snapshot JSON, ip, user_agent, created_at`.
+- **Solo inserción** — nunca se modifica ni elimina.
+
+### 6.9 Validación de datos
+- Zod valida **forma, tipo, tamaño y rango** en cada endpoint antes del service layer.
+- Montos: solo `INTEGER` ≥ 0. Rechazar cualquier valor no entero.
+- Celular cliente: 8 dígitos (Costa Rica).
+- IMEI: 15 dígitos numéricos, validación con algoritmo de Luhn.
+- Campos de texto: límites máximos definidos (descripción venta: 500 chars, notas: 5000 chars, etc.).
+
+### 6.10 Manejo de errores
+- Errores internos → loguear con `pino` (nivel `error`) → responder al cliente con mensaje genérico `{ error: { code, message } }`.
+- **Nunca** stack traces ni detalles internos en respuestas al cliente (CWE-209).
+- Errores tipados del dominio en `server/src/lib/errors.ts` (ej. `CajaYaAbierta`, `SesionExpirada`).
+
+### 6.11 Observabilidad
+- Logging estructurado con `pino` → archivo rotado diariamente en `/app/logs/`.
+- Health check: `GET /health` → retorna estado de la BD, último backup, uptime.
+- Sin Sentry (decisión del usuario) — los logs de pino son la fuente de diagnóstico.
+
+---
+
+## 7. Convenciones de Código
+
+### Nomenclatura
+| Contexto | Convención | Ejemplo |
+|---|---|---|
+| Archivos de componentes | PascalCase | `SaleForm.tsx` |
+| Archivos de lógica/utils | camelCase | `apiClient.ts` |
+| Carpetas | kebab-case | `cash-register/` |
+| Variables y funciones | camelCase | `openCashRegister()` |
+| Tipos e interfaces | PascalCase | `SaleRecord` |
+| Constantes globales | SCREAMING_SNAKE_CASE | `MAX_LOGIN_ATTEMPTS` |
+| Tablas de BD | snake_case | `cash_registers` |
+| Columnas de BD | snake_case | `created_at` |
+
+### Comentarios
+- Solo cuando el **POR QUÉ** no es obvio (restricción oculta, invariante sutil, workaround).
+- No documentar QUÉ hace el código — los nombres lo hacen.
+- No referencias a tareas, issues o PRs en el código.
+
+### Estructura de un módulo backend
+```typescript
+// routes.ts  — solo define rutas y llama al service
+// service.ts — lógica de negocio, sin tocar la BD directamente
+// repository.ts — queries Drizzle, sin lógica de negocio
+```
+
+### Reglas de dinero
+- Los montos viajan como `number` (enteros) en toda la app.
+- El único lugar que formatea a `₡12 500` es `packages/shared/money.ts`.
+- **Nunca** `parseFloat` o división/multiplicación de montos en el servidor.
+
+### Transacciones SQLite
+- Toda operación que toca más de una tabla debe usar `db.transaction()`.
+- Especialmente: crear venta + incrementar consecutivo, crear cierre + snapshot.
+
+---
+
+## 8. Variables de Entorno
+
+Definidas en `.env` (nunca en el repositorio). Ver `.env.example` para estructura.
+
+| Variable | Descripción |
+|---|---|
+| `SESSION_SECRET` | Secret para firmar cookies de sesión (min 64 chars, random) |
+| `PRINT_BRIDGE_TOKEN_HASH` | Hash argon2id del token del puente de impresión |
+| `DATABASE_PATH` | Ruta absoluta al archivo SQLite (default: `/app/data/sipnato.db`) |
+| `BACKUP_PATH` | Ruta absoluta al directorio de backups (default: `/app/data/backups/`) |
+| `LOG_PATH` | Ruta absoluta al directorio de logs (default: `/app/logs/`) |
+| `PORT` | Puerto del servidor Fastify (default: `3000`) |
+| `ALLOWED_ORIGIN` | Origen CORS permitido (ej. `https://pos.mitaller.com`) |
+| `NODE_ENV` | `development` o `production` |
+
+---
+
+## 9. Estructura de Carpetas (Aprobada)
+
+Ver sección 7 del spec de diseño en `docs/superpowers/specs/2026-06-09-sipnato-pos-design.md`.
+La estructura está fijada y aprobada — no modificar sin actualizar este archivo.
+
+---
+
+## 10. Fuera de Alcance (Explícito y Definitivo)
+
+- Facturación electrónica de Hacienda (Costa Rica)
+- Inventario / catálogo de productos / control de stock
+- Multi-usuario, roles y permisos
+- Multi-moneda
+- Estados de workflow y abonos en boletas
+- Notificaciones automáticas a clientes (WhatsApp/SMS/correo)
+- Multi-sucursal
+- MFA / TOTP
+- Staging environment (sistema personal)
+
+---
+
+## 11. Historial de Actualizaciones
+
+| Fecha | Fase | Cambio |
+|---|---|---|
+| 2026-06-09 | Pre-dev | Creación inicial del CLAUDE.md tras entrevista de diseño y análisis de seguridad VibeCoder |
