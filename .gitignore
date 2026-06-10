@@ -10,3 +10,9 @@ build/
 backups/
 .DS_Store
 Thumbs.db
+
+# Datos en runtime — directorios trackeados via .gitkeep, contenido ignorado
+apps/server/data/*
+!apps/server/data/.gitkeep
+apps/server/logs/*
+!apps/server/logs/.gitkeep
