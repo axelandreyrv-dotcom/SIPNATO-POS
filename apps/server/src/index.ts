@@ -1,5 +1,8 @@
+import { runMigrations } from './db/client.js';
 import { buildApp } from './app.js';
 import { config } from './config.js';
+
+runMigrations();
 
 const app = buildApp();
 
