@@ -3,17 +3,21 @@
   "private": true,
   "version": "0.0.1",
   "scripts": {
-    "dev": "pnpm --filter @sipnato/web --filter @sipnato/server --parallel run dev",
+    "dev": "concurrently --kill-others -n server,web -c bgBlue.bold,bgGreen.bold \"pnpm run dev:server\" \"pnpm run dev:web\"",
+    "dev:server": "pnpm --filter @sipnato/server run dev",
+    "dev:web": "wait-on http://localhost:3000/health && pnpm --filter @sipnato/web run dev",
     "build": "pnpm -r run build",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "concurrently": "^9.0.0",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.0.0",
     "prettier": "^3.3.0",
     "typescript": "^5.5.0",
-    "typescript-eslint": "^8.0.0"
+    "typescript-eslint": "^8.0.0",
+    "wait-on": "^8.0.0"
   }
 }
