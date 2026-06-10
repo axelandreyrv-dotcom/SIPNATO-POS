@@ -1,8 +1,9 @@
-import { runMigrations } from './db/client.js';
+import { bootstrapDb, runMigrations } from './db/client.js';
 import { buildApp } from './app.js';
 import { config } from './config.js';
 
 runMigrations();
+await bootstrapDb();
 
 const app = buildApp();
 
