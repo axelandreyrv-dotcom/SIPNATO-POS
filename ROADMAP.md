@@ -2,7 +2,7 @@
 
 > Desarrollo por fases pequeñas y lógicas. Cada fase es atómica: una sola responsabilidad, verificable antes de avanzar.
 > Al completar cada fase: marcar `[x]`, anotar la fecha y actualizar `CLAUDE.md`.
-> Última actualización: 2026-06-09
+> Última actualización: 2026-06-10
 
 ---
 
@@ -11,7 +11,7 @@
 | Fase | Nombre | Estado |
 |---|---|---|
 | 0 | Monorepo & Tooling | ✅ COMPLETADA 2026-06-10 |
-| 0.5 | Spike de Impresión (validación de hardware) | ⬜ Pendiente |
+| 0.5 | Spike de Impresión (validación de hardware) | ⏭ Omitida provisionalmente — retomar en Fase 12 |
 | 1 | Schema de BD & Migraciones | ⬜ Pendiente |
 | 2 | Auth & Seguridad | ⬜ Pendiente |
 | 3 | Branding & Configuración Base | ⬜ Pendiente |
@@ -70,9 +70,9 @@
 - [ ] Documentar en el README del print-bridge: modelo, conexión, codificación y librería que funcionaron
 
 ### Criterio de completitud
-Un ticket de prueba sale impreso correctamente de la impresora física, con español legible y corte de papel. Si la impresora aún no está disponible, se valida contra el modelo Epson recomendado y se marca como provisional hasta tenerla.
+Un ticket de prueba sale impreso correctamente de la impresora física, con español legible y corte de papel.
 
-**Al completar:** documentar hallazgos en `CLAUDE.md` · marcar `[x]` aquí · proceder a Fase 1. *(Spike — sin `/grill-me`, no es backend de producción.)*
+**⏭ OMITIDA PROVISIONALMENTE 2026-06-10** — Impresora física no disponible. Se retoma al inicio de la Fase 12 antes de construir el print-bridge completo. *(Spike — sin `/grill-me`, no es backend de producción.)*
 
 ---
 
