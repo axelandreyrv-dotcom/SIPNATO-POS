@@ -12,7 +12,7 @@
 |---|---|---|
 | 0 | Monorepo & Tooling | ✅ COMPLETADA 2026-06-10 |
 | 0.5 | Spike de Impresión (validación de hardware) | ⏭ Omitida provisionalmente — retomar en Fase 12 |
-| 1 | Schema de BD & Migraciones | ⬜ Pendiente |
+| 1 | Schema de BD & Migraciones | ✅ COMPLETADA 2026-06-10 |
 | 2 | Auth & Seguridad | ⬜ Pendiente |
 | 3 | Branding & Configuración Base | ⬜ Pendiente |
 | 4 | Control de Caja | ⬜ Pendiente |
@@ -113,7 +113,7 @@ Un ticket de prueba sale impreso correctamente de la impresora física, con espa
 ### Criterio de completitud
 Migraciones corren desde cero sin errores. Tests de BD pasan. Schema completo verificado con Drizzle Studio.
 
-**Al completar:** invocar `/grill-me` · actualizar `CLAUDE.md` · marcar `[x]` aquí.
+**✅ COMPLETADA 2026-06-10** — 14 tablas Drizzle, WAL mode, FK ON, busy_timeout=5000. Auto-migración en startup. Seed de dev. 8 tests pasan (consecutivos, soft-delete, WAL, FK). `/health` incluye `{ db: "ok" }`. Invocar `/grill-me` antes de Fase 2.
 
 ---
 
