@@ -1,5 +1,5 @@
-import { createRoute, Outlet, redirect } from '@tanstack/react-router';
-import { ApiError } from '@/lib/api-client';
+import { createRoute, redirect } from '@tanstack/react-router';
+import { AppLayout } from '@/app/layout/AppLayout';
 import { authApi } from '@/features/auth/api';
 import { Route as rootRoute } from './__root';
 
@@ -14,5 +14,5 @@ export const Route = createRoute({
       throw redirect({ to: '/login' });
     }
   },
-  component: () => <Outlet />,
+  component: AppLayout,
 });

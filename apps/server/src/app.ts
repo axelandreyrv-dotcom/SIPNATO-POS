@@ -7,6 +7,7 @@ import { sqlite } from './db/client.js';
 import { startCleanupJobs } from './jobs/cleanup-sessions.js';
 import { registerSecurityHeaders } from './middleware/security-headers.js';
 import authRoutes from './modules/auth/routes.js';
+import settingsRoutes from './modules/settings/routes.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -43,6 +44,7 @@ export async function buildApp() {
 
   // ── Routes ─────────────────────────────────────────────────────────────────
   await app.register(authRoutes, { prefix: '/auth' });
+  await app.register(settingsRoutes, { prefix: '/api/settings' });
 
   // Health check — no auth, no rate limit (excluded via global 200/min default)
   app.get('/health', async () => {

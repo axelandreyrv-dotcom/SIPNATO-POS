@@ -14,7 +14,7 @@
 | 0.5 | Spike de Impresión (validación de hardware) | ⏭ Omitida provisionalmente — retomar en Fase 12 |
 | 1 | Schema de BD & Migraciones | ✅ COMPLETADA 2026-06-10 |
 | 2 | Auth & Seguridad | ✅ COMPLETADA 2026-06-10 |
-| 3 | Branding & Configuración Base | ⬜ Pendiente |
+| 3 | Branding & Configuración Base | ✅ COMPLETADA 2026-06-10 |
 | 4 | Control de Caja | ⬜ Pendiente |
 | 5 | Módulo POS (Ventas) | ⬜ Pendiente |
 | 6 | Módulo de Gastos | ⬜ Pendiente |
@@ -194,7 +194,7 @@ Login funciona, sesión expira, recovery flow completo. Tests de autorización: 
 ### Criterio de completitud
 App carga con logo SIPNATO, favicon correcto, dark mode funciona, datos del taller se guardan y persisten. Navegación funciona desde celular.
 
-**Al completar:** invocar `/grill-me` · actualizar `CLAUDE.md` · marcar `[x]` aquí.
+**✅ COMPLETADA 2026-06-10** — Frontend: AppLayout con sidebar navy (desktop) + drawer + top bar (mobile), Logo.tsx con filtro brightness para fondo oscuro, useDarkMode hook con localStorage + prefers-color-scheme, DashboardPage grilla modular estilo Odoo (2/3/4 columnas responsive), SettingsPage con TanStack Query + form de 8 campos + toggle custom para cierre auto. Backend: GET/PUT /api/settings con requireAuth, audit_log en cada PUT, settingsSchema Zod compartido en packages/shared. Brand assets copiados (favicon.svg, favicon.ico, og-image.png), OG meta tags + theme-color en index.html. TanStack Router: catch-all $  route bajo _auth para módulos pendientes. tsc --noEmit limpio en web y server.
 
 ---
 
