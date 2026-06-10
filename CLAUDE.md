@@ -290,7 +290,7 @@ Definidas en `.env` (nunca en el repositorio). Ver `.env.example` para estructur
 | `BACKUP_PATH` | Ruta absoluta al directorio de backups (default: `/app/data/backups/`) |
 | `LOG_PATH` | Ruta absoluta al directorio de logs (default: `/app/logs/`) |
 | `PORT` | Puerto del servidor Fastify (default: `3000`) |
-| `ALLOWED_ORIGIN` | Origen CORS permitido (ej. `https://pos.mitaller.com`) |
+| `ALLOWED_ORIGIN` | Origen CORS permitido — **`https://www.sipnato.com`** |
 | `NODE_ENV` | `development` o `production` |
 
 ---
@@ -321,3 +321,4 @@ La estructura está fijada y aprobada — no modificar sin actualizar este archi
 | Fecha | Fase | Cambio |
 |---|---|---|
 | 2026-06-09 | Pre-dev | Creación inicial del CLAUDE.md tras entrevista de diseño y análisis de seguridad VibeCoder |
+| 2026-06-09 | Pre-dev | Dominio de producción confirmado: `www.sipnato.com` · repositorio GitHub conectado |
