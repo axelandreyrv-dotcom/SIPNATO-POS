@@ -15,6 +15,13 @@
       "when": 1781099968867,
       "tag": "0001_even_maverick",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1781100676749,
+      "tag": "0002_cultured_thena",
+      "breakpoints": true
     }
   ]
 }

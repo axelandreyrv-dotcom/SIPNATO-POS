@@ -135,25 +135,32 @@ export const customers = sqliteTable(
 );
 
 // ─── boletas ──────────────────────────────────────────────────────────────────
-export const boletas = sqliteTable('boletas', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  customerId: integer('customer_id')
-    .notNull()
-    .references(() => customers.id),
-  consecutive: integer('consecutive').notNull(),
-  deviceModel: text('device_model').notNull(),
-  imei: text('imei'),
-  // Stored as plain text — this is the customer's device PIN, not a system secret.
-  // The UI must display a clear "not stored securely" notice.
-  unlockPassword: text('unlock_password'),
-  description: text('description').notNull(),
-  createdAt: text('created_at')
-    .notNull()
-    .default(sql`(datetime('now'))`),
-  updatedAt: text('updated_at')
-    .notNull()
-    .default(sql`(datetime('now'))`),
-});
+export const boletas = sqliteTable(
+  'boletas',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    customerId: integer('customer_id')
+      .notNull()
+      .references(() => customers.id),
+    consecutive: integer('consecutive').notNull(),
+    deviceModel: text('device_model').notNull(),
+    imei: text('imei'),
+    // Stored as plain text — this is the customer's device PIN, not a system secret.
+    // The UI must display a clear "not stored securely" notice.
+    unlockPassword: text('unlock_password'),
+    description: text('description').notNull(),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => ({
+    imeiIdx: index('boletas_imei_idx').on(t.imei),
+    consecutiveIdx: index('boletas_consecutive_idx').on(t.consecutive),
+  }),
+);
 
 // ─── quotes ───────────────────────────────────────────────────────────────────
 export const quotes = sqliteTable('quotes', {
