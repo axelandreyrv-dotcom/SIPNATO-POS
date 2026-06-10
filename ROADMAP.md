@@ -13,7 +13,7 @@
 | 0 | Monorepo & Tooling | ✅ COMPLETADA 2026-06-10 |
 | 0.5 | Spike de Impresión (validación de hardware) | ⏭ Omitida provisionalmente — retomar en Fase 12 |
 | 1 | Schema de BD & Migraciones | ✅ COMPLETADA 2026-06-10 |
-| 2 | Auth & Seguridad | ⬜ Pendiente |
+| 2 | Auth & Seguridad | ✅ COMPLETADA 2026-06-10 |
 | 3 | Branding & Configuración Base | ⬜ Pendiente |
 | 4 | Control de Caja | ⬜ Pendiente |
 | 5 | Módulo POS (Ventas) | ⬜ Pendiente |
@@ -154,7 +154,7 @@ Migraciones corren desde cero sin errores. Tests de BD pasan. Schema completo ve
 ### Criterio de completitud
 Login funciona, sesión expira, recovery flow completo. Tests de autorización: endpoints protegidos retornan 401 sin sesión y 403 con sesión inválida.
 
-**Al completar:** invocar `/grill-me` · actualizar `CLAUDE.md` · marcar `[x]` aquí.
+**✅ COMPLETADA 2026-06-10** — argon2id passwords + recovery codes, SHA-256 session tokens, cookie HttpOnly+Secure+SameSite=Strict, expiración 8h absoluta + 60min inactividad, rate limiting por ruta, CORS con ALLOWED_ORIGIN, Cache-Control: no-store global, break-glass script reset-admin.ts, cron daily cleanup de sesiones expiradas. `/grill-me` pasado: 4 gaps corregidos (COOKIE_NAME duplicado, SESSION_DURATION_MS duplicado, sessionId expuesto en /me, limpieza de sesiones). tsc --noEmit limpio, 8 tests pasan.
 
 ---
 
