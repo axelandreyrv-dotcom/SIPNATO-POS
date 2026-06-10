@@ -7,6 +7,16 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="description" content="SIPNATO POS — Sistema de punto de venta para taller de reparación" />
     <title>SIPNATO POS</title>
+    <!-- Prevent dark-mode flash before React mounts -->
+    <script>
+      (function () {
+        var stored = localStorage.getItem('sipnato-theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (stored === 'dark' || (!stored && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

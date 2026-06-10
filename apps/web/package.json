@@ -10,6 +10,7 @@
     "lint": "eslint src"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.2.8",
     "@sipnato/shared": "workspace:*",
     "@tanstack/react-query": "^5.56.0",
     "@tanstack/react-router": "^1.58.0",

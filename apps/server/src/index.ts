@@ -5,7 +5,7 @@ import { config } from './config.js';
 runMigrations();
 await bootstrapDb();
 
-const app = buildApp();
+const app = await buildApp();
 
 const start = async () => {
   try {

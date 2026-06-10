@@ -1,7 +1,7 @@
 # CLAUDE.md — Biblia del Proyecto SIPNATO POS
 
 > Este archivo es la fuente de verdad del proyecto. Se actualiza al finalizar cada fase.
-> Última actualización: 2026-06-10 · Fase actual: Fase 2 — Pendiente frontend auth · Fase 3 próxima
+> Última actualización: 2026-06-10 · Fase actual: Fase 3 — Branding & Configuración Base
 
 ---
 
@@ -39,6 +39,16 @@
 1. Para interfaces y componentes: invocar skills `/impeccable` + `/design-taste-frontend`.
 2. Para íconos: invocar skill `/ui-ux-pro-max` (íconos minimalistas, consistentes, escalables).
 3. Diseño estricto: azul ejecutivo + blanco, moderno, minimalista, dark mode nativo.
+4. **Estructura y patrones React:** invocar `/vercel-react-best-practices` + `/vercel-composition-patterns` al crear cualquier componente — hooks correctos, manejo de estado, composición limpia.
+5. **Animaciones y navegación:** invocar `/vercel-react-view-transitions` para transiciones fluidas al cambiar entre módulos del dashboard.
+6. **Excluido:** `/vercel-react-native-skills` — esta es una app web, no móvil.
+
+### 2.4.1 Arquitectura visual — Dashboard Modular tipo Odoo
+- La pantalla principal es una cuadrícula de módulos (POS, Reportes, Clientes, Caja, etc.).
+- Cada módulo = ícono Lucide 32px + nombre + clic directo a la función.
+- Personalidad de marca: **Modular · Intuitivo · Eficiente** (ver `PRODUCT.md`).
+- Referencia: interfaz de módulos de Odoo — cuadrícula limpia, íconos claros, sin submenús anidados.
+- `PRODUCT.md` y `DESIGN.md` son la fuente de verdad visual — leerlos antes de diseñar cualquier pantalla.
 
 ### 2.5 Regla de oro de seguridad
 > **Nunca confiar en el frontend. Todo control de acceso, validación y autorización vive en el servidor.**
@@ -353,4 +363,6 @@ La estructura está fijada y aprobada — no modificar sin actualizar este archi
 | 2026-06-10 | Fase 0 | `/grill-me` completado: 7 gaps encontrados y corregidos — `.gitignore` para `data/`+`logs/`, startup `wait-on` server-first, `.env.example` SESSION_SECRET comentado, `eslint-plugin-react-hooks` agregado, `noEmit: true` en tsconfig de web. Flags `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes` confirmados como permanentes. |
 | 2026-06-10 | Fase 0.5 | Spike de impresión **omitido provisionalmente** — impresora física no disponible. Se retoma en Fase 12 antes de construir el print-bridge. |
 | 2026-06-10 | Fase 1 | Schema Drizzle completo: 14 tablas, WAL mode, FK ON, busy_timeout=5000. Auto-migración en startup (`runMigrations()`). Seed de dev. 8 tests pasan. `/health` incluye estado de BD. |
+| 2026-06-10 | Pre-dev | Dashboard Modular tipo Odoo definido como arquitectura visual. Skills Vercel añadidos: `/vercel-react-best-practices`, `/vercel-composition-patterns`, `/vercel-react-view-transitions`. `PRODUCT.md` y `DESIGN.md` creados. |
 | 2026-06-10 | Fase 2 | Backend auth completo: argon2id passwords+recovery codes, SHA-256 session tokens, cookie HttpOnly+Secure+SameSite=Strict, expiración 8h+60min inactividad, rate limiting por ruta, CORS, Cache-Control:no-store global, break-glass `reset-admin.ts`, cron daily cleanup sesiones expiradas. `/grill-me`: 4 gaps corregidos (COOKIE_NAME y SESSION_DURATION_MS unificados en constantes exportadas, sessionId removido de /me, limpieza de sesiones con node-cron). Nuevos archivos: `src/lib/constants.ts`, `src/jobs/cleanup-sessions.ts`. `@types/node-cron` añadido. tsc limpio. |
+| 2026-06-10 | Fase 2 | Frontend auth completo: TanStack Router code-based (login/setup/recover + guard `_auth`), AuthShell split-screen (400px navy + flex-1 form), dark mode flash-free (inline script en `<head>`), Inter Variable (`@fontsource-variable/inter`), OKLCH color tokens en Tailwind v4 `@theme`, resiliencia de red en todos los `beforeLoad` (catch-all → redirect). `w-full` añadido al AuthShell root. tsc --noEmit limpio en web. Fase 2 ✅ COMPLETA. |

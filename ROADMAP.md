@@ -154,7 +154,7 @@ Migraciones corren desde cero sin errores. Tests de BD pasan. Schema completo ve
 ### Criterio de completitud
 Login funciona, sesión expira, recovery flow completo. Tests de autorización: endpoints protegidos retornan 401 sin sesión y 403 con sesión inválida.
 
-**✅ COMPLETADA 2026-06-10** — argon2id passwords + recovery codes, SHA-256 session tokens, cookie HttpOnly+Secure+SameSite=Strict, expiración 8h absoluta + 60min inactividad, rate limiting por ruta, CORS con ALLOWED_ORIGIN, Cache-Control: no-store global, break-glass script reset-admin.ts, cron daily cleanup de sesiones expiradas. `/grill-me` pasado: 4 gaps corregidos (COOKIE_NAME duplicado, SESSION_DURATION_MS duplicado, sessionId expuesto en /me, limpieza de sesiones). tsc --noEmit limpio, 8 tests pasan.
+**✅ COMPLETADA 2026-06-10** — Backend: argon2id passwords + recovery codes, SHA-256 session tokens, cookie HttpOnly+Secure+SameSite=Strict, expiración 8h absoluta + 60min inactividad, rate limiting por ruta, CORS con ALLOWED_ORIGIN, Cache-Control: no-store global, break-glass script reset-admin.ts, cron daily cleanup de sesiones expiradas. `/grill-me` pasado: 4 gaps corregidos (COOKIE_NAME duplicado, SESSION_DURATION_MS duplicado, sessionId expuesto en /me, limpieza de sesiones). Frontend: TanStack Router con guard de rutas, páginas Login/Setup/Recover con AuthShell split-screen, dark mode flash-free, Inter Variable, OKLCH tokens Tailwind v4. tsc --noEmit limpio en ambos workspaces, 8 tests pasan.
 
 ---
 

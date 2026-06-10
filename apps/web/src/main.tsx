@@ -1,16 +1,32 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { createRouter, RouterProvider } from '@tanstack/react-router';
 import './styles/globals.css';
 
-function App() {
-  return (
-    <div className="min-h-screen bg-white dark:bg-brand-gray-dark flex items-center justify-center">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold text-brand-navy dark:text-white">SIPNATO POS</h1>
-        <p className="text-slate-500 dark:text-slate-400">Sistema iniciando…</p>
-      </div>
-    </div>
-  );
+// Route imports
+import { Route as rootRoute } from './routes/__root';
+import { Route as authRoute } from './routes/_auth';
+import { Route as dashboardRoute } from './routes/_auth/dashboard';
+import { Route as loginRoute } from './routes/login';
+import { Route as setupRoute } from './routes/setup';
+import { Route as recoverRoute } from './routes/recover';
+
+const routeTree = rootRoute.addChildren([
+  loginRoute,
+  setupRoute,
+  recoverRoute,
+  authRoute.addChildren([dashboardRoute]),
+]);
+
+const router = createRouter({
+  routeTree,
+  defaultPreload: 'intent',
+});
+
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router;
+  }
 }
 
 const rootEl = document.getElementById('root');
@@ -18,6 +34,6 @@ if (!rootEl) throw new Error('#root no encontrado en el DOM');
 
 createRoot(rootEl).render(
   <StrictMode>
-    <App />
+    <RouterProvider router={router} />
   </StrictMode>,
 );

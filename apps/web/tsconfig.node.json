@@ -3,7 +3,8 @@
   "compilerOptions": {
     "lib": ["ES2022"],
     "moduleResolution": "bundler",
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "composite": true
   },
   "include": ["vite.config.ts"]
 }
