@@ -11,6 +11,7 @@
 | Fase | Nombre | Estado |
 |---|---|---|
 | 0 | Monorepo & Tooling | ⬜ Pendiente |
+| 0.5 | Spike de Impresión (validación de hardware) | ⬜ Pendiente |
 | 1 | Schema de BD & Migraciones | ⬜ Pendiente |
 | 2 | Auth & Seguridad | ⬜ Pendiente |
 | 3 | Branding & Configuración Base | ⬜ Pendiente |
@@ -55,6 +56,26 @@
 
 ---
 
+## Fase 0.5 — Spike de Impresión (Validación de Hardware)
+
+**Objetivo:** validar que podemos imprimir un ticket real en la Epson TM-T20/T88 vía ESC/POS desde Node ANTES de construir 11 fases sobre esa suposición. Es un spike de validación — código desechable, no producción.
+
+> **Por qué existe esta fase:** el puente de impresión (Fase 12) es la pieza más frágil del sistema y depende de hardware físico. Descubrir un problema de compatibilidad ahora cuesta una tarde; descubrirlo en la Fase 12 cuesta semanas de trabajo construidas sobre arena.
+
+### Tareas
+- [ ] Confirmar conexión de la impresora (USB / red) y modelo exacto
+- [ ] Prueba mínima en Node con la librería ESC/POS elegida (`node-escpos` + `escpos-usb`): imprimir un ticket de ejemplo de 80mm con encabezado, líneas, total y corte de papel
+- [ ] Validar caracteres en español (tildes, ñ, símbolo ₡) — codificación correcta (CP858/PC858 u otra del modelo)
+- [ ] Validar el comando de corte de papel (y apertura de cajón si aplica)
+- [ ] Documentar en el README del print-bridge: modelo, conexión, codificación y librería que funcionaron
+
+### Criterio de completitud
+Un ticket de prueba sale impreso correctamente de la impresora física, con español legible y corte de papel. Si la impresora aún no está disponible, se valida contra el modelo Epson recomendado y se marca como provisional hasta tenerla.
+
+**Al completar:** documentar hallazgos en `CLAUDE.md` · marcar `[x]` aquí · proceder a Fase 1. *(Spike — sin `/grill-me`, no es backend de producción.)*
+
+---
+
 ## Fase 1 — Schema de BD & Migraciones
 
 **Objetivo:** todas las tablas definidas en Drizzle, migradas y probadas con seed de datos.
@@ -87,6 +108,7 @@
 - [ ] Columna `token_hash` en `sessions` (no el token raw)
 - [ ] WAL mode activado y verificado (`PRAGMA journal_mode` retorna `wal`)
 - [ ] Toda columna de monto es `INTEGER NOT NULL` — ninguna `REAL` o `TEXT`
+- [ ] Timestamps almacenados en UTC (regla de zona horaria · CLAUDE.md sección 7)
 
 ### Criterio de completitud
 Migraciones corren desde cero sin errores. Tests de BD pasan. Schema completo verificado con Drizzle Studio.
@@ -110,6 +132,7 @@ Migraciones corren desde cero sin errores. Tests de BD pasan. Schema completo ve
 - [ ] `POST /auth/logout` — revoca sesión activa
 - [ ] `POST /auth/recover` — verifica recovery code, actualiza contraseña, genera nuevo recovery code, revoca TODAS las sesiones
 - [ ] `GET /auth/me` — retorna estado de sesión (sin datos sensibles)
+- [ ] `apps/server/scripts/reset-admin.ts` — script break-glass (CLAUDE.md sección 6.12): resetea contraseña del admin vía SSH/local, genera contraseña temporal + nuevo recovery code, invalida todas las sesiones
 
 ### Tareas Frontend
 - [ ] Página de Setup (primera ejecución) — muestra recovery code con advertencia de guardar, toggle ver/ocultar
@@ -190,6 +213,7 @@ App carga con logo SIPNATO, favicon correcto, dark mode funciona, datos del tall
 - [ ] `POST /api/cash-registers/open` es idempotente — no puede crear dos cajas abiertas (constraint en BD)
 - [ ] Job de cierre automático registra en `audit_log`
 - [ ] El snapshot del cierre es inmutable — se guarda en la fila, no se recalcula
+- [ ] El cron usa la opción de timezone `America/Costa_Rica` explícitamente — no la TZ del contenedor (UTC)
 
 ### Criterio de completitud
 Apertura, cierre manual y cierre automático funcionan. Test de idempotencia: dos llamadas a open con caja ya abierta retornan error claro.
@@ -352,6 +376,7 @@ CRUD completo de notas funciona con actualización en tiempo real en la UI.
 - [ ] Parámetros de filtro de fecha validados con zod (fechas válidas, rango máximo razonable ej. 1 año)
 - [ ] Queries con soft-delete filtrado (`WHERE deleted_at IS NULL`)
 - [ ] Paginación obligatoria — nunca retornar todos los registros sin límite
+- [ ] Límites de fecha (hoy/semana/mes) computados en `America/Costa_Rica`, no en UTC (CLAUDE.md sección 7)
 
 ### Criterio de completitud
 Reporte muestra datos correctos para el período seleccionado, coincide con los cierres de caja del mismo período.

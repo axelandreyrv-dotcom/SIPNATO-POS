@@ -82,6 +82,8 @@
 | ws | Cliente WebSocket con reconexión |
 | node-escpos / escpos-usb | Comunicación ESC/POS con ticketera 80mm |
 
+> **Impresora objetivo:** Epson TM-T20 / TM-T88 (ESC/POS estándar, soporte impecable en Node). Validada con un spike temprano (Fase 0.5) antes de construir el módulo completo en la Fase 12. Codificación a verificar: CP858/PC858 para tildes, ñ y el símbolo ₡.
+
 ### `packages/shared` — Contrato común
 | Contenido | Propósito |
 |---|---|
@@ -239,6 +241,11 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 - Health check: `GET /health` → retorna estado de la BD, último backup, uptime.
 - Sin Sentry (decisión del usuario) — los logs de pino son la fuente de diagnóstico.
 
+### 6.12 Break-glass (recuperación de emergencia)
+- **Riesgo aceptado:** un solo admin + recovery code significa que si se pierden ambos, el sistema queda bloqueado — sin reset por email ni segundo usuario.
+- **Mitigación:** script `apps/server/scripts/reset-admin.ts`, ejecutable por SSH directamente en el VPS, que resetea la contraseña del admin en la BD (genera contraseña temporal + nuevo recovery code, e invalida todas las sesiones). Construido en la Fase 2.
+- El script **no es un endpoint** — solo corre con acceso local al servidor, protegido por el acceso SSH por clave. Esa es la red de seguridad ante un bloqueo total.
+
 ---
 
 ## 7. Convenciones de Código
@@ -271,6 +278,12 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 - Los montos viajan como `number` (enteros) en toda la app.
 - El único lugar que formatea a `₡12 500` es `packages/shared/money.ts`.
 - **Nunca** `parseFloat` o división/multiplicación de montos en el servidor.
+
+### Reglas de fecha y hora
+- **Todos los timestamps se almacenan en UTC** en la BD.
+- **Todos los límites de día/semana/mes** (reportes, "ventas de hoy" por fecha) y el **cron de cierre automático** se computan en `America/Costa_Rica`.
+- El corte de caja agrupa ventas por `cash_register_id` (FK), **no por fecha** — inmune al problema de zona horaria.
+- El contenedor Docker corre en UTC; la conversión a hora de CR ocurre en la capa de lógica, nunca se asume la TZ del sistema operativo.
 
 ### Transacciones SQLite
 - Toda operación que toca más de una tabla debe usar `db.transaction()`.
@@ -322,3 +335,4 @@ La estructura está fijada y aprobada — no modificar sin actualizar este archi
 |---|---|---|
 | 2026-06-09 | Pre-dev | Creación inicial del CLAUDE.md tras entrevista de diseño y análisis de seguridad VibeCoder |
 | 2026-06-09 | Pre-dev | Dominio de producción confirmado: `www.sipnato.com` · repositorio GitHub conectado |
+| 2026-06-09 | Pre-dev | Análisis Opus: integradas regla de zona horaria (sec. 7), break-glass (sec. 6.12 → Fase 2), spike de impresión (Fase 0.5). Impresora objetivo: Epson TM-T20/T88 |
