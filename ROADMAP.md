@@ -164,12 +164,15 @@ Login funciona, sesión expira, recovery flow completo. Tests de autorización: 
 
 ### Tareas Frontend
 - [ ] Copiar assets de `BRAND/` a `apps/web/public/` (favicon.ico, favicon.svg, og-image.png)
-- [ ] Configurar `index.html`: `<link rel="icon">` con SVG + ICO fallback, meta OG
+- [ ] Configurar `index.html`: `<link rel="icon">` con SVG + ICO fallback, meta OG + `<meta name="viewport">`
 - [ ] Componente `Logo.tsx` usando `favicon.svg`
 - [ ] Implementar paleta azul ejecutivo en `tailwind.config.ts` (ver CLAUDE.md sección 5)
-- [ ] Layout principal: Sidebar con logo + navegación + toggle dark mode
+- [ ] Layout principal responsivo:
+  - Desktop (`sm` y superior): Sidebar fijo izquierda con logo + navegación
+  - Mobile (< `sm`): Bottom navigation bar o menú hamburguesa con drawer lateral
 - [ ] Toggle dark mode persistente en `localStorage`, respeta `prefers-color-scheme` en primera visita
 - [ ] Fuente Inter integrada
+- [ ] Verificar navegación y consulta de boletas desde viewport 390px (iPhone)
 
 ### Tareas Backend
 - [ ] `GET /api/settings` — retorna configuración del taller
@@ -183,8 +186,13 @@ Login funciona, sesión expira, recovery flow completo. Tests de autorización: 
 - [ ] `PUT /api/settings` registra en `audit_log` con snapshot del cambio
 - [ ] Content-Security-Policy en Caddyfile permite `font-src 'self'` para Inter si está bundleada
 
+### Checklist mobile (Fase 3)
+- [ ] `<meta name="viewport" content="width=device-width, initial-scale=1">` en `index.html`
+- [ ] Layout no rompe en 390px — probado en DevTools mobile view
+- [ ] Touch targets ≥ 44×44px en todos los controles de navegación
+
 ### Criterio de completitud
-App carga con logo SIPNATO, favicon correcto, dark mode funciona, datos del taller se guardan y persisten.
+App carga con logo SIPNATO, favicon correcto, dark mode funciona, datos del taller se guardan y persisten. Navegación funciona desde celular.
 
 **Al completar:** invocar `/grill-me` · actualizar `CLAUDE.md` · marcar `[x]` aquí.
 

@@ -143,6 +143,14 @@ Agregar un módulo nuevo = crear esas carpetas. **Nada existente se modifica.**
 | Error | `#DC2626` | Errores, alertas críticas |
 | Advertencia | `#D97706` | Advertencias, estados pendientes |
 
+### Diseño responsivo (mobile-first)
+- La app debe ser completamente usable desde el celular del dueño (búsqueda de boletas, consulta de clientes, reportes).
+- Layout adaptativo: sidebar en desktop → menú hamburguesa / bottom navigation en mobile.
+- Todos los módulos de consulta (boletas, clientes, reportes, historial de caja) deben funcionar correctamente en pantalla de 390px de ancho.
+- Formularios de captura (POS, gastos) son secundarios en mobile — priorizamos lectura/consulta.
+- Touch targets mínimos de 44×44px (directriz Apple HIG).
+- Breakpoints Tailwind: `sm` (640px) como umbral principal desktop/mobile.
+
 ### Dark mode
 - Estrategia: `class` de Tailwind (`dark:` prefix).
 - Toggle persistente en `localStorage`.
@@ -336,3 +344,4 @@ La estructura está fijada y aprobada — no modificar sin actualizar este archi
 | 2026-06-09 | Pre-dev | Creación inicial del CLAUDE.md tras entrevista de diseño y análisis de seguridad VibeCoder |
 | 2026-06-09 | Pre-dev | Dominio de producción confirmado: `www.sipnato.com` · repositorio GitHub conectado |
 | 2026-06-09 | Pre-dev | Análisis Opus: integradas regla de zona horaria (sec. 7), break-glass (sec. 6.12 → Fase 2), spike de impresión (Fase 0.5). Impresora objetivo: Epson TM-T20/T88 |
+| 2026-06-10 | Pre-dev | Requisito mobile-responsive añadido (sec. 5): consulta de boletas/clientes/reportes desde celular. Layout adaptativo sidebar → hamburguesa/bottom nav. Carpeta `apps/server/scripts/` creada para break-glass. |
