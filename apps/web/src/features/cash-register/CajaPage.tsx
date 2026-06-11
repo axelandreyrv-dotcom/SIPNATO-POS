@@ -36,8 +36,11 @@ function fmtTime(iso: string) {
 const inputCls =
   'h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted';
 
-const btnPrimary =
-  'flex flex-1 h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-blue text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
+const btnBase =
+  'flex flex-1 h-9 items-center justify-center gap-1.5 rounded-lg text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
+
+const btnPrimary = btnBase + ' bg-brand-blue';
+const btnDanger  = btnBase + ' bg-brand-error';
 
 const btnSecondary =
   'flex flex-1 h-9 items-center justify-center rounded-lg border border-border text-sm text-text-secondary transition-colors hover:bg-surface-bg';
@@ -211,7 +214,7 @@ function CloseModal({
           type="button"
           disabled={isLoading}
           onClick={onConfirm}
-          className={btnPrimary.replace('bg-brand-blue', 'bg-brand-error')}
+          className={btnDanger}
         >
           {isLoading && <Loader2 size={14} className="animate-spin" />}
           Confirmar cierre

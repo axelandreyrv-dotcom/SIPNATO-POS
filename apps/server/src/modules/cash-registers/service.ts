@@ -1,11 +1,10 @@
+import { eq } from 'drizzle-orm';
 import { db } from '../../db/client.js';
-import { auditLog } from '../../db/schema.js';
+import { auditLog, cashRegisters } from '../../db/schema.js';
 import { CajaNoAbierta, CajaYaAbierta } from '../../lib/errors.js';
 import type { CashRegisterCurrent, CashRegisterList, CashRegisterTotals } from '@sipnato/shared';
 import {
-  closeCashRegisterRow,
   computeRunningTotals,
-  createCashRegister,
   findCashRegisterById,
   findOpenRegister,
   listCashRegistersRows,
@@ -24,18 +23,29 @@ export function openCashRegister(
   if (existing) throw new CajaYaAbierta();
 
   const openedAt = new Date().toISOString();
-  const id = createCashRegister(openingAmount, openedAt);
 
-  db.insert(auditLog)
-    .values({
+  // Transaction ensures the register row and audit entry are created atomically.
+  // If the process crashes after INSERT cash_registers but before INSERT audit_log,
+  // both writes are rolled back — no orphaned register without an audit trail.
+  const id: number = db.transaction((tx) => {
+    const row = tx
+      .insert(cashRegisters)
+      .values({ openingAmount, openedAt })
+      .returning({ id: cashRegisters.id })
+      .get();
+    if (!row) throw new Error('Failed to create cash register');
+
+    tx.insert(auditLog).values({
       action: 'CASH_REGISTER_OPENED',
       entityType: 'cash_register',
-      entityId: String(id),
+      entityId: String(row.id),
       payloadSnapshot: JSON.stringify({ openingAmount }),
       ip: meta.ip,
       userAgent: meta.userAgent,
-    })
-    .run();
+    }).run();
+
+    return row.id;
+  });
 
   return {
     id,
@@ -53,21 +63,35 @@ export function closeCashRegister(
   const register = findOpenRegister();
   if (!register) throw new CajaNoAbierta();
 
+  // Compute totals outside the transaction (read-only, no side effects).
   const totals = computeRunningTotals(register.id);
   const closedAt = closedAtOverride ?? new Date().toISOString();
 
-  closeCashRegisterRow(register.id, closedAt, closeType, totals);
+  // Transaction ensures the snapshot write and audit entry are atomic.
+  db.transaction((tx) => {
+    tx.update(cashRegisters)
+      .set({
+        closedAt,
+        closeType,
+        totalSalesCash: totals.salesEfectivo,
+        totalSalesCard: totals.salesTarjeta,
+        totalSalesTransfer: totals.salesTransferencia,
+        totalSalesSinpe: totals.salesSinpe,
+        totalExpenses: totals.totalExpenses,
+        netBalance: totals.netBalance,
+      })
+      .where(eq(cashRegisters.id, register.id))
+      .run();
 
-  db.insert(auditLog)
-    .values({
+    tx.insert(auditLog).values({
       action: 'CASH_REGISTER_CLOSED',
       entityType: 'cash_register',
       entityId: String(register.id),
       payloadSnapshot: JSON.stringify({ closeType, totals }),
       ip: meta.ip,
       userAgent: meta.userAgent,
-    })
-    .run();
+    }).run();
+  });
 
   return totals;
 }
