@@ -18,7 +18,7 @@
 | 4 | Control de Caja | ✅ COMPLETADA 2026-06-10 |
 | 5 | Módulo POS (Ventas) | ✅ COMPLETADA 2026-06-10 |
 | 6 | Módulo de Gastos | ✅ COMPLETADA 2026-06-10 |
-| 7 | Base de Datos de Clientes & Boletas | ⬜ Pendiente |
+| 7 | Base de Datos de Clientes & Boletas | ✅ COMPLETADA 2026-06-10 |
 | 8 | Cotizaciones | ⬜ Pendiente |
 | 9 | Notas Internas | ⬜ Pendiente |
 | 10 | Reporte de Ventas | ⬜ Pendiente |
@@ -310,7 +310,7 @@ Gastos se registran y el balance neto se calcula correctamente.
 ### Criterio de completitud
 Boleta creada, cliente guardado, autocompletado funciona en segunda visita del mismo cliente.
 
-**Al completar:** invocar `/grill-me` · actualizar `CLAUDE.md` · marcar `[x]` aquí.
+**✅ COMPLETADA 2026-06-10** — Shared: `schemas/customer.ts` + `schemas/boleta.ts` (validateImei con Luhn, createBoletaSchema con validación IMEI 15 dígitos, phone 8 dígitos CR, idNumber alfanumérico). Backend: `modules/customers/` (búsqueda LIKE por nombre/phone/idNumber, paginada; GET /:id con historial de boletas) + `modules/boletas/` (find-or-create customer por phone en transacción, consecutivo del counter `boleta`, JOIN customers en listado/detalle, búsqueda multi-campo). Frontend: BoletasPage (búsqueda + lista expandible), NuevoBoletaPage (autocomplete de cliente por celular, advertencia contraseña plain text, validación IMEI en tiempo real), CustomersPage (búsqueda + historial lazy). 3 rutas: /boletas, /nueva-boleta, /clientes. tsc --noEmit limpio en ambos workspaces. `/grill-me` pendiente.
 
 ---
 

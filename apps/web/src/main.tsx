@@ -6,9 +6,12 @@ import './styles/globals.css';
 // Route imports
 import { Route as rootRoute } from './routes/__root';
 import { Route as authRoute } from './routes/_auth';
+import { Route as boletasRoute } from './routes/_auth/boletas';
 import { Route as cajaRoute } from './routes/_auth/caja';
+import { Route as clientesRoute } from './routes/_auth/clientes';
 import { Route as dashboardRoute } from './routes/_auth/dashboard';
 import { Route as gastosRoute } from './routes/_auth/gastos';
+import { Route as nuevaBoletaRoute } from './routes/_auth/nueva-boleta';
 import { Route as posRoute } from './routes/_auth/pos';
 import { Route as settingsRoute } from './routes/_auth/settings';
 import { Route as notFoundRoute } from './routes/_auth/$';
@@ -20,7 +23,17 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   setupRoute,
   recoverRoute,
-  authRoute.addChildren([cajaRoute, dashboardRoute, gastosRoute, posRoute, settingsRoute, notFoundRoute]),
+  authRoute.addChildren([
+    boletasRoute,
+    cajaRoute,
+    clientesRoute,
+    dashboardRoute,
+    gastosRoute,
+    nuevaBoletaRoute,
+    posRoute,
+    settingsRoute,
+    notFoundRoute,
+  ]),
 ]);
 
 const router = createRouter({
