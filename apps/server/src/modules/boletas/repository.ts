@@ -7,8 +7,6 @@ import type {
   BoletaWithCustomer,
   CreateBoletaInput,
 } from '@sipnato/shared';
-import { createCustomerRow, findCustomerByPhone } from '../customers/repository.js';
-
 function mapBoleta(r: typeof boletas.$inferSelect): Boleta {
   return {
     id: r.id,
@@ -215,4 +213,3 @@ export function listBoletasRows(q: string, page: number, limit: number): BoletaL
   };
 }
 
-export { findCustomerByPhone, createCustomerRow };
