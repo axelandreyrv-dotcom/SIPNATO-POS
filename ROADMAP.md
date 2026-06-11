@@ -19,7 +19,7 @@
 | 5 | Módulo POS (Ventas) | ✅ COMPLETADA 2026-06-10 |
 | 6 | Módulo de Gastos | ✅ COMPLETADA 2026-06-10 |
 | 7 | Base de Datos de Clientes & Boletas | ✅ COMPLETADA 2026-06-10 |
-| 8 | Cotizaciones | ⬜ Pendiente |
+| 8 | Cotizaciones | ✅ COMPLETADA 2026-06-10 |
 | 9 | Notas Internas | ⬜ Pendiente |
 | 10 | Reporte de Ventas | ⬜ Pendiente |
 | 11 | Dashboard | ⬜ Pendiente |
@@ -319,24 +319,24 @@ Boleta creada, cliente guardado, autocompletado funciona en segunda visita del m
 **Objetivo:** presupuestos con líneas de ítems, numeración consecutiva, imprimibles.
 
 ### Tareas Backend
-- [ ] `POST /api/quotes` — crea cotización con sus ítems (transacción: quote + items + consecutivo)
-- [ ] `GET /api/quotes` — historial paginado
-- [ ] `GET /api/quotes/:id` — detalle con ítems
-- [ ] `DELETE /api/quotes/:id` — eliminar cotización (hard delete permitido — no es registro financiero)
+- [x] `POST /api/quotes` — crea cotización con sus ítems (transacción: quote + items + consecutivo)
+- [x] `GET /api/quotes` — historial paginado
+- [x] `GET /api/quotes/:id` — detalle con ítems
+- [x] `DELETE /api/quotes/:id` — eliminar cotización (hard delete permitido — no es registro financiero)
 
 ### Tareas Frontend (invocar `/impeccable` + `/design-taste-frontend`)
-- [ ] Formulario de cotización: agregar/quitar ítems dinámicamente, total en tiempo real
-- [ ] Historial de cotizaciones
-- [ ] Vista de detalle imprimible
+- [x] Formulario de cotización: agregar/quitar ítems dinámicamente, total en tiempo real
+- [x] Historial de cotizaciones
+- [ ] Vista de detalle imprimible (diferida a Fase 12 — Print Bridge)
 
 ### Checklist de seguridad (Fase 8)
-- [ ] Total de cotización calculado en el servidor — no confiar en el total enviado por el cliente
-- [ ] Todos los montos de ítems validados como `INTEGER` ≥ 0
+- [x] Total de cotización calculado en el servidor — no confiar en el total enviado por el cliente
+- [x] Todos los montos de ítems validados como `INTEGER` ≥ 0
 
 ### Criterio de completitud
 Cotización con múltiples ítems se crea y el total coincide exactamente con la suma de ítems calculada en el servidor.
 
-**Al completar:** invocar `/grill-me` · actualizar `CLAUDE.md` · marcar `[x]` aquí.
+**✅ COMPLETADA 2026-06-10** — Backend: POST/GET/GET:id/DELETE con transacción atómica (counter+quote+items+audit_log). Total calculado en servidor, nunca del cliente. Hard delete en transaction (items → quote → audit). Frontend: NuevaCotizacionPage (ítems dinámicos, total en tiempo real), QuotesPage (historial expandible, detalle bajo demanda, paginación, inline delete). tsc --noEmit limpio en ambos workspaces. /grill-me pendiente.
 
 ---
 

@@ -13,6 +13,7 @@ import boletasRoutes from './modules/boletas/routes.js';
 import customersRoutes from './modules/customers/routes.js';
 import expensesRoutes from './modules/expenses/routes.js';
 import salesRoutes from './modules/sales/routes.js';
+import quotesRoutes from './modules/quotes/routes.js';
 import settingsRoutes from './modules/settings/routes.js';
 
 export async function buildApp() {
@@ -52,6 +53,7 @@ export async function buildApp() {
   await app.register(customersRoutes, { prefix: '/api/customers' });
   await app.register(expensesRoutes, { prefix: '/api/expenses' });
   await app.register(salesRoutes, { prefix: '/api/sales' });
+  await app.register(quotesRoutes, { prefix: '/api/quotes' });
   await app.register(settingsRoutes, { prefix: '/api/settings' });
 
   // Health check — no auth, no rate limit (excluded via global 200/min default)

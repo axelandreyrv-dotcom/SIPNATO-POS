@@ -5,4 +5,5 @@ export * from './schemas/cash-register.js';
 export * from './schemas/customer.js';
 export * from './schemas/expense.js';
 export * from './schemas/sale.js';
+export * from './schemas/quote.js';
 export * from './schemas/settings.js';

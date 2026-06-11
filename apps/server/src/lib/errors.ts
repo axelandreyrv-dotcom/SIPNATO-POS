@@ -74,3 +74,9 @@ export class BoletaNoEncontrada extends AppError {
     super('BOLETA_NO_ENCONTRADA', 'Boleta no encontrada', 404);
   }
 }
+
+export class CotizacionNoEncontrada extends AppError {
+  constructor() {
+    super('COTIZACION_NO_ENCONTRADA', 'Cotización no encontrada', 404);
+  }
+}
