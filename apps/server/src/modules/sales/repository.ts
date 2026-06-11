@@ -25,7 +25,8 @@ export function createSaleRow(
       .returning({ newValue: counters.currentValue })
       .get();
 
-    const consecutive = counter?.newValue ?? 1;
+    if (!counter) throw new Error('Counter row for sale is missing — run bootstrapDb');
+    const consecutive = counter.newValue;
 
     const row = tx
       .insert(sales)
