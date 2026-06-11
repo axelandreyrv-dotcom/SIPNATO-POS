@@ -17,7 +17,7 @@
 | 3 | Branding & Configuración Base | ✅ COMPLETADA 2026-06-10 |
 | 4 | Control de Caja | ✅ COMPLETADA 2026-06-10 |
 | 5 | Módulo POS (Ventas) | ✅ COMPLETADA 2026-06-10 |
-| 6 | Módulo de Gastos | ⬜ Pendiente |
+| 6 | Módulo de Gastos | ✅ COMPLETADA 2026-06-10 |
 | 7 | Base de Datos de Clientes & Boletas | ⬜ Pendiente |
 | 8 | Cotizaciones | ⬜ Pendiente |
 | 9 | Notas Internas | ⬜ Pendiente |
@@ -281,7 +281,7 @@ Venta completa en menos de 5 teclas. Calculadora de vuelto funciona correctament
 ### Criterio de completitud
 Gastos se registran y el balance neto se calcula correctamente.
 
-**Al completar:** invocar `/grill-me` · actualizar `CLAUDE.md` · marcar `[x]` aquí.
+**✅ COMPLETADA 2026-06-10** — Backend: POST /api/expenses (validado con Zod, caja verificada, audit_log), DELETE /:id (soft-delete + audit_log, verifica pertenencia a caja activa), GET / (lista gastos + total de la caja activa). Frontend: ExpensesPage con formulario descripción+monto, balance cards (Ingresos/Gastos/Balance neto) cuando hay caja abierta, lista con eliminación inline. Route `/gastos` registrada. tsc --noEmit limpio en ambos workspaces. `/grill-me` pendiente.
 
 ---
 

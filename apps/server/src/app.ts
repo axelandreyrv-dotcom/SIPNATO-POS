@@ -9,6 +9,7 @@ import { startCleanupJobs } from './jobs/cleanup-sessions.js';
 import { registerSecurityHeaders } from './middleware/security-headers.js';
 import authRoutes from './modules/auth/routes.js';
 import cashRegisterRoutes from './modules/cash-registers/routes.js';
+import expensesRoutes from './modules/expenses/routes.js';
 import salesRoutes from './modules/sales/routes.js';
 import settingsRoutes from './modules/settings/routes.js';
 
@@ -45,6 +46,7 @@ export async function buildApp() {
   // ── Routes ─────────────────────────────────────────────────────────────────
   await app.register(authRoutes, { prefix: '/auth' });
   await app.register(cashRegisterRoutes, { prefix: '/api/cash-registers' });
+  await app.register(expensesRoutes, { prefix: '/api/expenses' });
   await app.register(salesRoutes, { prefix: '/api/sales' });
   await app.register(settingsRoutes, { prefix: '/api/settings' });
 

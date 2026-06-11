@@ -50,3 +50,15 @@ export class VentaNoEnCajaActiva extends AppError {
     super('VENTA_NO_EN_CAJA_ACTIVA', 'Esta venta no pertenece a la caja activa', 403);
   }
 }
+
+export class GastoNoEncontrado extends AppError {
+  constructor() {
+    super('GASTO_NO_ENCONTRADO', 'Gasto no encontrado', 404);
+  }
+}
+
+export class GastoNoEnCajaActiva extends AppError {
+  constructor() {
+    super('GASTO_NO_EN_CAJA_ACTIVA', 'Este gasto no pertenece a la caja activa', 403);
+  }
+}

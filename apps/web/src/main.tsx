@@ -8,6 +8,7 @@ import { Route as rootRoute } from './routes/__root';
 import { Route as authRoute } from './routes/_auth';
 import { Route as cajaRoute } from './routes/_auth/caja';
 import { Route as dashboardRoute } from './routes/_auth/dashboard';
+import { Route as gastosRoute } from './routes/_auth/gastos';
 import { Route as posRoute } from './routes/_auth/pos';
 import { Route as settingsRoute } from './routes/_auth/settings';
 import { Route as notFoundRoute } from './routes/_auth/$';
@@ -19,7 +20,7 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   setupRoute,
   recoverRoute,
-  authRoute.addChildren([cajaRoute, dashboardRoute, posRoute, settingsRoute, notFoundRoute]),
+  authRoute.addChildren([cajaRoute, dashboardRoute, gastosRoute, posRoute, settingsRoute, notFoundRoute]),
 ]);
 
 const router = createRouter({
