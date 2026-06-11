@@ -1,11 +1,13 @@
 import { bootstrapDb, runMigrations } from './db/client.js';
 import { buildApp } from './app.js';
 import { config } from './config.js';
+import { checkRetroactiveAutoClose } from './jobs/auto-close.js';
 
 runMigrations();
 await bootstrapDb();
 
 const app = await buildApp();
+await checkRetroactiveAutoClose(app.log);
 
 const start = async () => {
   try {

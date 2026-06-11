@@ -15,7 +15,7 @@
 | 1 | Schema de BD & Migraciones | ✅ COMPLETADA 2026-06-10 |
 | 2 | Auth & Seguridad | ✅ COMPLETADA 2026-06-10 |
 | 3 | Branding & Configuración Base | ✅ COMPLETADA 2026-06-10 |
-| 4 | Control de Caja | ⬜ Pendiente |
+| 4 | Control de Caja | ✅ COMPLETADA 2026-06-10 |
 | 5 | Módulo POS (Ventas) | ⬜ Pendiente |
 | 6 | Módulo de Gastos | ⬜ Pendiente |
 | 7 | Base de Datos de Clientes & Boletas | ⬜ Pendiente |
@@ -226,7 +226,7 @@ App carga con logo SIPNATO, favicon correcto, dark mode funciona, datos del tall
 ### Criterio de completitud
 Apertura, cierre manual y cierre automático funcionan. Test de idempotencia: dos llamadas a open con caja ya abierta retornan error claro.
 
-**Al completar:** invocar `/grill-me` · actualizar `CLAUDE.md` · marcar `[x]` aquí.
+**✅ COMPLETADA 2026-06-10** — Backend: POST /open, POST /close, GET /current, GET /, GET /:id + auto-close cron (cada minuto, zona CR UTC-6) + cierre retroactivo en startup. Frontend: CajaPage con modales de apertura/cierre, TotalsGrid, HistoryRow expandible, banner de advertencia en AppLayout. tsc --noEmit limpio en ambos workspaces.
 
 ---
 

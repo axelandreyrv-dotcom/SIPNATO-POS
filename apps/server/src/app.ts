@@ -4,9 +4,11 @@ import rateLimit from '@fastify/rate-limit';
 import Fastify from 'fastify';
 import { config } from './config.js';
 import { sqlite } from './db/client.js';
+import { startAutoCloseCron } from './jobs/auto-close.js';
 import { startCleanupJobs } from './jobs/cleanup-sessions.js';
 import { registerSecurityHeaders } from './middleware/security-headers.js';
 import authRoutes from './modules/auth/routes.js';
+import cashRegisterRoutes from './modules/cash-registers/routes.js';
 import settingsRoutes from './modules/settings/routes.js';
 
 export async function buildApp() {
@@ -37,9 +39,11 @@ export async function buildApp() {
 
   // ── Background jobs ────────────────────────────────────────────────────────
   startCleanupJobs(app.log);
+  startAutoCloseCron(app.log);
 
   // ── Routes ─────────────────────────────────────────────────────────────────
   await app.register(authRoutes, { prefix: '/auth' });
+  await app.register(cashRegisterRoutes, { prefix: '/api/cash-registers' });
   await app.register(settingsRoutes, { prefix: '/api/settings' });
 
   // Health check — no auth, no rate limit (excluded via global 200/min default)
