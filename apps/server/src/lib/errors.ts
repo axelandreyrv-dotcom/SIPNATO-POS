@@ -38,3 +38,15 @@ export class RecursoNoEncontrado extends AppError {
     super('NO_ENCONTRADO', `${recurso} no encontrado`, 404);
   }
 }
+
+export class VentaNoEncontrada extends AppError {
+  constructor() {
+    super('VENTA_NO_ENCONTRADA', 'Venta no encontrada', 404);
+  }
+}
+
+export class VentaNoEnCajaActiva extends AppError {
+  constructor() {
+    super('VENTA_NO_EN_CAJA_ACTIVA', 'Esta venta no pertenece a la caja activa', 403);
+  }
+}

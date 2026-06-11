@@ -16,7 +16,7 @@
 | 2 | Auth & Seguridad | ✅ COMPLETADA 2026-06-10 |
 | 3 | Branding & Configuración Base | ✅ COMPLETADA 2026-06-10 |
 | 4 | Control de Caja | ✅ COMPLETADA 2026-06-10 |
-| 5 | Módulo POS (Ventas) | ⬜ Pendiente |
+| 5 | Módulo POS (Ventas) | ✅ COMPLETADA 2026-06-10 |
 | 6 | Módulo de Gastos | ⬜ Pendiente |
 | 7 | Base de Datos de Clientes & Boletas | ⬜ Pendiente |
 | 8 | Cotizaciones | ⬜ Pendiente |
@@ -256,7 +256,7 @@ Apertura, cierre manual y cierre automático funcionan. Test de idempotencia: do
 ### Criterio de completitud
 Venta completa en menos de 5 teclas. Calculadora de vuelto funciona correctamente. Test: venta sin caja abierta retorna error claro.
 
-**Al completar:** invocar `/grill-me` · actualizar `CLAUDE.md` · marcar `[x]` aquí.
+**✅ COMPLETADA 2026-06-10** — Backend: POST /api/sales (consecutivo transaccional, caja verificada), DELETE /:id (soft-delete + audit_log), GET / (paginado, filtrado por caja activa). Frontend: POSPage con formulario (descripción→monto→método), ChangeCalcModal para efectivo con vuelto en tiempo real, toast de confirmación, lista de ventas con eliminación inline, bloqueo si no hay caja abierta. tsc --noEmit limpio en ambos workspaces. `/grill-me` pendiente.
 
 ---
 
