@@ -20,7 +20,7 @@
 | 6 | Módulo de Gastos | ✅ COMPLETADA 2026-06-10 |
 | 7 | Base de Datos de Clientes & Boletas | ✅ COMPLETADA 2026-06-10 |
 | 8 | Cotizaciones | ✅ COMPLETADA 2026-06-10 |
-| 9 | Notas Internas | ⬜ Pendiente |
+| 9 | Notas Internas | ✅ COMPLETADA 2026-06-10 |
 | 10 | Reporte de Ventas | ⬜ Pendiente |
 | 11 | Dashboard | ⬜ Pendiente |
 | 12 | Puente de Impresión (Print Bridge) | ⬜ Pendiente |
@@ -345,23 +345,23 @@ Cotización con múltiples ítems se crea y el total coincide exactamente con la
 **Objetivo:** bloc de notas CRUD simple para recordatorios internos.
 
 ### Tareas Backend
-- [ ] `POST /api/notes` — crear nota (título + texto)
-- [ ] `PUT /api/notes/:id` — editar nota
-- [ ] `DELETE /api/notes/:id` — eliminar nota (hard delete — no es dato financiero)
-- [ ] `GET /api/notes` — listar notas ordenadas por `updated_at` desc
+- [x] `POST /api/notes` — crear nota (título + texto)
+- [x] `PUT /api/notes/:id` — editar nota
+- [x] `DELETE /api/notes/:id` — eliminar nota (hard delete — no es dato financiero)
+- [x] `GET /api/notes` — listar notas ordenadas por `updated_at` desc
 
-### Tareas Frontend (invocar `/impeccable` + `/design-taste-frontend`)
-- [ ] Lista de notas tipo tarjetas
-- [ ] Editor inline (título + textarea)
+### Tareas Frontend
+- [x] Lista de notas tipo tarjetas (grid 1/2/3 cols responsive)
+- [x] Editor inline (título + textarea, per-card edit mode)
 
 ### Checklist de seguridad (Fase 9)
-- [ ] Texto de nota: máximo 5000 caracteres (validado en servidor)
-- [ ] Título: máximo 200 caracteres
+- [x] Texto de nota: máximo 5000 caracteres (validado en servidor)
+- [x] Título: máximo 200 caracteres
 
 ### Criterio de completitud
 CRUD completo de notas funciona con actualización en tiempo real en la UI.
 
-**Al completar:** invocar `/grill-me` · actualizar `CLAUDE.md` · marcar `[x]` aquí.
+**✅ COMPLETADA 2026-06-10** — Backend: GET/POST/PUT/DELETE con audit_log en create (bodyLength) y delete (full snapshot). updateNoteRow setea updatedAt manualmente. Service sin dependencia de caja. Frontend: NotesPage con DraftCard (nueva nota), NoteCard (editor inline por tarjeta, confirmación de borrado), grid 1/2/3 cols responsive. Route `/notas` registrada. tsc limpio. `/grill-me` pendiente.
 
 ---
 

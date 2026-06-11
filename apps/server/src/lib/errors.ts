@@ -80,3 +80,9 @@ export class CotizacionNoEncontrada extends AppError {
     super('COTIZACION_NO_ENCONTRADA', 'Cotización no encontrada', 404);
   }
 }
+
+export class NotaNoEncontrada extends AppError {
+  constructor() {
+    super('NOTA_NO_ENCONTRADA', 'Nota no encontrada', 404);
+  }
+}

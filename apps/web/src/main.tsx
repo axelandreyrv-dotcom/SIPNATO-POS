@@ -8,6 +8,7 @@ import { Route as rootRoute } from './routes/__root';
 import { Route as authRoute } from './routes/_auth';
 import { Route as boletasRoute } from './routes/_auth/boletas';
 import { Route as cotizacionesRoute } from './routes/_auth/cotizaciones';
+import { Route as notasRoute } from './routes/_auth/notas';
 import { Route as nuevaCotizacionRoute } from './routes/_auth/nueva-cotizacion';
 import { Route as cajaRoute } from './routes/_auth/caja';
 import { Route as clientesRoute } from './routes/_auth/clientes';
@@ -29,6 +30,7 @@ const routeTree = rootRoute.addChildren([
     boletasRoute,
     cajaRoute,
     cotizacionesRoute,
+    notasRoute,
     nuevaCotizacionRoute,
     clientesRoute,
     dashboardRoute,

@@ -13,6 +13,7 @@ import boletasRoutes from './modules/boletas/routes.js';
 import customersRoutes from './modules/customers/routes.js';
 import expensesRoutes from './modules/expenses/routes.js';
 import salesRoutes from './modules/sales/routes.js';
+import notesRoutes from './modules/notes/routes.js';
 import quotesRoutes from './modules/quotes/routes.js';
 import settingsRoutes from './modules/settings/routes.js';
 
@@ -53,6 +54,7 @@ export async function buildApp() {
   await app.register(customersRoutes, { prefix: '/api/customers' });
   await app.register(expensesRoutes, { prefix: '/api/expenses' });
   await app.register(salesRoutes, { prefix: '/api/sales' });
+  await app.register(notesRoutes, { prefix: '/api/notes' });
   await app.register(quotesRoutes, { prefix: '/api/quotes' });
   await app.register(settingsRoutes, { prefix: '/api/settings' });
 
