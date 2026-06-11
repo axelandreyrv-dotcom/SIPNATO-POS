@@ -17,12 +17,6 @@ function cookieOpts(maxAge: number) {
   };
 }
 
-function clientIp(request: Parameters<typeof requireAuth>[0]): string | null {
-  const forwarded = request.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') return forwarded.split(',')[0]?.trim() ?? null;
-  return request.ip ?? null;
-}
-
 export default async function authRoutes(app: FastifyInstance) {
   // ── GET /auth/status ─────────────────────────────────────────────────────
   // Public — tells the frontend whether setup is needed.
@@ -41,7 +35,7 @@ export default async function authRoutes(app: FastifyInstance) {
     try {
       const { recoveryCode, sessionToken } = await setupAdmin(
         body.data.password,
-        clientIp(request),
+        request.ip ?? null,
         request.headers['user-agent'] ?? null,
       );
 
@@ -68,7 +62,7 @@ export default async function authRoutes(app: FastifyInstance) {
     try {
       const { sessionToken } = await loginAdmin(
         body.data.password,
-        clientIp(request),
+        request.ip ?? null,
         request.headers['user-agent'] ?? null,
       );
 
@@ -85,7 +79,7 @@ export default async function authRoutes(app: FastifyInstance) {
   // ── POST /auth/logout ─────────────────────────────────────────────────────
   app.post('/logout', { preHandler: [requireAuth] }, async (request, reply) => {
     const token = request.cookies[COOKIE_NAME] ?? '';
-    await logoutAdmin(token, clientIp(request), request.headers['user-agent'] ?? null);
+    await logoutAdmin(token, request.ip ?? null, request.headers['user-agent'] ?? null);
     reply.clearCookie(COOKIE_NAME, { path: '/' });
     return reply.send({ ok: true });
   });
@@ -101,7 +95,7 @@ export default async function authRoutes(app: FastifyInstance) {
       const { newRecoveryCode, sessionToken } = await recoverAdmin(
         body.data.recoveryCode,
         body.data.newPassword,
-        clientIp(request),
+        request.ip ?? null,
         request.headers['user-agent'] ?? null,
       );
 

@@ -54,6 +54,7 @@ export function SettingsPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['settings'],
     queryFn: settingsApi.get,
+    staleTime: 5 * 60 * 1000,
   });
 
   const [form, setForm] = useState<Settings | null>(null);

@@ -8,7 +8,7 @@ export const settingsSchema = z.object({
   boleta_footer: z.string().max(500),
   quote_footer: z.string().max(500),
   auto_close_enabled: z.boolean(),
-  auto_close_time: z.string().regex(/^\d{2}:\d{2}$/, 'Formato HH:MM requerido'),
+  auto_close_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Formato HH:MM requerido (00:00–23:59)'),
 });
 
 export type Settings = z.infer<typeof settingsSchema>;

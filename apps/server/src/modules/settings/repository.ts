@@ -47,6 +47,22 @@ export async function setSetting(key: SettingKey, value: string): Promise<void> 
     });
 }
 
+export function setAllSettings(entries: [SettingKey, string][]): void {
+  const now = new Date().toISOString();
+  db.transaction((tx) => {
+    for (const [key, value] of entries) {
+      tx
+        .insert(settings)
+        .values({ key, value })
+        .onConflictDoUpdate({
+          target: settings.key,
+          set: { value, updatedAt: now },
+        })
+        .run();
+    }
+  });
+}
+
 export async function getSetting(key: SettingKey): Promise<string | null> {
   const [row] = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
   return row?.value ?? null;

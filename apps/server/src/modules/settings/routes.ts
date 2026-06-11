@@ -4,12 +4,6 @@ import { AppError } from '../../lib/errors.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { getSettings, updateSettings } from './service.js';
 
-function clientIp(request: Parameters<typeof requireAuth>[0]): string | null {
-  const forwarded = request.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') return forwarded.split(',')[0]?.trim() ?? null;
-  return request.ip ?? null;
-}
-
 export default async function settingsRoutes(app: FastifyInstance) {
   // ── GET /api/settings ────────────────────────────────────────────────────
   app.get('/', { preHandler: [requireAuth] }, async () => {
@@ -25,7 +19,7 @@ export default async function settingsRoutes(app: FastifyInstance) {
 
     try {
       const updated = await updateSettings(body.data, {
-        ip: clientIp(request),
+        ip: request.ip ?? null,
         userAgent: request.headers['user-agent'] ?? null,
       });
       return reply.send(updated);

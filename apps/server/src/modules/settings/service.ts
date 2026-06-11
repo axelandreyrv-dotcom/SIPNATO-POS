@@ -1,7 +1,7 @@
 import type { Settings } from '@sipnato/shared';
 import { db } from '../../db/client.js';
 import { auditLog } from '../../db/schema.js';
-import { getAllSettings, setSetting, type SettingKey } from './repository.js';
+import { getAllSettings, setAllSettings, type SettingKey } from './repository.js';
 
 export async function getSettings(): Promise<Settings> {
   const raw = await getAllSettings();
@@ -32,9 +32,7 @@ export async function updateSettings(
     ['auto_close_time', data.auto_close_time],
   ];
 
-  for (const [key, value] of entries) {
-    await setSetting(key, value);
-  }
+  setAllSettings(entries);
 
   await db.insert(auditLog).values({
     action: 'SETTINGS_UPDATED',

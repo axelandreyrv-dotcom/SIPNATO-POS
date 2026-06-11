@@ -11,6 +11,7 @@ import settingsRoutes from './modules/settings/routes.js';
 
 export async function buildApp() {
   const app = Fastify({
+    trustProxy: true,
     logger:
       config.NODE_ENV === 'development'
         ? { level: 'info', transport: { target: 'pino-pretty' } }
@@ -29,11 +30,6 @@ export async function buildApp() {
     max: 200,
     timeWindow: '1 minute',
     // Per-route overrides are set in route config.rateLimit
-    keyGenerator: (request) => {
-      const forwarded = request.headers['x-forwarded-for'];
-      if (typeof forwarded === 'string') return forwarded.split(',')[0]?.trim() ?? request.ip;
-      return request.ip;
-    },
   });
 
   // ── Global security headers ────────────────────────────────────────────────
