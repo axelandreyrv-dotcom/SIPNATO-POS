@@ -114,7 +114,7 @@ export function listQuotesRows(page: number, limit: number): { quotes: Quote[]; 
 export function hardDeleteQuoteRow(
   id: number,
   meta: AuditMeta,
-  snapshot: { consecutive: number; total: number },
+  snapshot: { consecutive: number; total: number; items: { description: string; amount: number }[] },
 ): void {
   db.transaction((tx) => {
     tx.delete(quoteItems).where(eq(quoteItems.quoteId, id)).run();

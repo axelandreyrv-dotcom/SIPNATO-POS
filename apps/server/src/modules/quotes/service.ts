@@ -25,7 +25,11 @@ export function getQuote(id: number): QuoteWithItems {
 export function deleteQuote(id: number, meta: Meta): void {
   const quote = findQuoteById(id);
   if (!quote) throw new CotizacionNoEncontrada();
-  hardDeleteQuoteRow(id, meta, { consecutive: quote.consecutive, total: quote.total });
+  hardDeleteQuoteRow(id, meta, {
+    consecutive: quote.consecutive,
+    total: quote.total,
+    items: quote.items.map((i) => ({ description: i.description, amount: i.amount })),
+  });
 }
 
 export function listQuotes(page: number): QuoteList {
