@@ -35,9 +35,9 @@ export function listExpenses(): ExpenseList {
   const register = findOpenRegister();
 
   if (!register) {
-    return { expenses: [], total: 0 };
+    return { expenses: [], totalAmount: 0 };
   }
 
   const { expenses, totalAmount } = listExpensesRows(register.id);
-  return { expenses, total: totalAmount };
+  return { expenses, totalAmount };
 }

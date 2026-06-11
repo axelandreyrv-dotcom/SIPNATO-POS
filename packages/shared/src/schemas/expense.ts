@@ -18,5 +18,5 @@ export type Expense = {
 
 export type ExpenseList = {
   expenses: Expense[];
-  total: number;
+  totalAmount: number;
 };

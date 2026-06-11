@@ -175,7 +175,7 @@ export function ExpensesPage() {
   const noRegister = register === null;
 
   const totalIncome = salesData?.sales.reduce((s, v) => s + v.amount, 0) ?? 0;
-  const totalExpenses = expensesData?.total ?? 0;
+  const totalExpenses = expensesData?.totalAmount ?? 0;
   const netBalance = totalIncome - totalExpenses;
 
   return (
@@ -283,10 +283,10 @@ export function ExpensesPage() {
               </span>
             )}
           </h2>
-          {(expensesData?.total ?? 0) > 0 && (
+          {(expensesData?.totalAmount ?? 0) > 0 && (
             <span className="text-xs text-text-muted">
               Total: <span className="font-medium text-brand-error tabular-nums">
-                −{formatColones(expensesData?.total ?? 0)}
+                −{formatColones(expensesData?.totalAmount ?? 0)}
               </span>
             </span>
           )}
