@@ -26,25 +26,18 @@ RUN pnpm --filter @sipnato/server build
 # ── Stage 2: production server ────────────────────────────────────────────────
 FROM node:22-bookworm-slim AS server
 
-# Native module build tools needed for pnpm install --prod (rebuilds binaries)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends python3 make g++ && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN corepack enable pnpm
-
 WORKDIR /app
 
-# Install production deps only (workspace symlink for shared is created here)
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+# Copy workspace manifests (needed so Node can resolve workspace symlinks)
+COPY pnpm-workspace.yaml package.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/server/package.json ./apps/server/
-RUN pnpm install --frozen-lockfile --prod --ignore-scripts && \
-    pnpm rebuild better-sqlite3 argon2
 
-# Copy compiled output from build stage
-# node_modules/@sipnato/shared symlinks to packages/shared/
-# package.json exports "default" → "./dist/index.js" — copied below
+# Copy pre-built node_modules from build stage — includes compiled native
+# binaries for better-sqlite3 and argon2 (node-gyp already ran there).
+COPY --from=build /app/node_modules ./node_modules
+
+# Copy compiled TypeScript output
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 COPY --from=build /app/apps/server/dist ./apps/server/dist
 
