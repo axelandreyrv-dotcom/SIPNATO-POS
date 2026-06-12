@@ -23,7 +23,6 @@ import { Logo } from '../../components/branding/Logo';
 import { useDarkMode } from '../../lib/hooks/useDarkMode';
 import { authApi } from '../../features/auth/api';
 import { cashRegisterApi } from '../../features/cash-register/api';
-import { printApi } from '../../features/print/api';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
@@ -70,30 +69,6 @@ function NavItem({ to, label, icon: Icon, exact, onClick }: NavItemProps) {
   );
 }
 
-function BridgeStatusDot() {
-  const { data } = useQuery({
-    queryKey: ['print', 'status'],
-    queryFn: printApi.getStatus,
-    staleTime: 30_000,
-    refetchInterval: 30_000,
-    retry: false,
-  });
-
-  if (!data?.tokenSet) return null;
-
-  return (
-    <div className="flex items-center gap-2 px-3 py-2 text-xs text-white/40">
-      <span
-        aria-label={data.connected ? 'Impresora conectada' : 'Impresora desconectada'}
-        className={[
-          'h-1.5 w-1.5 rounded-full shrink-0',
-          data.connected ? 'bg-brand-success' : 'bg-white/20',
-        ].join(' ')}
-      />
-      <span>{data.connected ? 'Impresora' : 'Sin impresora'}</span>
-    </div>
-  );
-}
 
 function SidebarNav({ onNav }: { onNav?: () => void }) {
   const { isDark, toggle } = useDarkMode();
@@ -125,7 +100,6 @@ function SidebarNav({ onNav }: { onNav?: () => void }) {
 
       {/* Bottom actions */}
       <div className="border-t border-white/10 px-3 py-3 space-y-0.5">
-        <BridgeStatusDot />
         <button
           type="button"
           onClick={toggle}
