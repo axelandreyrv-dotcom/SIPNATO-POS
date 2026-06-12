@@ -36,7 +36,7 @@ export function AuthShell({ children }: AuthShellProps) {
               className="shrink-0"
               style={{ filter: 'brightness(0) invert(1)' }}
             />
-            <span className="text-lg font-semibold tracking-tight text-white">SIPNATO</span>
+            <span className="text-lg font-semibold tracking-tight text-white">Dosuxsoft</span>
           </div>
         </div>
 
@@ -52,7 +52,7 @@ export function AuthShell({ children }: AuthShellProps) {
 
         {/* Footer detail */}
         <p className="relative z-10 text-xs text-white/25">
-          Costa Rica · SIPNATO
+          Costa Rica · Dosuxsoft
         </p>
       </aside>
 
@@ -69,7 +69,7 @@ export function AuthShell({ children }: AuthShellProps) {
             className="shrink-0"
           />
           <span className="text-base font-semibold tracking-tight text-text-primary">
-            SIPNATO
+            Dosuxsoft
           </span>
         </div>
 

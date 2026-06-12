@@ -18,7 +18,7 @@ function QuotePrintView({ quote, settings }: { quote: QuoteWithItems; settings: 
     timeZone: 'America/Costa_Rica',
   });
 
-  const shopName = settings?.shop_name?.trim() || 'SIPNATO';
+  const shopName = settings?.shop_name?.trim() || 'Dosuxsoft';
   const shopPhone = settings?.shop_phone?.trim();
   const shopId = settings?.shop_id_number?.trim();
   const quoteFooter = settings?.quote_footer?.trim();

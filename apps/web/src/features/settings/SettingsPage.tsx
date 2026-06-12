@@ -301,7 +301,7 @@ export function SettingsPage() {
                 value={current.shop_name}
                 onChange={(e) => patch({ shop_name: e.target.value })}
                 className={inputClass}
-                placeholder="Taller de Reparación SIPNATO"
+                placeholder="Taller de Reparación Dosuxsoft"
               />
             </div>
             <div>
