@@ -12,8 +12,8 @@ export async function runDailyBackup(log: FastifyBaseLogger): Promise<void> {
   mkdirSync(dir, { recursive: true });
 
   const date = new Date().toISOString().slice(0, 10);
-  const dst = join(dir, `sipnato-${date}.db`);
-  const latest = join(dir, 'sipnato-latest.db');
+  const dst = join(dir, `dosuxsoft-${date}.db`);
+  const latest = join(dir, 'dosuxsoft-latest.db');
 
   try {
     await sqlite.backup(dst);
@@ -22,7 +22,7 @@ export async function runDailyBackup(log: FastifyBaseLogger): Promise<void> {
     // Rotar: eliminar backups con más de 30 días
     const cutoff = Date.now() - THIRTY_DAYS_MS;
     readdirSync(dir)
-      .filter(f => /^sipnato-\d{4}-\d{2}-\d{2}\.db$/.test(f))
+      .filter(f => /^dosuxsoft-\d{4}-\d{2}-\d{2}\.db$/.test(f))
       .map(f => join(dir, f))
       .filter(p => statSync(p).mtimeMs < cutoff)
       .forEach(p => { unlinkSync(p); log.info({ file: p }, 'backup rotado'); });
@@ -36,7 +36,7 @@ export async function runDailyBackup(log: FastifyBaseLogger): Promise<void> {
 // 03:00 AM Costa Rica = 09:00 UTC (UTC-6 permanente, sin horario de verano)
 export function startBackupCron(log: FastifyBaseLogger): void {
   // Generate an initial backup on startup so the download endpoint works from day one.
-  const latest = join(config.BACKUP_PATH, 'sipnato-latest.db');
+  const latest = join(config.BACKUP_PATH, 'dosuxsoft-latest.db');
   if (!existsSync(latest)) {
     void runDailyBackup(log);
   }

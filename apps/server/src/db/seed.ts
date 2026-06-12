@@ -19,7 +19,7 @@ runMigrations();
 await db
   .insert(settings)
   .values([
-    { key: 'shop_name', value: 'SIPNATO Taller' },
+    { key: 'shop_name', value: 'Dosuxsoft Taller' },
     { key: 'shop_phone', value: '88888888' },
     { key: 'shop_id_number', value: '3-101-000000' },
     { key: 'receipt_footer', value: 'Gracias por su preferencia.' },

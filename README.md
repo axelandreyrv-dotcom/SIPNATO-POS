@@ -1,4 +1,4 @@
-# SIPNATO POS
+# Dosuxsoft POS
 
 Sistema de punto de venta para taller de reparación de celulares y venta de accesorios. Aplicación web privada con autenticación, accesible desde cualquier dispositivo por subdominio HTTPS.
 
@@ -52,7 +52,7 @@ Sistema de punto de venta para taller de reparación de celulares y venta de acc
    API Fastify ──── node-cron (cierre auto, backup, limpieza sesiones)
         │
         ▼
-   SQLite /app/data/sipnato.db  +  /app/data/backups/
+   SQLite /app/data/dosuxsoft.db  +  /app/data/backups/
         ▲
         │ WebSocket (token 256-bit hasheado argon2id)
 [PC del taller] print-bridge ──ESC/POS──► Ticketera 80mm
@@ -100,8 +100,8 @@ Ver [`deploy/DEPLOY.md`](deploy/DEPLOY.md) para la guía completa paso a paso.
 Resumen rápido en un VPS Ubuntu 22.04:
 
 ```bash
-git clone https://github.com/axelandreyrv-dotcom/SIPNATO-POS.git /opt/sipnato
-cd /opt/sipnato/deploy
+git clone https://github.com/axelandreyrv-dotcom/SIPNATO-POS.git /opt/dosuxsoft
+cd /opt/dosuxsoft/deploy
 cp .env.example .env
 nano .env                          # completar SESSION_SECRET y ALLOWED_ORIGIN
 docker compose build
@@ -166,10 +166,9 @@ deploy/
 |---|---|---|
 | `SESSION_SECRET` | Secreto para firmar sesiones (min 64 chars) | valor de dev inseguro |
 | `ALLOWED_ORIGIN` | Origen CORS permitido | `http://localhost:5173` |
-| `DATABASE_PATH` | Ruta al archivo SQLite | `./data/sipnato.db` |
+| `DATABASE_PATH` | Ruta al archivo SQLite | `./data/dosuxsoft.db` |
 | `BACKUP_PATH` | Directorio de backups | `./data/backups` |
 | `LOG_PATH` | Directorio de logs | `./logs` |
 | `PORT` | Puerto Fastify | `3000` |
-| `PRINT_BRIDGE_TOKEN_HASH` | Hash argon2id del token del bridge | *(vacío)* |
 
 El servidor **rechaza iniciar en producción** si `SESSION_SECRET` tiene el valor por defecto de desarrollo.

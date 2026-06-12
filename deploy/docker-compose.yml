@@ -7,13 +7,13 @@ services:
     env_file: .env
     environment:
       NODE_ENV: production
-      DATABASE_PATH: /app/data/sipnato.db
+      DATABASE_PATH: /app/data/dosuxsoft.db
       BACKUP_PATH: /app/data/backups
       LOG_PATH: /app/logs
       PORT: "3000"
     volumes:
-      - sipnato-data:/app/data
-      - sipnato-logs:/app/logs
+      - dosuxsoft-data:/app/data
+      - dosuxsoft-logs:/app/logs
     restart: unless-stopped
     healthcheck:
       test:
@@ -44,7 +44,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  sipnato-data:
-  sipnato-logs:
+  dosuxsoft-data:
+  dosuxsoft-logs:
   caddy-data:
   caddy-config:

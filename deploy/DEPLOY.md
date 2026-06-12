@@ -1,9 +1,9 @@
-# Guía de Despliegue — SIPNATO POS
+# Guía de Despliegue — Dosuxsoft POS
 
 ## Requisitos previos
 
 - VPS Ubuntu 22.04 LTS (mínimo 1 vCPU, 1 GB RAM, 20 GB disco)
-- Dominio `sipnato.com` apuntando al IP del VPS (registro A para `@` y `www`)
+- Dominio `dosuxsoft.com` apuntando al IP del VPS (registro A para `@` y `www`)
 - Docker + Docker Compose instalados en el VPS
 
 ---
@@ -91,7 +91,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 El archivo `.env` final debe verse así:
 ```
 SESSION_SECRET=<96 caracteres hexadecimales aleatorios>
-ALLOWED_ORIGIN=https://www.sipnato.com
+ALLOWED_ORIGIN=https://www.dosuxsoft.com
 PRINT_BRIDGE_TOKEN_HASH=
 ```
 
@@ -119,12 +119,12 @@ Caddy obtiene el certificado HTTPS automáticamente en el primer inicio (requier
 
 ```bash
 # Health check del servidor (ruta directa — no lleva /api)
-curl https://www.sipnato.com/health
+curl https://www.dosuxsoft.com/health
 
 # Debe responder: {"status":"ok","db":"ok","env":"production",...}
 ```
 
-Abrir `https://www.sipnato.com` en el navegador → debe aparecer la pantalla de login.
+Abrir `https://www.dosuxsoft.com` en el navegador → debe aparecer la pantalla de login.
 
 ---
 
@@ -172,7 +172,7 @@ npm install
 ### Configuración
 Crear `apps\print-bridge\.env`:
 ```
-SERVER_URL=wss://www.sipnato.com/ws/print
+SERVER_URL=wss://www.dosuxsoft.com/ws/print
 BRIDGE_TOKEN=<token generado desde Configuración → Impresora>
 PRINTER_PATH=\\.\USB001
 ```
@@ -215,7 +215,7 @@ El script imprime una contraseña temporal y un nuevo recovery code. Cambiar la 
 
 - [ ] `NODE_ENV=production` activo (verificar en `/api/health`)
 - [ ] HTTPS forzado — Caddy redirige HTTP → HTTPS automáticamente
-- [ ] Headers de seguridad activos — verificar en [securityheaders.com](https://securityheaders.com/?q=https://www.sipnato.com)
+- [ ] Headers de seguridad activos — verificar en [securityheaders.com](https://securityheaders.com/?q=https://www.dosuxsoft.com)
 - [ ] SSH por clave confirmado — contraseña deshabilitada
 - [ ] UFW activo: `ufw status` muestra solo 22, 80, 443
 - [ ] SESSION_SECRET ≠ valor de desarrollo

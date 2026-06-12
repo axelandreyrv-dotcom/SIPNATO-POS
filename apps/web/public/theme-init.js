@@ -1,1 +1,1 @@
-(function(){if(localStorage.getItem('sipnato-theme')==='dark'){document.documentElement.classList.add('dark');}})();
+(function(){if(localStorage.getItem('dosuxsoft-theme')==='dark'){document.documentElement.classList.add('dark');}})();

@@ -8,7 +8,7 @@ export function useDarkMode() {
   function toggle() {
     const next = !isDark;
     document.documentElement.classList.toggle('dark', next);
-    localStorage.setItem('sipnato-theme', next ? 'dark' : 'light');
+    localStorage.setItem('dosuxsoft-theme', next ? 'dark' : 'light');
     setIsDark(next);
   }
 

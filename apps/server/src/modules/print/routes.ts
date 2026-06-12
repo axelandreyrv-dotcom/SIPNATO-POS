@@ -121,7 +121,7 @@ export default async function printRoutes(app: FastifyInstance) {
   app.post('/print/test', { preHandler: [requireAuth] }, async (request, reply) => {
     const result = createPrintJob({
       type: 'test',
-      message: 'SIPNATO POS — impresora conectada OK',
+      message: 'Dosuxsoft POS — impresora conectada OK',
       timestamp: new Date().toISOString(),
     });
     return reply.status(201).send(result);

@@ -1,4 +1,4 @@
-www.sipnato.com {
+www.dosuxsoft.com {
     root * /srv
 
     # API REST → Fastify (servicio Docker "server")
@@ -33,14 +33,14 @@ www.sipnato.com {
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         Referrer-Policy "strict-origin-when-cross-origin"
-        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' wss://www.sipnato.com; frame-ancestors 'none'"
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' wss://www.dosuxsoft.com; frame-ancestors 'none'"
         -Server
     }
 
     encode gzip zstd
 }
 
-# Redirigir sipnato.com (sin www) → www.sipnato.com
-sipnato.com {
-    redir https://www.sipnato.com{uri} permanent
+# Redirigir dosuxsoft.com (sin www) → www.dosuxsoft.com
+dosuxsoft.com {
+    redir https://www.dosuxsoft.com{uri} permanent
 }

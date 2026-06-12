@@ -36,14 +36,14 @@ export default async function settingsRoutes(app: FastifyInstance) {
     '/backup/download',
     { preHandler: [requireAuth], config: { rateLimit: { max: 5, timeWindow: '1 hour' } } },
     async (_request, reply) => {
-      const latestPath = join(config.BACKUP_PATH, 'sipnato-latest.db');
+      const latestPath = join(config.BACKUP_PATH, 'dosuxsoft-latest.db');
       if (!existsSync(latestPath)) {
         return reply.status(404).send({ error: { code: 'BACKUP_NOT_FOUND', message: 'No hay backup disponible aún.' } });
       }
       const date = new Date().toISOString().slice(0, 10);
       return reply
         .header('Content-Type', 'application/octet-stream')
-        .header('Content-Disposition', `attachment; filename="sipnato-${date}.db"`)
+        .header('Content-Disposition', `attachment; filename="dosuxsoft-${date}.db"`)
         .header('Cache-Control', 'no-store')
         .send(createReadStream(latestPath));
     },

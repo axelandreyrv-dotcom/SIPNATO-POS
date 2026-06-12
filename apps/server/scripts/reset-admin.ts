@@ -57,7 +57,7 @@ await db.insert(auditLog).values({
 });
 
 console.log('\n╔══════════════════════════════════════════════════╗');
-console.log('║           SIPNATO — RESET DE EMERGENCIA          ║');
+console.log('║           Dosuxsoft — RESET DE EMERGENCIA          ║');
 console.log('╠══════════════════════════════════════════════════╣');
 console.log(`║  Contraseña temporal : ${tempPassword.padEnd(24)} ║`);
 console.log(`║  Recovery code nuevo : ${newRecoveryCode.slice(0, 16)}...   ║`);

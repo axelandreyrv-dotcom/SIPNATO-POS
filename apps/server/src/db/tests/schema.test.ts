@@ -133,7 +133,7 @@ describe('soft-delete — ventas', () => {
 describe('WAL mode y foreign keys', () => {
   it('journal_mode es WAL en base de datos de archivo', () => {
     // WAL mode only applies to file-based DBs, not :memory:
-    const tmpPath = join(tmpdir(), `sipnato-test-${Date.now()}.db`);
+    const tmpPath = join(tmpdir(), `dosuxsoft-test-${Date.now()}.db`);
     const tmpSqlite = new Database(tmpPath);
     tmpSqlite.pragma('journal_mode = WAL');
     const row = tmpSqlite.prepare('PRAGMA journal_mode').get() as { journal_mode: string };
