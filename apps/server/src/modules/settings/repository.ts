@@ -5,6 +5,7 @@ import { auditLog, settings } from '../../db/schema.js';
 const SETTING_KEYS = [
   'shop_name',
   'shop_phone',
+  'shop_mobile',
   'shop_id_number',
   'receipt_footer',
   'boleta_footer',
@@ -28,6 +29,7 @@ export function getAllSettings(): RawSettings {
   return {
     shop_name: map.shop_name ?? '',
     shop_phone: map.shop_phone ?? '',
+    shop_mobile: map.shop_mobile ?? '',
     shop_id_number: map.shop_id_number ?? '',
     receipt_footer: map.receipt_footer ?? '',
     boleta_footer: map.boleta_footer ?? '',

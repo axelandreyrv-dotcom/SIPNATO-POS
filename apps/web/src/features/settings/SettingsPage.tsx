@@ -328,6 +328,18 @@ export function SettingsPage() {
                 placeholder="8888-8888"
               />
             </div>
+            <div>
+              <FieldLabel htmlFor="shop_mobile">Celular</FieldLabel>
+              <input
+                id="shop_mobile"
+                type="text"
+                maxLength={20}
+                value={current.shop_mobile}
+                onChange={(e) => patch({ shop_mobile: e.target.value })}
+                className={inputClass}
+                placeholder="6666-6666"
+              />
+            </div>
           </Section>
 
           {/* ── Leyendas de tickets ─────────────────────────────────────── */}

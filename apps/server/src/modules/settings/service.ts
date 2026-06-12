@@ -9,6 +9,7 @@ export function getSettings(): Settings {
   return {
     shop_name: raw.shop_name,
     shop_phone: raw.shop_phone,
+    shop_mobile: raw.shop_mobile,
     shop_id_number: raw.shop_id_number,
     receipt_footer: raw.receipt_footer,
     boleta_footer: raw.boleta_footer,
@@ -25,6 +26,7 @@ export function updateSettings(
   const entries: [SettingKey, string][] = [
     ['shop_name', data.shop_name],
     ['shop_phone', data.shop_phone],
+    ['shop_mobile', data.shop_mobile],
     ['shop_id_number', data.shop_id_number],
     ['receipt_footer', data.receipt_footer],
     ['boleta_footer', data.boleta_footer],
