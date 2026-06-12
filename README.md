@@ -122,7 +122,7 @@ Caddy obtiene el certificado HTTPS automáticamente al primer inicio.
 - Headers: HSTS preload, X-Frame-Options DENY, CSP estricto, Referrer-Policy
 - Registros financieros con soft-delete (nunca se borran permanentemente)
 - Audit log de solo inserción para todas las operaciones críticas
-- Script break-glass (`apps/server/scripts/reset-admin.ts`) para recuperación de emergencia vía SSH
+- Script break-glass (`apps/server/src/scripts/reset-admin.ts`) para recuperación de emergencia vía SSH
 
 ---
 

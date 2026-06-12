@@ -2,9 +2,12 @@
  * Break-glass script — ejecutar SOLO por SSH en el VPS.
  * Resetea la contraseña del admin cuando se pierde acceso.
  *
- * Uso:
+ * Uso (en el contenedor de producción, código ya compilado):
+ *   docker exec -it deploy-server-1 node dist/scripts/reset-admin.js
+ *
+ * Uso (desarrollo local):
  *   cd apps/server
- *   tsx scripts/reset-admin.ts
+ *   tsx src/scripts/reset-admin.ts
  *
  * Seguridad:
  *   - Solo funciona con acceso local al servidor (SSH por clave).
@@ -13,9 +16,9 @@
  */
 
 import { randomBytes } from 'crypto';
-import { bootstrapDb, db, runMigrations } from '../src/db/client.js';
-import { admin, sessions, auditLog } from '../src/db/schema.js';
-import { hashPassword, generateRecoveryCode, hashRecoveryCode } from '../src/lib/crypto.js';
+import { bootstrapDb, db, runMigrations } from '../db/client.js';
+import { admin, sessions, auditLog } from '../db/schema.js';
+import { hashPassword, generateRecoveryCode, hashRecoveryCode } from '../lib/crypto.js';
 import { eq } from 'drizzle-orm';
 
 runMigrations();

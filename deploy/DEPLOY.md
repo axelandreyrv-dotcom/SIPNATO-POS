@@ -203,7 +203,7 @@ Si perdiste acceso y no podés ingresar con contraseña ni recovery code:
 ssh root@<IP_DEL_VPS>
 
 # Ejecutar el script dentro del contenedor
-docker exec -it deploy-server-1 node --import tsx/esm apps/server/scripts/reset-admin.ts
+docker exec -it deploy-server-1 node apps/server/dist/scripts/reset-admin.js
 ```
 
 El script imprime una contraseña temporal y un nuevo recovery code. Cambiar la contraseña inmediatamente al iniciar sesión.

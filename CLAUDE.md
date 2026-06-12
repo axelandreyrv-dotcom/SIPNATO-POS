@@ -261,7 +261,7 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 
 ### 6.12 Break-glass (recuperación de emergencia)
 - **Riesgo aceptado:** un solo admin + recovery code significa que si se pierden ambos, el sistema queda bloqueado — sin reset por email ni segundo usuario.
-- **Mitigación:** script `apps/server/scripts/reset-admin.ts`, ejecutable por SSH directamente en el VPS, que resetea la contraseña del admin en la BD (genera contraseña temporal + nuevo recovery code, e invalida todas las sesiones). Construido en la Fase 2.
+- **Mitigación:** script `apps/server/src/scripts/reset-admin.ts` (compila a `dist/scripts/reset-admin.js`), ejecutable por SSH directamente en el VPS, que resetea la contraseña del admin en la BD (genera contraseña temporal + nuevo recovery code, e invalida todas las sesiones). Construido en la Fase 2.
 - El script **no es un endpoint** — solo corre con acceso local al servidor, protegido por el acceso SSH por clave. Esa es la red de seguridad ante un bloqueo total.
 
 ---
