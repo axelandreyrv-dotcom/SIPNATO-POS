@@ -1,10 +1,11 @@
+import crypto from 'node:crypto';
+import argon2 from 'argon2';
 import type { Settings } from '@sipnato/shared';
-import { db } from '../../db/client.js';
-import { auditLog } from '../../db/schema.js';
-import { getAllSettings, setAllSettings, type SettingKey } from './repository.js';
+import { getAllSettings, setAllSettings, setPrintBridgeTokenHash, getPrintBridgeTokenHash, type SettingKey } from './repository.js';
+import { setTokenSetFlag } from '../print/service.js';
 
-export async function getSettings(): Promise<Settings> {
-  const raw = await getAllSettings();
+export function getSettings(): Settings {
+  const raw = getAllSettings();
   return {
     shop_name: raw.shop_name,
     shop_phone: raw.shop_phone,
@@ -17,10 +18,10 @@ export async function getSettings(): Promise<Settings> {
   };
 }
 
-export async function updateSettings(
+export function updateSettings(
   data: Settings,
   meta: { ip: string | null; userAgent: string | null },
-): Promise<Settings> {
+): Settings {
   const entries: [SettingKey, string][] = [
     ['shop_name', data.shop_name],
     ['shop_phone', data.shop_phone],
@@ -32,16 +33,25 @@ export async function updateSettings(
     ['auto_close_time', data.auto_close_time],
   ];
 
-  setAllSettings(entries);
-
-  await db.insert(auditLog).values({
-    action: 'SETTINGS_UPDATED',
-    entityType: null,
-    entityId: null,
+  setAllSettings(entries, {
     payloadSnapshot: JSON.stringify(data),
     ip: meta.ip ?? null,
     userAgent: meta.userAgent ?? null,
   });
 
   return data;
+}
+
+export async function generatePrintToken(
+  meta: { ip: string | null; userAgent: string | null },
+): Promise<string> {
+  const token = crypto.randomBytes(32).toString('hex');
+  const hash = await argon2.hash(token, { memoryCost: 65536, timeCost: 3, parallelism: 4 });
+  setPrintBridgeTokenHash(hash, meta);
+  setTokenSetFlag(true);
+  return token;
+}
+
+export function isPrintTokenSet(): boolean {
+  return getPrintBridgeTokenHash() !== null;
 }

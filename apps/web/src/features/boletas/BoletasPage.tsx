@@ -1,23 +1,10 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDown, ChevronUp, Loader2, Plus, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Search } from 'lucide-react';
 import type { BoletaWithCustomer } from '@sipnato/shared';
+import { fmtDateTime } from '../../lib/format';
 import { boletasApi } from './api';
-
-const CR_TZ = 'America/Costa_Rica';
-
-function fmtDate(iso: string) {
-  return new Intl.DateTimeFormat('es-CR', {
-    timeZone: CR_TZ,
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(new Date(iso));
-}
 
 function BoletaRow({ boleta }: { boleta: BoletaWithCustomer }) {
   const [expanded, setExpanded] = useState(false);
@@ -42,12 +29,12 @@ function BoletaRow({ boleta }: { boleta: BoletaWithCustomer }) {
           </span>
         )}
         <span className="shrink-0 text-xs text-text-muted">
-          {fmtDate(boleta.createdAt)}
+          {fmtDateTime(boleta.createdAt)}
         </span>
         {expanded ? (
-          <ChevronUp size={14} className="shrink-0 text-text-muted" />
+          <ChevronUp size={14} strokeWidth={1.5} className="shrink-0 text-text-muted" aria-hidden />
         ) : (
-          <ChevronDown size={14} className="shrink-0 text-text-muted" />
+          <ChevronDown size={14} strokeWidth={1.5} className="shrink-0 text-text-muted" aria-hidden />
         )}
       </button>
 
@@ -108,7 +95,7 @@ export function BoletasPage() {
           to="/nueva-boleta"
           className="flex h-9 items-center gap-1.5 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
         >
-          <Plus size={15} />
+          <Plus size={15} strokeWidth={1.5} aria-hidden />
           Nueva
         </Link>
       </div>
@@ -116,7 +103,7 @@ export function BoletasPage() {
       {/* Search */}
       <form onSubmit={handleSearch} className="mb-6">
         <div className="relative">
-          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+          <Search size={15} strokeWidth={1.5} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" aria-hidden />
           <input
             type="text"
             value={q}
@@ -138,8 +125,18 @@ export function BoletasPage() {
 
       {/* Results */}
       {isLoading ? (
-        <div className="flex h-24 items-center justify-center">
-          <Loader2 size={18} strokeWidth={1.5} className="animate-spin text-text-muted" />
+        <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+          {Array.from({ length: 5 }, (_, i) => (
+            <div key={i} className="flex animate-pulse items-center gap-3 border-b border-border px-4 py-3 last:border-0">
+              <div className="h-3 w-6 rounded bg-border" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="h-3 w-2/3 rounded bg-border" />
+                <div className="h-2.5 w-1/2 rounded bg-border" />
+              </div>
+              <div className="hidden h-2.5 w-20 rounded bg-border sm:block" />
+              <div className="h-2.5 w-16 rounded bg-border" />
+            </div>
+          ))}
         </div>
       ) : !data?.boletas.length ? (
         <div className="flex h-24 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border">

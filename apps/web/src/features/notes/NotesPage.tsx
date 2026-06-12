@@ -2,21 +2,8 @@ import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import type { Note } from '@sipnato/shared';
+import { fmtDateTime } from '../../lib/format';
 import { notesApi } from './api';
-
-const CR_TZ = 'America/Costa_Rica';
-
-function fmtDate(iso: string) {
-  return new Intl.DateTimeFormat('es-CR', {
-    timeZone: CR_TZ,
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(new Date(iso));
-}
 
 // ── Draft card (creating a new note) ─────────────────────────────────────────
 function DraftCard({
@@ -77,7 +64,7 @@ function DraftCard({
             disabled={!title.trim() || isCreating}
             className="flex items-center gap-1.5 rounded-lg bg-brand-blue px-3 py-1.5 text-xs font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50"
           >
-            {isCreating && <Loader2 size={11} className="animate-spin" />}
+            {isCreating && <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />}
             Guardar
           </button>
         </div>
@@ -155,7 +142,7 @@ function NoteCard({
               disabled={!title.trim() || isUpdating}
               className="flex items-center gap-1.5 rounded-lg bg-brand-blue px-3 py-1.5 text-xs font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50"
             >
-              {isUpdating && <Loader2 size={11} className="animate-spin" />}
+              {isUpdating && <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />}
               Guardar cambios
             </button>
           </div>
@@ -171,14 +158,14 @@ function NoteCard({
         <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">
           {note.title}
         </h3>
-        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="flex shrink-0 items-center gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="rounded p-1.5 text-text-muted transition-colors hover:bg-brand-blue/10 hover:text-brand-blue"
+            className="flex h-9 w-9 items-center justify-center rounded text-text-muted transition-colors hover:bg-brand-blue/10 hover:text-brand-blue"
             aria-label="Editar nota"
           >
-            <Pencil size={13} />
+            <Pencil size={14} strokeWidth={1.5} aria-hidden />
           </button>
           {confirmDelete ? (
             <div className="flex items-center gap-1">
@@ -188,26 +175,26 @@ function NoteCard({
                 disabled={isDeleting}
                 className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-brand-error bg-brand-error/10 hover:bg-brand-error/20 transition-colors disabled:opacity-50"
               >
-                {isDeleting ? <Loader2 size={11} className="animate-spin" /> : null}
+                {isDeleting ? <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden /> : null}
                 Eliminar
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmDelete(false)}
-                className="rounded p-1 text-text-muted hover:text-text-primary"
+                className="flex h-8 w-8 items-center justify-center rounded text-text-muted hover:text-text-primary"
                 aria-label="Cancelar"
               >
-                <X size={12} />
+                <X size={12} strokeWidth={1.5} aria-hidden />
               </button>
             </div>
           ) : (
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="rounded p-1.5 text-text-muted transition-colors hover:bg-brand-error/10 hover:text-brand-error"
+              className="flex h-9 w-9 items-center justify-center rounded text-text-muted transition-colors hover:bg-brand-error/10 hover:text-brand-error"
               aria-label="Eliminar nota"
             >
-              <Trash2 size={13} />
+              <Trash2 size={14} strokeWidth={1.5} aria-hidden />
             </button>
           )}
         </div>
@@ -222,7 +209,7 @@ function NoteCard({
 
       {/* Footer */}
       <p className="mt-1 text-[10px] text-text-muted/50">
-        {fmtDate(note.updatedAt)}
+        {fmtDateTime(note.updatedAt)}
       </p>
     </div>
   );
@@ -276,7 +263,7 @@ export function NotesPage() {
             onClick={() => setDraftOpen(true)}
             className="flex items-center gap-2 rounded-lg bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99]"
           >
-            <Plus size={15} />
+            <Plus size={15} strokeWidth={1.5} aria-hidden />
             <span className="hidden sm:inline">Nueva nota</span>
             <span className="sm:hidden">Nueva</span>
           </button>
@@ -296,8 +283,18 @@ export function NotesPage() {
 
       {/* Notes grid */}
       {isLoading ? (
-        <div className="flex h-32 items-center justify-center">
-          <Loader2 size={18} strokeWidth={1.5} className="animate-spin text-text-muted" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="animate-pulse flex flex-col gap-3 rounded-xl border border-border bg-surface-card p-4">
+              <div className="h-4 w-3/5 rounded bg-border" />
+              <div className="space-y-2">
+                <div className="h-2.5 w-full rounded bg-border" />
+                <div className="h-2.5 w-4/5 rounded bg-border" />
+                <div className="h-2.5 w-3/4 rounded bg-border" />
+              </div>
+              <div className="mt-1 h-2 w-20 rounded bg-border/60" />
+            </div>
+          ))}
         </div>
       ) : !notes?.length ? (
         <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border">

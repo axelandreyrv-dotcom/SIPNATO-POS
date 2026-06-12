@@ -4,20 +4,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, Loader2, Trash2, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { formatColones } from '@sipnato/shared';
 import type { Expense } from '@sipnato/shared';
+import { fmtTime } from '../../lib/format';
 import { cashRegisterApi } from '../cash-register/api';
 import { salesApi } from '../pos/api';
 import { expensesApi } from './api';
-
-const CR_TZ = 'America/Costa_Rica';
-
-function fmtTime(iso: string) {
-  return new Intl.DateTimeFormat('es-CR', {
-    timeZone: CR_TZ,
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(new Date(iso));
-}
 
 // ── Expense row ───────────────────────────────────────────────────────────────
 function ExpenseRow({
@@ -47,26 +37,26 @@ function ExpenseRow({
             disabled={isDeleting}
             className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-brand-error bg-brand-error/10 hover:bg-brand-error/20 transition-colors disabled:opacity-50"
           >
-            {isDeleting && <Loader2 size={11} className="animate-spin" />}
+            {isDeleting && <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />}
             Eliminar
           </button>
           <button
             type="button"
             onClick={() => setConfirming(false)}
-            className="rounded p-1 text-text-muted hover:text-text-primary"
+            className="flex h-8 w-8 items-center justify-center rounded text-text-muted hover:text-text-primary"
             aria-label="Cancelar"
           >
-            <X size={13} />
+            <X size={13} strokeWidth={1.5} aria-hidden />
           </button>
         </div>
       ) : (
         <button
           type="button"
           onClick={() => setConfirming(true)}
-          className="shrink-0 rounded p-1.5 text-text-muted transition-colors hover:bg-brand-error/10 hover:text-brand-error"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded text-text-muted transition-colors hover:bg-brand-error/10 hover:text-brand-error"
           aria-label="Eliminar gasto"
         >
-          <Trash2 size={14} />
+          <Trash2 size={14} strokeWidth={1.5} aria-hidden />
         </button>
       )}
     </div>
@@ -87,19 +77,19 @@ function BalanceCard({
     income: {
       bg: 'bg-brand-success/[0.07] border-brand-success/20',
       text: 'text-brand-success',
-      icon: <TrendingUp size={16} className="text-brand-success" />,
+      icon: <TrendingUp size={16} strokeWidth={1.5} className="text-brand-success" aria-hidden />,
     },
     expense: {
       bg: 'bg-brand-error/[0.07] border-brand-error/20',
       text: 'text-brand-error',
-      icon: <TrendingDown size={16} className="text-brand-error" />,
+      icon: <TrendingDown size={16} strokeWidth={1.5} className="text-brand-error" aria-hidden />,
     },
     balance: {
       bg: amount >= 0 ? 'bg-brand-success/[0.07] border-brand-success/20' : 'bg-brand-error/[0.07] border-brand-error/20',
       text: amount >= 0 ? 'text-brand-success' : 'text-brand-error',
       icon: amount >= 0
-        ? <TrendingUp size={16} className="text-brand-success" />
-        : <TrendingDown size={16} className="text-brand-error" />,
+        ? <TrendingUp size={16} strokeWidth={1.5} className="text-brand-success" aria-hidden />
+        : <TrendingDown size={16} strokeWidth={1.5} className="text-brand-error" aria-hidden />,
     },
   };
 
@@ -189,7 +179,7 @@ export function ExpensesPage() {
       {/* No register warning */}
       {noRegister && (
         <div className="mb-6 flex items-start gap-3 rounded-lg border border-brand-warning/25 bg-brand-warning/[0.07] px-4 py-3">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-brand-warning" />
+          <AlertTriangle size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-brand-warning" aria-hidden />
           <div className="flex-1">
             <p className="text-sm font-medium text-text-primary">No hay caja abierta</p>
             <p className="mt-0.5 text-xs text-text-muted">
@@ -204,7 +194,7 @@ export function ExpensesPage() {
 
       {/* Balance cards */}
       {register && (
-        <div className="mb-8 grid grid-cols-3 gap-3">
+        <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <BalanceCard label="Ingresos" amount={totalIncome} variant="income" />
           <BalanceCard label="Gastos" amount={totalExpenses} variant="expense" />
           <BalanceCard label="Balance neto" amount={netBalance} variant="balance" />
@@ -258,7 +248,7 @@ export function ExpensesPage() {
             className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-error text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createMutation.isPending ? (
-              <><Loader2 size={16} className="animate-spin" /> Registrando...</>
+              <><Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden /> Registrando...</>
             ) : (
               amount >= 1 ? `Registrar gasto ${formatColones(amount)}` : 'Registrar gasto'
             )}
@@ -293,8 +283,14 @@ export function ExpensesPage() {
         </div>
 
         {expensesLoading ? (
-          <div className="flex h-20 items-center justify-center">
-            <Loader2 size={18} strokeWidth={1.5} className="animate-spin text-text-muted" />
+          <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="flex animate-pulse items-center gap-3 border-b border-border px-4 py-2.5 last:border-0">
+                <div className="h-3 flex-1 rounded bg-border" />
+                <div className="h-3 w-16 rounded bg-border" />
+                <div className="h-3 w-8 rounded bg-border" />
+              </div>
+            ))}
           </div>
         ) : !expensesData?.expenses.length ? (
           <div className="flex h-20 items-center justify-center rounded-xl border border-dashed border-border">

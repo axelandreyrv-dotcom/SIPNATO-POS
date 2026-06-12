@@ -87,7 +87,7 @@ function SetupPage() {
                 Cuenta creada
               </h1>
               <p className="mt-1 text-sm text-text-muted">
-                SIPNATO POS está listo para usar.
+                SIPNATO está listo para usar.
               </p>
             </div>
           </div>
@@ -161,7 +161,7 @@ function SetupPage() {
             Configurar sistema
           </h1>
           <p className="mt-1 text-sm text-text-muted">
-            Primera configuración de SIPNATO POS
+            Primera configuración de SIPNATO
           </p>
         </div>
 

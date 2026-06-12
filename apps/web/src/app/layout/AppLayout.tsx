@@ -23,6 +23,7 @@ import { Logo } from '../../components/branding/Logo';
 import { useDarkMode } from '../../lib/hooks/useDarkMode';
 import { authApi } from '../../features/auth/api';
 import { cashRegisterApi } from '../../features/cash-register/api';
+import { printApi } from '../../features/print/api';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
@@ -54,6 +55,7 @@ function NavItem({ to, label, icon: Icon, exact, onClick }: NavItemProps) {
   return (
     <Link
       to={to as never}
+      viewTransition
       onClick={onClick}
       className={[
         'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150',
@@ -65,6 +67,31 @@ function NavItem({ to, label, icon: Icon, exact, onClick }: NavItemProps) {
       <Icon size={18} strokeWidth={1.5} aria-hidden />
       <span>{label}</span>
     </Link>
+  );
+}
+
+function BridgeStatusDot() {
+  const { data } = useQuery({
+    queryKey: ['print', 'status'],
+    queryFn: printApi.getStatus,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    retry: false,
+  });
+
+  if (!data?.tokenSet) return null;
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 text-xs text-white/40">
+      <span
+        aria-label={data.connected ? 'Impresora conectada' : 'Impresora desconectada'}
+        className={[
+          'h-1.5 w-1.5 rounded-full shrink-0',
+          data.connected ? 'bg-brand-success' : 'bg-white/20',
+        ].join(' ')}
+      />
+      <span>{data.connected ? 'Impresora' : 'Sin impresora'}</span>
+    </div>
   );
 }
 
@@ -98,6 +125,7 @@ function SidebarNav({ onNav }: { onNav?: () => void }) {
 
       {/* Bottom actions */}
       <div className="border-t border-white/10 px-3 py-3 space-y-0.5">
+        <BridgeStatusDot />
         <button
           type="button"
           onClick={toggle}
@@ -150,7 +178,10 @@ export function AppLayout() {
       </aside>
 
       {/* ── Mobile: top bar ──────────────────────────────────────────────── */}
-      <div className="sm:hidden fixed top-0 inset-x-0 z-40 flex h-14 items-center gap-3 bg-brand-navy px-4">
+      <div
+        className="sm:hidden fixed top-0 inset-x-0 z-40 flex h-14 items-center gap-3 bg-brand-navy px-4"
+        inert={drawerOpen || undefined}
+      >
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
@@ -173,7 +204,7 @@ export function AppLayout() {
             aria-hidden
           />
           {/* Panel */}
-          <aside className="absolute left-0 top-0 flex h-full w-72 flex-col bg-brand-navy shadow-2xl">
+          <aside className="absolute left-0 top-0 flex h-full w-72 flex-col bg-brand-navy shadow-[0_8px_32px_-4px_oklch(0%_0_0/0.22)]">
             <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
               <Logo />
               <button
@@ -191,10 +222,13 @@ export function AppLayout() {
       )}
 
       {/* ── Main content ──────────────────────────────────────────────────── */}
-      <main className="flex-1 overflow-auto pt-14 sm:pt-0 bg-surface-bg">
+      <main
+        className="flex-1 overflow-auto pt-14 sm:pt-0 bg-surface-bg vt-page"
+        inert={drawerOpen || undefined}
+      >
         {currentRegister === null && (
           <div className="sticky top-14 sm:top-0 z-10 flex items-center gap-2 border-b border-brand-warning/20 bg-brand-warning/[0.08] px-4 py-2.5">
-            <AlertTriangle size={13} strokeWidth={2} className="shrink-0 text-brand-warning" />
+            <AlertTriangle size={13} strokeWidth={1.5} className="shrink-0 text-brand-warning" aria-hidden />
             <span className="text-xs text-text-secondary">No hay caja abierta.</span>
             <Link
               to="/caja"

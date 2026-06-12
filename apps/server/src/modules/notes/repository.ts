@@ -48,18 +48,30 @@ export function findNoteById(id: number): Note | null {
   return row ? mapNote(row) : null;
 }
 
-export function updateNoteRow(id: number, input: UpdateNoteInput): Note {
+export function updateNoteRow(id: number, input: UpdateNoteInput, meta: AuditMeta): Note {
   const now = new Date().toISOString();
 
-  const row = db
-    .update(notes)
-    .set({ title: input.title, body: input.body, updatedAt: now })
-    .where(eq(notes.id, id))
-    .returning()
-    .get();
+  return db.transaction((tx): Note => {
+    const row = tx
+      .update(notes)
+      .set({ title: input.title, body: input.body, updatedAt: now })
+      .where(eq(notes.id, id))
+      .returning()
+      .get();
 
-  if (!row) throw new Error('Failed to update note');
-  return mapNote(row);
+    if (!row) throw new Error('Failed to update note');
+
+    tx.insert(auditLog).values({
+      action: 'NOTE_UPDATED',
+      entityType: 'note',
+      entityId: String(id),
+      payloadSnapshot: JSON.stringify({ title: input.title, bodyLength: input.body.length }),
+      ip: meta.ip,
+      userAgent: meta.userAgent,
+    }).run();
+
+    return mapNote(row);
+  });
 }
 
 export function hardDeleteNoteRow(

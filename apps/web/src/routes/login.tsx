@@ -76,7 +76,7 @@ function LoginPage() {
             Iniciar sesión
           </h1>
           <p className="mt-1 text-sm text-text-muted">
-            Acceso al sistema SIPNATO POS
+            Acceso al sistema SIPNATO
           </p>
         </div>
 

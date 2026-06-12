@@ -23,6 +23,10 @@
   --color-text-muted:      oklch(62% 0.010 250);
 
   --font-family-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Animations */
+  --animate-fade-up:       fade-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-slide-up-fade: slide-up-fade 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Dark-mode semantic overrides */
@@ -38,14 +42,83 @@
 
 /* Base */
 html {
+  background-color: var(--color-surface-bg);
   font-feature-settings: "cv01", "cv02", "cv03", "cv04";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Print — PDF de cotizaciones ──────────────────────────────────────────────── */
+.quote-print-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  padding: 48px;
+  overflow: auto;
+  z-index: 9999;
+}
+
+@media print {
+  /* Remove browser date/time, URL and page number headers */
+  @page {
+    margin: 0;
+  }
+  /* Hide the app; show only the print overlay (rendered as a body child via portal) */
+  body > *:not(.quote-print-overlay) {
+    display: none !important;
+  }
+  .quote-print-overlay {
+    display: block;
+    position: static;
+    overflow: visible;
+    padding: 40px 52px;
+    background: #fff;
+    min-height: 100vh;
+  }
+}
+
+/* View Transitions ─────────────────────────────────────────────────────────── */
+.vt-page {
+  view-transition-name: page-content;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Suppress the full-root cross-fade; only animate named elements */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+
+  /* Page-content cross-fade: old fades out, new fades in after a beat */
+  ::view-transition-old(page-content) {
+    animation-duration: 100ms;
+    animation-timing-function: ease;
+  }
+  ::view-transition-new(page-content) {
+    animation-duration: 200ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-delay: 50ms;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

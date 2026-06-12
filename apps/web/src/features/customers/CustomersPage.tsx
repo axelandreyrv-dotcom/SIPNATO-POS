@@ -2,18 +2,8 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronUp, Loader2, Search } from 'lucide-react';
 import type { BoletaSummary, Customer } from '@sipnato/shared';
+import { fmtDate, fmtDateShort } from '../../lib/format';
 import { customersApi } from './api';
-
-const CR_TZ = 'America/Costa_Rica';
-
-function fmtDate(iso: string) {
-  return new Intl.DateTimeFormat('es-CR', {
-    timeZone: CR_TZ,
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(iso));
-}
 
 function CustomerRow({ customer }: { customer: Customer }) {
   const [expanded, setExpanded] = useState(false);
@@ -46,9 +36,9 @@ function CustomerRow({ customer }: { customer: Customer }) {
         )}
         <span className="shrink-0 text-xs text-text-muted">{fmtDate(customer.createdAt)}</span>
         {expanded ? (
-          <ChevronUp size={14} className="shrink-0 text-text-muted" />
+          <ChevronUp size={14} strokeWidth={1.5} className="shrink-0 text-text-muted" aria-hidden />
         ) : (
-          <ChevronDown size={14} className="shrink-0 text-text-muted" />
+          <ChevronDown size={14} strokeWidth={1.5} className="shrink-0 text-text-muted" aria-hidden />
         )}
       </button>
 
@@ -56,7 +46,7 @@ function CustomerRow({ customer }: { customer: Customer }) {
         <div className="border-t border-border/60 bg-surface-bg px-4 py-4">
           {isFetching ? (
             <div className="flex h-10 items-center justify-center">
-              <Loader2 size={14} className="animate-spin text-text-muted" />
+              <Loader2 size={14} strokeWidth={1.5} className="animate-spin text-text-muted" aria-hidden />
             </div>
           ) : (
             <BoletaHistory boletas={data?.boletas ?? []} />
@@ -89,11 +79,7 @@ function BoletaHistory({ boletas }: { boletas: BoletaSummary[] }) {
               <span className="hidden font-mono text-text-muted sm:block">{b.imei}</span>
             )}
             <span className="shrink-0 text-text-muted">
-              {new Intl.DateTimeFormat('es-CR', {
-                timeZone: 'America/Costa_Rica',
-                day: '2-digit',
-                month: 'short',
-              }).format(new Date(b.createdAt))}
+              {fmtDateShort(b.createdAt)}
             </span>
           </div>
         ))}
@@ -130,7 +116,7 @@ export function CustomersPage() {
       {/* Search */}
       <form onSubmit={handleSearch} className="mb-6">
         <div className="relative">
-          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+          <Search size={15} strokeWidth={1.5} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" aria-hidden />
           <input
             type="text"
             value={q}
@@ -152,8 +138,18 @@ export function CustomersPage() {
 
       {/* Results */}
       {isLoading ? (
-        <div className="flex h-24 items-center justify-center">
-          <Loader2 size={18} strokeWidth={1.5} className="animate-spin text-text-muted" />
+        <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+          {Array.from({ length: 5 }, (_, i) => (
+            <div key={i} className="flex animate-pulse items-center gap-3 border-b border-border px-4 py-3 last:border-0">
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="h-3 w-1/2 rounded bg-border" />
+                <div className="h-2.5 w-1/3 rounded bg-border" />
+              </div>
+              <div className="hidden h-2.5 w-32 rounded bg-border sm:block" />
+              <div className="h-2.5 w-16 rounded bg-border" />
+              <div className="h-3 w-3 rounded bg-border/50" />
+            </div>
+          ))}
         </div>
       ) : !data?.customers.length ? (
         <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-border">

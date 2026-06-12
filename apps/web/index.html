@@ -5,18 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <meta name="description" content="SIPNATO POS — Sistema de punto de venta para taller de reparación" />
-    <meta property="og:title" content="SIPNATO POS" />
+    <meta name="description" content="SIPNATO — Sistema de punto de venta para taller de reparación" />
+    <meta property="og:title" content="SIPNATO" />
     <meta property="og:description" content="Sistema de punto de venta para taller de reparación" />
     <meta property="og:image" content="/og-image.png" />
     <meta name="theme-color" content="#1E3A5F" />
-    <title>SIPNATO POS</title>
+    <title>SIPNATO</title>
     <!-- Prevent dark-mode flash before React mounts -->
     <script>
       (function () {
-        var stored = localStorage.getItem('sipnato-theme');
-        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (stored === 'dark' || (!stored && prefersDark)) {
+        if (localStorage.getItem('sipnato-theme') === 'dark') {
           document.documentElement.classList.add('dark');
         }
       })();

@@ -37,3 +37,6 @@ export type QuoteList = {
   page: number;
   totalPages: number;
 };
+
+export const updateQuoteSchema = createQuoteSchema;
+export type UpdateQuoteInput = CreateQuoteInput;

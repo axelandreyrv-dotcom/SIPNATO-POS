@@ -2,11 +2,30 @@
   "name": "@sipnato/shared",
   "version": "0.0.1",
   "type": "module",
+  "scripts": {
+    "build": "tsc"
+  },
   "exports": {
-    ".": "./src/index.ts",
-    "./money": "./src/money.ts",
-    "./schemas/*": "./src/schemas/*.ts",
-    "./tickets/*": "./src/tickets/*.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "tsx": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./money": {
+      "types": "./src/money.ts",
+      "tsx": "./src/money.ts",
+      "default": "./dist/money.js"
+    },
+    "./schemas/*": {
+      "types": "./src/schemas/*.ts",
+      "tsx": "./src/schemas/*.ts",
+      "default": "./dist/schemas/*.js"
+    },
+    "./tickets/*": {
+      "types": "./src/tickets/*.ts",
+      "tsx": "./src/tickets/*.ts",
+      "default": "./dist/tickets/*.js"
+    }
   },
   "dependencies": {
     "zod": "^3.23.0"

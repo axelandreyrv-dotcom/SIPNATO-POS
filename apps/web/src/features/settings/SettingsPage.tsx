@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Copy, Loader2, Printer, Wifi, WifiOff } from 'lucide-react';
 import type { Settings } from '@sipnato/shared';
 import { settingsApi } from './api';
+import { printApi } from '../print/api';
 
 const inputClass = [
   'h-9 w-full rounded-lg border px-3 text-sm text-text-primary',
@@ -43,6 +44,152 @@ function Section({
       </div>
       <div className="mt-6 sm:col-span-2 sm:mt-0 space-y-4">{children}</div>
     </div>
+  );
+}
+
+function PrintBridgeSection() {
+  const [revealedToken, setRevealedToken] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const { data: status, refetch: refetchStatus } = useQuery({
+    queryKey: ['print', 'status'],
+    queryFn: printApi.getStatus,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    retry: false,
+  });
+
+  const generateMutation = useMutation({
+    mutationFn: printApi.generateToken,
+    onSuccess: (data) => {
+      setRevealedToken(data.token);
+      void refetchStatus();
+    },
+  });
+
+  const testMutation = useMutation({
+    mutationFn: printApi.testPrint,
+  });
+
+  function handleCopy() {
+    if (!revealedToken) return;
+    void navigator.clipboard.writeText(revealedToken).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  const isConnected = status?.connected ?? false;
+  const tokenSet = status?.tokenSet ?? false;
+  const serverUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/print`;
+
+  return (
+    <Section
+      title="Puente de impresión"
+      description="Conecta la ticketera física (Epson TM-T20/T88) a través del servicio local print-bridge."
+    >
+      {/* Status row */}
+      <div className="flex items-center gap-2 py-1">
+        {isConnected ? (
+          <Wifi size={15} strokeWidth={1.5} className="text-brand-success shrink-0" aria-hidden />
+        ) : (
+          <WifiOff size={15} strokeWidth={1.5} className="text-text-muted shrink-0" aria-hidden />
+        )}
+        <span className="text-sm text-text-primary">
+          {isConnected ? 'Impresora conectada' : tokenSet ? 'Esperando conexión del bridge' : 'Sin configurar'}
+        </span>
+      </div>
+
+      {/* Server URL for the bridge */}
+      <div>
+        <FieldLabel htmlFor="bridge-url">URL del servidor (para print-bridge)</FieldLabel>
+        <div className="flex items-center gap-2">
+          <input
+            id="bridge-url"
+            type="text"
+            readOnly
+            value={serverUrl}
+            className="h-9 flex-1 rounded-lg border border-border bg-surface-bg px-3 text-sm text-text-muted font-mono outline-none select-all"
+          />
+        </div>
+      </div>
+
+      {/* Token generation */}
+      <div>
+        <p className="text-sm font-medium text-text-secondary mb-2">Token de autenticación</p>
+        {revealedToken ? (
+          <div className="rounded-lg border border-brand-warning/30 bg-brand-warning/[0.06] p-3 space-y-2">
+            <p className="text-xs text-brand-warning font-medium">Copia este token ahora — no se mostrará de nuevo.</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded bg-surface-bg px-2 py-1.5 text-xs font-mono text-text-primary break-all">
+                {revealedToken}
+              </code>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
+                aria-label="Copiar token"
+              >
+                {copied ? (
+                  <CheckCircle size={14} strokeWidth={1.5} className="text-brand-success" aria-hidden />
+                ) : (
+                  <Copy size={14} strokeWidth={1.5} aria-hidden />
+                )}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-text-muted">
+            {tokenSet ? 'Token configurado. Genera uno nuevo para reemplazarlo.' : 'Genera un token para conectar el bridge.'}
+          </p>
+        )}
+
+        <button
+          type="button"
+          disabled={generateMutation.isPending}
+          onClick={() => generateMutation.mutate()}
+          className={[
+            'mt-3 flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium',
+            'border border-brand-error/30 text-brand-error',
+            'transition-colors hover:bg-brand-error/[0.06]',
+            'disabled:cursor-not-allowed disabled:opacity-60',
+          ].join(' ')}
+        >
+          {generateMutation.isPending ? (
+            <Loader2 size={13} strokeWidth={1.5} className="animate-spin" aria-hidden />
+          ) : null}
+          {tokenSet ? 'Rotar token' : 'Generar token'}
+        </button>
+        {generateMutation.isError && (
+          <p className="mt-1.5 text-xs text-brand-error">No se pudo generar el token. Intenta de nuevo.</p>
+        )}
+      </div>
+
+      {/* Test print */}
+      {isConnected && (
+        <div>
+          <button
+            type="button"
+            disabled={testMutation.isPending}
+            onClick={() => testMutation.mutate()}
+            className={[
+              'flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white',
+              'bg-brand-blue transition-all hover:brightness-110 active:scale-[0.98]',
+              'disabled:cursor-not-allowed disabled:opacity-60',
+            ].join(' ')}
+          >
+            <Printer size={14} strokeWidth={1.5} aria-hidden />
+            {testMutation.isPending ? 'Enviando...' : 'Imprimir prueba'}
+          </button>
+          {testMutation.isSuccess && (
+            <p className="mt-1.5 text-xs text-brand-success flex items-center gap-1">
+              <CheckCircle size={12} strokeWidth={1.5} aria-hidden />
+              Trabajo de prueba enviado
+            </p>
+          )}
+        </div>
+      )}
+    </Section>
   );
 }
 
@@ -90,8 +237,32 @@ export function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-full items-center justify-center p-8">
-        <Loader2 size={20} strokeWidth={1.5} className="animate-spin text-text-muted" />
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
+        <div className="mb-2">
+          <div className="h-5 w-32 animate-pulse rounded bg-border" />
+          <div className="mt-2 h-3 w-48 animate-pulse rounded bg-border" />
+        </div>
+        <div className="mt-6 divide-y divide-border">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="animate-pulse py-8 sm:grid sm:grid-cols-3 sm:gap-8">
+              <div className="space-y-2.5">
+                <div className="h-3.5 w-28 rounded bg-border" />
+                <div className="h-2.5 w-44 rounded bg-border" />
+                <div className="h-2.5 w-36 rounded bg-border" />
+              </div>
+              <div className="mt-6 space-y-4 sm:col-span-2 sm:mt-0">
+                <div>
+                  <div className="mb-1.5 h-3 w-24 rounded bg-border" />
+                  <div className="h-9 w-full rounded-lg bg-border" />
+                </div>
+                <div>
+                  <div className="mb-1.5 h-3 w-20 rounded bg-border" />
+                  <div className="h-9 w-full rounded-lg bg-border" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -202,6 +373,9 @@ export function SettingsPage() {
             </div>
           </Section>
 
+          {/* ── Puente de impresión ─────────────────────────────────────── */}
+          <PrintBridgeSection />
+
           {/* ── Cierre automático ───────────────────────────────────────── */}
           <Section
             title="Cierre automático"
@@ -254,7 +428,7 @@ export function SettingsPage() {
         <div className="flex items-center justify-end gap-3 py-6 border-t border-border">
           {saved && (
             <span className="flex items-center gap-1.5 text-sm text-brand-success">
-              <CheckCircle size={15} strokeWidth={2} />
+              <CheckCircle size={15} strokeWidth={1.5} aria-hidden />
               Guardado
             </span>
           )}
@@ -273,7 +447,7 @@ export function SettingsPage() {
           >
             {mutation.isPending ? (
               <>
-                <Loader2 size={14} strokeWidth={2} className="animate-spin" />
+                <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
                 Guardando...
               </>
             ) : (

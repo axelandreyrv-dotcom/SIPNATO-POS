@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../../db/client.js';
-import { settings } from '../../db/schema.js';
+import { auditLog, settings } from '../../db/schema.js';
 
 const SETTING_KEYS = [
   'shop_name',
@@ -17,8 +17,8 @@ export type SettingKey = (typeof SETTING_KEYS)[number];
 
 export type RawSettings = Record<SettingKey, string>;
 
-export async function getAllSettings(): Promise<RawSettings> {
-  const rows = await db.select().from(settings);
+export function getAllSettings(): RawSettings {
+  const rows = db.select().from(settings).all();
   const map: Partial<RawSettings> = {};
   for (const row of rows) {
     if ((SETTING_KEYS as readonly string[]).includes(row.key)) {
@@ -37,17 +37,21 @@ export async function getAllSettings(): Promise<RawSettings> {
   };
 }
 
-export async function setSetting(key: SettingKey, value: string): Promise<void> {
-  await db
+export function setSetting(key: SettingKey, value: string): void {
+  db
     .insert(settings)
     .values({ key, value })
     .onConflictDoUpdate({
       target: settings.key,
       set: { value, updatedAt: new Date().toISOString() },
-    });
+    })
+    .run();
 }
 
-export function setAllSettings(entries: [SettingKey, string][]): void {
+export function setAllSettings(
+  entries: [SettingKey, string][],
+  audit: { payloadSnapshot: string; ip: string | null; userAgent: string | null },
+): void {
   const now = new Date().toISOString();
   db.transaction((tx) => {
     for (const [key, value] of entries) {
@@ -60,10 +64,54 @@ export function setAllSettings(entries: [SettingKey, string][]): void {
         })
         .run();
     }
+    tx.insert(auditLog).values({
+      action: 'SETTINGS_UPDATED',
+      entityType: null,
+      entityId: null,
+      payloadSnapshot: audit.payloadSnapshot,
+      ip: audit.ip,
+      userAgent: audit.userAgent,
+    }).run();
   });
 }
 
-export async function getSetting(key: SettingKey): Promise<string | null> {
-  const [row] = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
+export function getSetting(key: SettingKey): string | null {
+  const row = db.select().from(settings).where(eq(settings.key, key)).limit(1).get();
   return row?.value ?? null;
+}
+
+// ── Print bridge token (not part of UI settings) ──────────────────────────────
+
+const PRINT_TOKEN_KEY = 'print_bridge_token_hash';
+
+export function getPrintBridgeTokenHash(): string | null {
+  const row = db
+    .select({ value: settings.value })
+    .from(settings)
+    .where(eq(settings.key, PRINT_TOKEN_KEY))
+    .limit(1)
+    .get();
+  return row?.value ?? null;
+}
+
+export function setPrintBridgeTokenHash(
+  hash: string,
+  audit: { ip: string | null; userAgent: string | null },
+): void {
+  const now = new Date().toISOString();
+  db.transaction((tx) => {
+    tx
+      .insert(settings)
+      .values({ key: PRINT_TOKEN_KEY, value: hash })
+      .onConflictDoUpdate({ target: settings.key, set: { value: hash, updatedAt: now } })
+      .run();
+    tx.insert(auditLog).values({
+      action: 'PRINT_TOKEN_ROTATED',
+      entityType: 'settings',
+      entityId: null,
+      payloadSnapshot: null,
+      ip: audit.ip,
+      userAgent: audit.userAgent,
+    }).run();
+  });
 }

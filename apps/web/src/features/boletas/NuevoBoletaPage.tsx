@@ -7,12 +7,14 @@ import { customersApi } from '../customers/api';
 import { boletasApi } from './api';
 
 function Field({
+  id,
   label,
   required,
   error,
   hint,
   children,
 }: {
+  id?: string;
   label: string;
   required?: boolean;
   error?: string;
@@ -21,13 +23,15 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-text-secondary">
+      <label htmlFor={id} className="text-sm font-medium text-text-secondary">
         {label}
-        {required && <span className="ml-1 text-brand-error">*</span>}
+        {required && (
+          <span className="ml-1 text-brand-error" aria-label="obligatorio">*</span>
+        )}
       </label>
       {children}
       {hint && !error && <p className="text-xs text-text-muted">{hint}</p>}
-      {error && <p className="text-xs text-brand-error">{error}</p>}
+      {error && <p className="text-xs text-brand-error" role="alert">{error}</p>}
     </div>
   );
 }
@@ -138,9 +142,10 @@ export function NuevoBoletaPage() {
         <button
           type="button"
           onClick={() => void navigate({ to: '/boletas' })}
-          className="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
+          aria-label="Volver a boletas"
         >
-          <ChevronLeft size={18} />
+          <ChevronLeft size={18} strokeWidth={1.5} aria-hidden />
         </button>
         <div>
           <h1 className="text-xl font-semibold text-text-primary">Nueva boleta</h1>
@@ -155,13 +160,15 @@ export function NuevoBoletaPage() {
             Cliente
           </h2>
           <div className="space-y-4 rounded-xl border border-border bg-surface-card p-5">
-            <Field label="Celular" required error={phoneError}>
+            <Field id="nb-phone" label="Celular" required error={phoneError}>
               <div className="relative">
                 <Input
+                  id="nb-phone"
                   type="tel"
                   maxLength={8}
                   value={phone}
                   placeholder="88001234"
+                  aria-required="true"
                   onChange={(e) => {
                     const v = e.target.value.replace(/\D/g, '').slice(0, 8);
                     setPhone(v);
@@ -171,9 +178,9 @@ export function NuevoBoletaPage() {
                 {phoneLookupEnabled && (
                   <span className="absolute right-3 top-1/2 -translate-y-1/2">
                     {lookingUp ? (
-                      <Loader2 size={14} className="animate-spin text-text-muted" />
+                      <Loader2 size={14} strokeWidth={1.5} className="animate-spin text-text-muted" aria-hidden />
                     ) : foundCustomer ? (
-                      <CheckCircle size={14} className="text-brand-success" />
+                      <CheckCircle size={14} strokeWidth={1.5} className="text-brand-success" aria-hidden />
                     ) : null}
                   </span>
                 )}
@@ -185,19 +192,22 @@ export function NuevoBoletaPage() {
               )}
             </Field>
 
-            <Field label="Nombre" required>
+            <Field id="nb-name" label="Nombre" required>
               <Input
+                id="nb-name"
                 type="text"
                 maxLength={200}
                 value={name}
                 placeholder="Juan Pérez"
+                aria-required="true"
                 onChange={(e) => setName(e.target.value)}
               />
             </Field>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Correo">
+              <Field id="nb-email" label="Correo">
                 <Input
+                  id="nb-email"
                   type="email"
                   maxLength={200}
                   value={email}
@@ -205,8 +215,9 @@ export function NuevoBoletaPage() {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </Field>
-              <Field label="Cédula / ID" hint="Ej. 1-2345-6789">
+              <Field id="nb-idnumber" label="Cédula / ID" hint="Ej. 1-2345-6789">
                 <Input
+                  id="nb-idnumber"
                   type="text"
                   maxLength={20}
                   value={idNumber}
@@ -224,19 +235,22 @@ export function NuevoBoletaPage() {
             Equipo
           </h2>
           <div className="space-y-4 rounded-xl border border-border bg-surface-card p-5">
-            <Field label="Modelo" required>
+            <Field id="nb-model" label="Modelo" required>
               <Input
+                id="nb-model"
                 type="text"
                 maxLength={200}
                 value={deviceModel}
                 placeholder="Samsung Galaxy A54"
+                aria-required="true"
                 onChange={(e) => setDeviceModel(e.target.value)}
               />
             </Field>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="IMEI" error={imeiError} hint="15 dígitos (opcional)">
+              <Field id="nb-imei" label="IMEI" error={imeiError} hint="15 dígitos (opcional)">
                 <Input
+                  id="nb-imei"
                   type="text"
                   maxLength={15}
                   value={imei}
@@ -249,11 +263,13 @@ export function NuevoBoletaPage() {
                 />
               </Field>
               <Field
+                id="nb-password"
                 label="Contraseña de desbloqueo"
                 hint="Código PIN o patrón — no se almacena de forma segura"
               >
                 <div className="relative">
                   <Input
+                    id="nb-password"
                     type="text"
                     maxLength={100}
                     value={unlockPassword}
@@ -263,7 +279,7 @@ export function NuevoBoletaPage() {
                 </div>
                 {unlockPassword && (
                   <div className="flex items-center gap-1.5 rounded-md border border-brand-warning/25 bg-brand-warning/[0.07] px-3 py-1.5">
-                    <AlertCircle size={12} className="shrink-0 text-brand-warning" />
+                    <AlertCircle size={12} strokeWidth={1.5} className="shrink-0 text-brand-warning" aria-hidden />
                     <span className="text-xs text-text-muted">
                       Este dato no se cifra. Manéjalo con discreción.
                     </span>
@@ -272,12 +288,14 @@ export function NuevoBoletaPage() {
               </Field>
             </div>
 
-            <Field label="Descripción del problema / trabajo" required>
+            <Field id="nb-description" label="Descripción del problema / trabajo" required>
               <textarea
+                id="nb-description"
                 maxLength={5000}
                 rows={4}
                 value={description}
                 placeholder="Pantalla rota, no enciende, batería dañada..."
+                aria-required="true"
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full resize-y rounded-lg border border-border bg-surface-input px-3 py-2.5 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
               />
@@ -303,7 +321,7 @@ export function NuevoBoletaPage() {
             className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-blue text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createMutation.isPending ? (
-              <><Loader2 size={15} className="animate-spin" /> Guardando...</>
+              <><Loader2 size={15} strokeWidth={1.5} className="animate-spin" aria-hidden /> Guardando...</>
             ) : (
               'Crear boleta'
             )}
@@ -311,7 +329,7 @@ export function NuevoBoletaPage() {
         </div>
 
         {createMutation.isError && (
-          <p className="text-center text-xs text-brand-error">
+          <p className="text-center text-xs text-brand-error" role="alert">
             {createMutation.error?.message ?? 'Error al crear la boleta'}
           </p>
         )}

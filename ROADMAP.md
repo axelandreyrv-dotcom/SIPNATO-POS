@@ -2,7 +2,7 @@
 
 > Desarrollo por fases pequeñas y lógicas. Cada fase es atómica: una sola responsabilidad, verificable antes de avanzar.
 > Al completar cada fase: marcar `[x]`, anotar la fecha y actualizar `CLAUDE.md`.
-> Última actualización: 2026-06-10
+> Última actualización: 2026-06-11 · Fase 13 ✅ COMPLETA — ¡SIPNATO listo para producción!
 
 ---
 
@@ -21,10 +21,10 @@
 | 7 | Base de Datos de Clientes & Boletas | ✅ COMPLETADA 2026-06-10 |
 | 8 | Cotizaciones | ✅ COMPLETADA 2026-06-10 |
 | 9 | Notas Internas | ✅ COMPLETADA 2026-06-10 |
-| 10 | Reporte de Ventas | ⬜ Pendiente |
-| 11 | Dashboard | ⬜ Pendiente |
-| 12 | Puente de Impresión (Print Bridge) | ⬜ Pendiente |
-| 13 | Despliegue (VPS + Docker + Caddy) | ⬜ Pendiente |
+| 10 | Reporte de Ventas | ✅ COMPLETADA 2026-06-11 |
+| 11 | Dashboard | ✅ COMPLETADA 2026-06-11 |
+| 12 | Puente de Impresión (Print Bridge) | ✅ COMPLETADA 2026-06-11 |
+| 13 | Despliegue (VPS + Docker + Caddy) | ✅ COMPLETADA 2026-06-11 |
 
 ---
 
@@ -256,7 +256,7 @@ Apertura, cierre manual y cierre automático funcionan. Test de idempotencia: do
 ### Criterio de completitud
 Venta completa en menos de 5 teclas. Calculadora de vuelto funciona correctamente. Test: venta sin caja abierta retorna error claro.
 
-**✅ COMPLETADA 2026-06-10** — Backend: POST /api/sales (consecutivo transaccional, caja verificada), DELETE /:id (soft-delete + audit_log), GET / (paginado, filtrado por caja activa). Frontend: POSPage con formulario (descripción→monto→método), ChangeCalcModal para efectivo con vuelto en tiempo real, toast de confirmación, lista de ventas con eliminación inline, bloqueo si no hay caja abierta. tsc --noEmit limpio en ambos workspaces. `/grill-me` pendiente.
+**✅ COMPLETADA 2026-06-10** — Backend: POST /api/sales (consecutivo transaccional, caja verificada), DELETE /:id (soft-delete + audit_log), GET / (paginado, filtrado por caja activa). Frontend: POSPage con formulario (descripción→monto→método), ChangeCalcModal para efectivo con vuelto en tiempo real, toast de confirmación, lista de ventas con eliminación inline, bloqueo si no hay caja abierta. tsc --noEmit limpio en ambos workspaces. `/grill-me` ✅ 2026-06-11 — sin gaps.
 
 ---
 
@@ -281,7 +281,7 @@ Venta completa en menos de 5 teclas. Calculadora de vuelto funciona correctament
 ### Criterio de completitud
 Gastos se registran y el balance neto se calcula correctamente.
 
-**✅ COMPLETADA 2026-06-10** — Backend: POST /api/expenses (validado con Zod, caja verificada, audit_log), DELETE /:id (soft-delete + audit_log, verifica pertenencia a caja activa), GET / (lista gastos + total de la caja activa). Frontend: ExpensesPage con formulario descripción+monto, balance cards (Ingresos/Gastos/Balance neto) cuando hay caja abierta, lista con eliminación inline. Route `/gastos` registrada. tsc --noEmit limpio en ambos workspaces. `/grill-me` pendiente.
+**✅ COMPLETADA 2026-06-10** — Backend: POST /api/expenses (validado con Zod, caja verificada, audit_log), DELETE /:id (soft-delete + audit_log, verifica pertenencia a caja activa), GET / (lista gastos + total de la caja activa). Frontend: ExpensesPage con formulario descripción+monto, balance cards (Ingresos/Gastos/Balance neto) cuando hay caja abierta, lista con eliminación inline. Route `/gastos` registrada. tsc --noEmit limpio en ambos workspaces. `/grill-me` ✅ 2026-06-11 — sin gaps.
 
 ---
 
@@ -310,7 +310,7 @@ Gastos se registran y el balance neto se calcula correctamente.
 ### Criterio de completitud
 Boleta creada, cliente guardado, autocompletado funciona en segunda visita del mismo cliente.
 
-**✅ COMPLETADA 2026-06-10** — Shared: `schemas/customer.ts` + `schemas/boleta.ts` (validateImei con Luhn, createBoletaSchema con validación IMEI 15 dígitos, phone 8 dígitos CR, idNumber alfanumérico). Backend: `modules/customers/` (búsqueda LIKE por nombre/phone/idNumber, paginada; GET /:id con historial de boletas) + `modules/boletas/` (find-or-create customer por phone en transacción, consecutivo del counter `boleta`, JOIN customers en listado/detalle, búsqueda multi-campo). Frontend: BoletasPage (búsqueda + lista expandible), NuevoBoletaPage (autocomplete de cliente por celular, advertencia contraseña plain text, validación IMEI en tiempo real), CustomersPage (búsqueda + historial lazy). 3 rutas: /boletas, /nueva-boleta, /clientes. tsc --noEmit limpio en ambos workspaces. `/grill-me` pendiente.
+**✅ COMPLETADA 2026-06-10** — Shared: `schemas/customer.ts` + `schemas/boleta.ts` (validateImei con Luhn, createBoletaSchema con validación IMEI 15 dígitos, phone 8 dígitos CR, idNumber alfanumérico). Backend: `modules/customers/` (búsqueda LIKE por nombre/phone/idNumber, paginada; GET /:id con historial de boletas) + `modules/boletas/` (find-or-create customer por phone en transacción, consecutivo del counter `boleta`, JOIN customers en listado/detalle, búsqueda multi-campo). Frontend: BoletasPage (búsqueda + lista expandible), NuevoBoletaPage (autocomplete de cliente por celular, advertencia contraseña plain text, validación IMEI en tiempo real), CustomersPage (búsqueda + historial lazy). 3 rutas: /boletas, /nueva-boleta, /clientes. tsc --noEmit limpio en ambos workspaces. `/grill-me` ? 2026-06-11 � sin gaps.
 
 ---
 
@@ -336,7 +336,7 @@ Boleta creada, cliente guardado, autocompletado funciona en segunda visita del m
 ### Criterio de completitud
 Cotización con múltiples ítems se crea y el total coincide exactamente con la suma de ítems calculada en el servidor.
 
-**✅ COMPLETADA 2026-06-10** — Backend: POST/GET/GET:id/DELETE con transacción atómica (counter+quote+items+audit_log). Total calculado en servidor, nunca del cliente. Hard delete en transaction (items → quote → audit). Frontend: NuevaCotizacionPage (ítems dinámicos, total en tiempo real), QuotesPage (historial expandible, detalle bajo demanda, paginación, inline delete). tsc --noEmit limpio en ambos workspaces. /grill-me pendiente.
+**✅ COMPLETADA 2026-06-10** — Backend: POST/GET/GET:id/DELETE con transacción atómica (counter+quote+items+audit_log). Total calculado en servidor, nunca del cliente. Hard delete en transaction (items → quote → audit). Frontend: NuevaCotizacionPage (ítems dinámicos, total en tiempo real), QuotesPage (historial expandible, detalle bajo demanda, paginación, inline delete). tsc --noEmit limpio en ambos workspaces. `/grill-me` ✅ 2026-06-11 — sin gaps.
 
 ---
 
@@ -361,55 +361,55 @@ Cotización con múltiples ítems se crea y el total coincide exactamente con la
 ### Criterio de completitud
 CRUD completo de notas funciona con actualización en tiempo real en la UI.
 
-**✅ COMPLETADA 2026-06-10** — Backend: GET/POST/PUT/DELETE con audit_log en create (bodyLength) y delete (full snapshot). updateNoteRow setea updatedAt manualmente. Service sin dependencia de caja. Frontend: NotesPage con DraftCard (nueva nota), NoteCard (editor inline por tarjeta, confirmación de borrado), grid 1/2/3 cols responsive. Route `/notas` registrada. tsc limpio. `/grill-me` pendiente.
+**✅ COMPLETADA 2026-06-10** — Backend: GET/POST/PUT/DELETE con audit_log en create (bodyLength) y delete (full snapshot). updateNoteRow setea updatedAt manualmente. Service sin dependencia de caja. Frontend: NotesPage con DraftCard (nueva nota), NoteCard (editor inline por tarjeta, confirmación de borrado), grid 1/2/3 cols responsive. Route `/notas` registrada. tsc limpio. `/grill-me` ? 2026-06-11 � sin gaps.
 
 ---
 
-## Fase 10 — Reporte de Ventas
+## Fase 10 — Reporte de Ventas ✅ COMPLETADA 2026-06-11
 
 **Objetivo:** visualización y análisis de ventas por período, método de pago y balance.
 
 ### Tareas Backend
-- [ ] `GET /api/reports/sales` — ventas con filtros: rango de fechas, método de pago, búsqueda por descripción
-- [ ] `GET /api/reports/summary` — totales por período: ingresos por método, gastos, balance neto, número de ventas
-- [ ] `GET /api/reports/daily` — resumen por día (para gráfica de barras)
+- [x] `GET /api/reports/sales` — ventas con filtros: rango de fechas, método de pago, búsqueda por descripción
+- [x] `GET /api/reports/summary` — totales por período: ingresos por método, gastos, balance neto, número de ventas
+- [x] `GET /api/reports/daily` — resumen por día (para gráfica de barras)
 
 ### Tareas Frontend (invocar `/impeccable` + `/design-taste-frontend`)
-- [ ] Filtros de fecha (hoy / esta semana / este mes / rango personalizado)
-- [ ] Tabla de ventas con paginación y exportación simple
-- [ ] Tarjetas de totales: ingresos por método, gastos, balance neto
-- [ ] Gráfica de barras de ventas diarias (librería: Recharts, ligera y compatible con Tailwind)
+- [x] Filtros de fecha (hoy / esta semana / este mes / rango personalizado)
+- [x] Tabla de ventas con paginación y exportación simple
+- [x] Tarjetas de totales: ingresos por método, gastos, balance neto
+- [x] Gráfica de barras de ventas diarias (Recharts BarChart)
 
 ### Checklist de seguridad (Fase 10)
-- [ ] Parámetros de filtro de fecha validados con zod (fechas válidas, rango máximo razonable ej. 1 año)
-- [ ] Queries con soft-delete filtrado (`WHERE deleted_at IS NULL`)
-- [ ] Paginación obligatoria — nunca retornar todos los registros sin límite
-- [ ] Límites de fecha (hoy/semana/mes) computados en `America/Costa_Rica`, no en UTC (CLAUDE.md sección 7)
+- [x] Parámetros de filtro de fecha validados con zod (fechas válidas, rango máximo razonable ej. 1 año)
+- [x] Queries con soft-delete filtrado (`WHERE deleted_at IS NULL`)
+- [x] Paginación obligatoria — nunca retornar todos los registros sin límite
+- [x] Límites de fecha (hoy/semana/mes) computados en `America/Costa_Rica`, no en UTC (CLAUDE.md sección 7)
 
 ### Criterio de completitud
 Reporte muestra datos correctos para el período seleccionado, coincide con los cierres de caja del mismo período.
 
-**Al completar:** invocar `/grill-me` · actualizar `CLAUDE.md` · marcar `[x]` aquí.
+**Notas:** `/grill-me` completado 2026-06-11 — 4 correcciones aplicadas (validación calendaria de fechas, `GROUP BY` SQL en summary, `reportExportFilterSchema`, query daily refactorizado). Corrección adicional: `@fastify/cookie`, `@fastify/cors`, `@fastify/rate-limit` actualizados de v9 a v10+ (compatibilidad con Fastify v5).
 
 ---
 
-## Fase 11 — Dashboard
+## Fase 11 — Dashboard ✅ COMPLETADA 2026-06-11
 
 **Objetivo:** resumen del día en una sola pantalla.
 
 ### Tareas Backend
-- [ ] `GET /api/dashboard` — datos del día: ingresos por método, gastos, balance neto, estado caja, cantidad de boletas, estado del puente de impresión
+- [x] `GET /api/dashboard` — datos del día: ingresos por método, gastos, balance neto, estado caja, cantidad de boletas (estado puente de impresión diferido a Fase 12)
 
 ### Tareas Frontend (invocar `/impeccable` + `/design-taste-frontend`)
-- [ ] Tarjetas de KPIs del día
-- [ ] Estado de caja (abierta/cerrada, hora apertura, monto inicial)
-- [ ] Estado del puente de impresión (conectado/desconectado, última actividad)
-- [ ] Accesos directos a acciones frecuentes (abrir caja, nueva venta, nueva boleta)
+- [x] Franja de estado del día (ventas por método de pago, gastos, balance neto)
+- [x] Estado de caja (abierta/cerrada, hora apertura, monto inicial)
+- [x] Link rápido "Abrir caja →" cuando caja está cerrada
+- [x] Contadores: ventas y boletas del día
 
 ### Criterio de completitud
 Dashboard carga en < 300ms, datos correctos. Primera pantalla que ve el admin al iniciar sesión.
 
-**Al completar:** invocar `/grill-me` · actualizar `CLAUDE.md` · marcar `[x]` aquí.
+**Notas:** Estado del puente de impresión diferido a Fase 12 (requiere WebSocket activo). Accesos directos delegados a la grilla de módulos existente (ya cumple esa función). `/grill-me` completado 2026-06-11 — `crDayRangeToUtc` extraído a `lib/cr-time.ts`.
 
 ---
 

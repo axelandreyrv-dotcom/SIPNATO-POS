@@ -22,7 +22,7 @@ function parseHHMM(value: string): { hours: number; minutes: number } | null {
 export function startAutoCloseCron(log: FastifyBaseLogger): void {
   cron.schedule('* * * * *', async () => {
     try {
-      const settingsMap = await getAllSettings();
+      const settingsMap = getAllSettings();
       if (settingsMap.auto_close_enabled !== 'true') return;
 
       const target = parseHHMM(settingsMap.auto_close_time);
@@ -47,7 +47,7 @@ export function startAutoCloseCron(log: FastifyBaseLogger): void {
 
 export async function checkRetroactiveAutoClose(log: FastifyBaseLogger): Promise<void> {
   try {
-    const settingsMap = await getAllSettings();
+    const settingsMap = getAllSettings();
     if (settingsMap.auto_close_enabled !== 'true') return;
 
     const target = parseHHMM(settingsMap.auto_close_time);

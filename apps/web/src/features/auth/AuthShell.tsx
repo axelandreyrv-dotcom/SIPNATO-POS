@@ -27,17 +27,17 @@ export function AuthShell({ children }: AuthShellProps) {
         {/* Wordmark */}
         <div className="relative z-10">
           <div className="mb-2 flex items-center gap-2.5">
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-xs font-bold tracking-widest text-white"
+            <img
+              src="/favicon.svg"
+              alt=""
+              width={32}
+              height={32}
               aria-hidden
-            >
-              S
-            </span>
+              className="shrink-0"
+              style={{ filter: 'brightness(0) invert(1)' }}
+            />
             <span className="text-lg font-semibold tracking-tight text-white">SIPNATO</span>
           </div>
-          <p className="mt-1 text-xs font-medium uppercase tracking-[0.2em] text-white/40">
-            POS
-          </p>
         </div>
 
         {/* Center decorative tagline */}
@@ -52,7 +52,7 @@ export function AuthShell({ children }: AuthShellProps) {
 
         {/* Footer detail */}
         <p className="relative z-10 text-xs text-white/25">
-          Costa Rica · SIPNATO POS
+          Costa Rica · SIPNATO
         </p>
       </aside>
 
@@ -60,14 +60,16 @@ export function AuthShell({ children }: AuthShellProps) {
       <main className="flex flex-1 flex-col items-center justify-center bg-surface-bg px-6 py-12">
         {/* Mobile brand strip */}
         <div className="mb-10 flex items-center gap-2 lg:hidden">
-          <span
-            className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-navy text-xs font-bold tracking-widest text-white"
+          <img
+            src="/favicon.svg"
+            alt=""
+            width={28}
+            height={28}
             aria-hidden
-          >
-            S
-          </span>
+            className="shrink-0"
+          />
           <span className="text-base font-semibold tracking-tight text-text-primary">
-            SIPNATO POS
+            SIPNATO
           </span>
         </div>
 

@@ -11,27 +11,8 @@ import {
 } from 'lucide-react';
 import type { CashRegisterCurrent, CashRegisterSummary } from '@sipnato/shared';
 import { formatColones } from '@sipnato/shared';
+import { fmtDate, fmtTime } from '../../lib/format';
 import { cashRegisterApi } from './api';
-
-const CR_TZ = 'America/Costa_Rica';
-
-function fmtDate(iso: string) {
-  return new Intl.DateTimeFormat('es-CR', {
-    timeZone: CR_TZ,
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(iso));
-}
-
-function fmtTime(iso: string) {
-  return new Intl.DateTimeFormat('es-CR', {
-    timeZone: CR_TZ,
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(new Date(iso));
-}
 
 const inputCls =
   'h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted';
@@ -92,7 +73,15 @@ function NetRow({ amount }: { amount: number }) {
   );
 }
 
-function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+function Modal({
+  children,
+  onClose,
+  labelId,
+}: {
+  children: React.ReactNode;
+  onClose: () => void;
+  labelId: string;
+}) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
@@ -100,7 +89,10 @@ function Modal({ children, onClose }: { children: React.ReactNode; onClose: () =
     >
       <div className="absolute inset-0 bg-black/40" aria-hidden />
       <div
-        className="relative w-full sm:max-w-md rounded-t-2xl sm:rounded-xl border border-border bg-surface-card p-6 shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={labelId}
+        className="relative w-full sm:max-w-md rounded-t-2xl sm:rounded-xl border border-border bg-surface-card p-6 shadow-[0_8px_32px_-4px_oklch(0%_0_0/0.18)]"
         onClick={(e) => e.stopPropagation()}
       >
         {children}
@@ -109,17 +101,17 @@ function Modal({ children, onClose }: { children: React.ReactNode; onClose: () =
   );
 }
 
-function ModalHeader({ title, onClose }: { title: string; onClose: () => void }) {
+function ModalHeader({ id, title, onClose }: { id: string; title: string; onClose: () => void }) {
   return (
     <div className="mb-5 flex items-center justify-between">
-      <h2 className="text-base font-semibold text-text-primary">{title}</h2>
+      <h2 id={id} className="text-base font-semibold text-text-primary">{title}</h2>
       <button
         type="button"
         onClick={onClose}
-        className="rounded-md p-1 text-text-muted transition-colors hover:text-text-primary"
+        className="flex h-9 w-9 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
         aria-label="Cerrar"
       >
-        <X size={16} />
+        <X size={16} strokeWidth={1.5} aria-hidden />
       </button>
     </div>
   );
@@ -139,8 +131,8 @@ function OpenModal({
   const [amount, setAmount] = useState(0);
 
   return (
-    <Modal onClose={onClose}>
-      <ModalHeader title="Abrir Caja" onClose={onClose} />
+    <Modal onClose={onClose} labelId="open-caja-title">
+      <ModalHeader id="open-caja-title" title="Abrir Caja" onClose={onClose} />
 
       <div className="mb-5">
         <label htmlFor="opening-amount" className="mb-1.5 block text-sm font-medium text-text-secondary">
@@ -163,7 +155,7 @@ function OpenModal({
         <p className="mt-1 text-xs text-text-muted">Efectivo físico presente al abrir. Puede ser ₡0.</p>
       </div>
 
-      {error && <p className="mb-3 text-xs text-brand-error">{error}</p>}
+      {error && <p className="mb-3 text-xs text-brand-error" role="alert">{error}</p>}
 
       <div className="flex gap-2">
         <button type="button" onClick={onClose} className={btnSecondary}>
@@ -175,7 +167,7 @@ function OpenModal({
           onClick={() => onConfirm(amount)}
           className={btnPrimary}
         >
-          {isLoading && <Loader2 size={14} className="animate-spin" />}
+          {isLoading && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />}
           Abrir Caja
         </button>
       </div>
@@ -197,14 +189,14 @@ function CloseModal({
   error?: string | undefined;
 }) {
   return (
-    <Modal onClose={onClose}>
-      <ModalHeader title="Cerrar Caja" onClose={onClose} />
+    <Modal onClose={onClose} labelId="close-caja-title">
+      <ModalHeader id="close-caja-title" title="Cerrar Caja" onClose={onClose} />
 
       <p className="mb-4 text-sm text-text-muted">Resumen antes de cerrar:</p>
       <TotalsGrid totals={register.totals} />
       <NetRow amount={register.totals.netBalance} />
 
-      {error && <p className="mt-3 text-xs text-brand-error">{error}</p>}
+      {error && <p className="mt-3 text-xs text-brand-error" role="alert">{error}</p>}
 
       <div className="mt-5 flex gap-2">
         <button type="button" onClick={onClose} className={btnSecondary}>
@@ -216,7 +208,7 @@ function CloseModal({
           onClick={onConfirm}
           className={btnDanger}
         >
-          {isLoading && <Loader2 size={14} className="animate-spin" />}
+          {isLoading && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />}
           Confirmar cierre
         </button>
       </div>
@@ -233,6 +225,7 @@ function HistoryRow({ register }: { register: CashRegisterSummary }) {
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
         className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-bg"
       >
         <div className="min-w-0 flex-1">
@@ -262,9 +255,9 @@ function HistoryRow({ register }: { register: CashRegisterSummary }) {
           </span>
         )}
         {expanded ? (
-          <ChevronUp size={14} className="shrink-0 text-text-muted" />
+          <ChevronUp size={14} strokeWidth={1.5} className="shrink-0 text-text-muted" aria-hidden />
         ) : (
-          <ChevronDown size={14} className="shrink-0 text-text-muted" />
+          <ChevronDown size={14} strokeWidth={1.5} className="shrink-0 text-text-muted" aria-hidden />
         )}
       </button>
 
@@ -293,7 +286,7 @@ function HistoryRow({ register }: { register: CashRegisterSummary }) {
 function EmptyState({ onOpen }: { onOpen: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-14 px-6 text-center">
-      <Landmark size={36} strokeWidth={1} className="mb-4 text-text-muted" />
+      <Landmark size={36} strokeWidth={1} className="mb-4 text-text-muted" aria-hidden />
       <p className="text-sm font-medium text-text-primary">No hay caja abierta</p>
       <p className="mt-1 text-xs text-text-muted">
         Abre la caja para registrar ventas y gastos del día.
@@ -321,7 +314,7 @@ function OpenRegisterCard({
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 rounded-full bg-brand-success/10 px-2.5 py-1 text-xs font-medium text-brand-success">
-            <span className="h-1.5 w-1.5 rounded-full bg-brand-success" />
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-success" aria-hidden />
             Caja abierta
           </div>
           <p className="mt-1.5 text-xs text-text-muted">
@@ -397,8 +390,23 @@ export function CajaPage() {
 
       {/* Status section */}
       {isLoading ? (
-        <div className="flex h-40 items-center justify-center">
-          <Loader2 size={20} strokeWidth={1.5} className="animate-spin text-text-muted" />
+        <div className="animate-pulse rounded-xl border border-border bg-surface-card p-5">
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <div className="space-y-2">
+              <div className="h-6 w-28 rounded-full bg-border" />
+              <div className="h-3 w-44 rounded bg-border" />
+              <div className="h-3 w-32 rounded bg-border" />
+            </div>
+            <div className="h-8 w-24 rounded-lg bg-border" />
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {Array.from({ length: 6 }, (_, i) => (
+              <div key={i} className="rounded-lg border border-border bg-surface-bg p-3">
+                <div className="h-2.5 w-14 rounded bg-border" />
+                <div className="mt-2 h-4 w-20 rounded bg-border" />
+              </div>
+            ))}
+          </div>
         </div>
       ) : current ? (
         <OpenRegisterCard register={current} onClose={() => setShowCloseModal(true)} />
@@ -430,7 +438,7 @@ export function CajaPage() {
       {/* Warning if there are closed registers but none open */}
       {!isLoading && !current && (history?.registers.length ?? 0) > 0 && (
         <div className="mt-4 flex items-start gap-2 rounded-lg border border-brand-warning/20 bg-brand-warning/[0.06] px-4 py-3">
-          <AlertTriangle size={14} className="mt-0.5 shrink-0 text-brand-warning" />
+          <AlertTriangle size={14} strokeWidth={1.5} className="mt-0.5 shrink-0 text-brand-warning" aria-hidden />
           <p className="text-xs text-text-secondary">
             Recuerda abrir la caja antes de registrar ventas o gastos del día.
           </p>

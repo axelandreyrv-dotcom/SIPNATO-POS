@@ -1,0 +1,31 @@
+#!/bin/bash
+# SIPNATO POS — Backup externo diario (host → directorio local)
+# Complementa el backup interno del servidor (backup.ts).
+# Cron: 0 10 * * * /opt/sipnato/deploy/backup.sh
+# (10:00 UTC = 04:00 AM Costa Rica — 1h después del backup interno)
+
+set -euo pipefail
+
+COMPOSE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BACKUP_DIR="/opt/sipnato/backups"
+DATE=$(date +%Y-%m-%d)
+LOG="/var/log/sipnato-backup.log"
+
+mkdir -p "$BACKUP_DIR"
+
+log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $*" | tee -a "$LOG"; }
+
+log "Iniciando backup externo $DATE..."
+
+# Copiar el sipnato-latest.db del volumen Docker al host
+# Usa un contenedor temporal con acceso de solo lectura al volumen
+docker run --rm \
+  --volumes-from "$(docker compose -f "$COMPOSE_DIR/docker-compose.yml" ps -q server)" \
+  -v "$BACKUP_DIR:/host-backup" \
+  alpine:3 \
+  cp /app/data/backups/sipnato-latest.db "/host-backup/sipnato-${DATE}.db"
+
+# Rotar: conservar solo los últimos 30 backups en el host
+ls -t "$BACKUP_DIR"/sipnato-*.db 2>/dev/null | tail -n +31 | xargs -r rm --
+
+log "Backup externo completado: $BACKUP_DIR/sipnato-${DATE}.db"

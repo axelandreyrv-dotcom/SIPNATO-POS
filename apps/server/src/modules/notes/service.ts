@@ -17,9 +17,9 @@ export function createNote(input: CreateNoteInput, meta: Meta): Note {
   return createNoteRow(input, meta);
 }
 
-export function updateNote(id: number, input: UpdateNoteInput): Note {
+export function updateNote(id: number, input: UpdateNoteInput, meta: Meta): Note {
   if (!findNoteById(id)) throw new NotaNoEncontrada();
-  return updateNoteRow(id, input);
+  return updateNoteRow(id, input, meta);
 }
 
 export function deleteNote(id: number, meta: Meta): void {

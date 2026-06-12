@@ -111,6 +111,48 @@ export function listQuotesRows(page: number, limit: number): { quotes: Quote[]; 
   return { quotes: rows.map(mapQuote), total };
 }
 
+export function updateQuoteRow(id: number, input: CreateQuoteInput, meta: AuditMeta): QuoteWithItems {
+  const total = input.items.reduce((sum, item) => sum + item.amount, 0);
+
+  return db.transaction((tx): QuoteWithItems => {
+    const existing = tx.select().from(quotes).where(eq(quotes.id, id)).get();
+    if (!existing) throw new Error('Quote not found');
+
+    tx.delete(quoteItems).where(eq(quoteItems.quoteId, id)).run();
+
+    const updated = tx.update(quotes)
+      .set({ total })
+      .where(eq(quotes.id, id))
+      .returning()
+      .get();
+    if (!updated) throw new Error('Failed to update quote');
+
+    const items: QuoteItem[] = [];
+    for (let i = 0; i < input.items.length; i++) {
+      const item = input.items[i]!;
+      const inserted = tx.insert(quoteItems).values({
+        quoteId: id,
+        description: item.description,
+        amount: item.amount,
+        sortOrder: i,
+      }).returning().get();
+      if (!inserted) throw new Error('Failed to insert quote item');
+      items.push(mapItem(inserted));
+    }
+
+    tx.insert(auditLog).values({
+      action: 'QUOTE_UPDATED',
+      entityType: 'quote',
+      entityId: String(id),
+      payloadSnapshot: JSON.stringify({ consecutive: existing.consecutive, total, itemCount: items.length }),
+      ip: meta.ip,
+      userAgent: meta.userAgent,
+    }).run();
+
+    return { ...mapQuote(updated), items };
+  });
+}
+
 export function hardDeleteQuoteRow(
   id: number,
   meta: AuditMeta,

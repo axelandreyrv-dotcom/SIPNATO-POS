@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import { createQuoteSchema } from '@sipnato/shared';
+import { createQuoteSchema, updateQuoteSchema } from '@sipnato/shared';
 import { AppError } from '../../lib/errors.js';
 import { requireAuth } from '../../middleware/auth.js';
-import { createQuote, deleteQuote, getQuote, listQuotes } from './service.js';
+import { createQuote, deleteQuote, getQuote, listQuotes, updateQuote } from './service.js';
 
 export default async function quotesRoutes(app: FastifyInstance) {
   // ── POST /api/quotes ──────────────────────────────────────────────────────
@@ -43,6 +43,33 @@ export default async function quotesRoutes(app: FastifyInstance) {
 
     try {
       return getQuote(parsed);
+    } catch (err) {
+      if (err instanceof AppError) {
+        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+      }
+      throw err;
+    }
+  });
+
+  // ── PUT /api/quotes/:id ───────────────────────────────────────────────────
+  app.put('/:id', { preHandler: [requireAuth] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const parsed = parseInt(id, 10);
+    if (isNaN(parsed)) {
+      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
+    }
+
+    const body = updateQuoteSchema.safeParse(request.body);
+    if (!body.success) {
+      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
+    }
+
+    try {
+      const quote = updateQuote(parsed, body.data, {
+        ip: request.ip ?? null,
+        userAgent: request.headers['user-agent'] ?? null,
+      });
+      return reply.send(quote);
     } catch (err) {
       if (err instanceof AppError) {
         return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });

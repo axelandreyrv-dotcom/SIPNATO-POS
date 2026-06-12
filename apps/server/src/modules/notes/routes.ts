@@ -45,7 +45,10 @@ export default async function notesRoutes(app: FastifyInstance) {
     }
 
     try {
-      return updateNote(parsed, body.data);
+      return updateNote(parsed, body.data, {
+        ip: request.ip ?? null,
+        userAgent: request.headers['user-agent'] ?? null,
+      });
     } catch (err) {
       if (err instanceof AppError) {
         return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });

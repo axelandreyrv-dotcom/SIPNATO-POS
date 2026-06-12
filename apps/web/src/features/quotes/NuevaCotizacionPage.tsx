@@ -19,7 +19,7 @@ function parseAmount(str: string): number {
 export function NuevaCotizacionPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [items, setItems] = useState<ItemRow[]>([newItem()]);
+  const [items, setItems] = useState<ItemRow[]>(() => [newItem()]);
 
   const total = items.reduce((sum, item) => sum + parseAmount(item.amountStr), 0);
 
@@ -68,7 +68,7 @@ export function NuevaCotizacionPage() {
         to="/cotizaciones"
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-text-muted transition-colors hover:text-text-primary"
       >
-        <ArrowLeft size={14} />
+        <ArrowLeft size={14} strokeWidth={1.5} aria-hidden />
         Cotizaciones
       </Link>
 
@@ -119,7 +119,7 @@ export function NuevaCotizacionPage() {
                   className="flex h-9 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-brand-error/10 hover:text-brand-error disabled:pointer-events-none disabled:opacity-30"
                   aria-label="Eliminar ítem"
                 >
-                  <Minus size={13} />
+                  <Minus size={13} strokeWidth={1.5} aria-hidden />
                 </button>
               </div>
             ))}
@@ -131,7 +131,7 @@ export function NuevaCotizacionPage() {
             onClick={addItem}
             className="mt-3 flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-xs text-text-muted transition-colors hover:border-brand-blue/40 hover:text-brand-blue"
           >
-            <Plus size={12} />
+            <Plus size={12} strokeWidth={1.5} aria-hidden />
             Agregar ítem
           </button>
 
@@ -151,7 +151,7 @@ export function NuevaCotizacionPage() {
           >
             {createMutation.isPending ? (
               <>
-                <Loader2 size={16} className="animate-spin" />
+                <Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden />
                 Creando...
               </>
             ) : (

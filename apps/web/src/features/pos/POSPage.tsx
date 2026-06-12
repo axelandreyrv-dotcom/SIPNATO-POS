@@ -5,24 +5,17 @@ import {
   AlertTriangle,
   CheckCircle,
   Loader2,
+  Printer,
   Trash2,
   X,
 } from 'lucide-react';
 import type { PaymentMethod, Sale } from '@sipnato/shared';
 import { formatColones } from '@sipnato/shared';
+import { fmtTime } from '../../lib/format';
 import { cashRegisterApi } from '../cash-register/api';
 import { salesApi } from './api';
-
-const CR_TZ = 'America/Costa_Rica';
-
-function fmtTime(iso: string) {
-  return new Intl.DateTimeFormat('es-CR', {
-    timeZone: CR_TZ,
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(new Date(iso));
-}
+import { printApi } from '../print/api';
+import { settingsApi } from '../settings/api';
 
 const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'efectivo', label: 'Efectivo' },
@@ -30,6 +23,13 @@ const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'sinpe', label: 'SINPE' },
   { value: 'transferencia', label: 'Trans.' },
 ];
+
+const METHOD_LABELS: Record<PaymentMethod, string> = {
+  efectivo: 'Efectivo',
+  tarjeta: 'Tarjeta',
+  sinpe: 'SINPE',
+  transferencia: 'Trans.',
+};
 
 const METHOD_COLORS: Record<PaymentMethod, string> = {
   efectivo: 'bg-brand-success/10 text-brand-success',
@@ -48,17 +48,19 @@ function ToastList({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id:
       {toasts.map((t) => (
         <div
           key={t.id}
-          className="flex items-center gap-3 rounded-lg border border-brand-success/20 bg-surface-card px-4 py-3 shadow-lg"
+          role="status"
+          aria-live="polite"
+          className="animate-slide-up-fade flex items-center gap-3 rounded-lg border border-brand-success/20 bg-surface-card px-4 py-3 shadow-lg"
         >
-          <CheckCircle size={16} className="shrink-0 text-brand-success" />
+          <CheckCircle size={16} strokeWidth={1.5} className="shrink-0 text-brand-success" aria-hidden />
           <span className="text-sm font-medium text-text-primary">{t.text}</span>
           <button
             type="button"
             onClick={() => onDismiss(t.id)}
-            className="ml-2 text-text-muted hover:text-text-primary"
-            aria-label="Cerrar"
+            className="ml-2 flex h-7 w-7 items-center justify-center rounded text-text-muted hover:text-text-primary"
+            aria-label="Cerrar notificación"
           >
-            <X size={14} />
+            <X size={14} strokeWidth={1.5} aria-hidden />
           </button>
         </div>
       ))}
@@ -95,16 +97,29 @@ function ChangeCalcModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={onClose}
+    >
       <div className="absolute inset-0 bg-black/40" aria-hidden />
       <div
-        className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-xl border border-border bg-surface-card p-6 shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="change-calc-title"
+        className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-xl border border-border bg-surface-card p-6 shadow-[0_8px_32px_-4px_oklch(0%_0_0/0.18)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-text-primary">Calculadora de vuelto</h2>
-          <button type="button" onClick={onClose} className="rounded-md p-1 text-text-muted hover:text-text-primary">
-            <X size={16} />
+          <h2 id="change-calc-title" className="text-base font-semibold text-text-primary">
+            Calculadora de vuelto
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
+            aria-label="Cerrar"
+          >
+            <X size={16} strokeWidth={1.5} aria-hidden />
           </button>
         </div>
 
@@ -147,14 +162,17 @@ function ChangeCalcModal({
               {canConfirm ? formatColones(change) : `−${formatColones(amount - receivedAmount)}`}
             </p>
             {!canConfirm && (
-              <p className="mt-1 text-xs text-brand-error">Monto insuficiente</p>
+              <p className="mt-1 text-xs text-brand-error" role="alert">Monto insuficiente</p>
             )}
           </div>
         )}
 
         <div className="flex gap-2">
-          <button type="button" onClick={onClose}
-            className="flex flex-1 h-9 items-center justify-center rounded-lg border border-border text-sm text-text-secondary transition-colors hover:bg-surface-bg">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex flex-1 h-9 items-center justify-center rounded-lg border border-border text-sm text-text-secondary transition-colors hover:bg-surface-bg"
+          >
             Cancelar
           </button>
           <button
@@ -163,7 +181,7 @@ function ChangeCalcModal({
             onClick={onConfirm}
             className="flex flex-1 h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-success text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoading && <Loader2 size={14} className="animate-spin" />}
+            {isLoading && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />}
             Confirmar cobro
           </button>
         </div>
@@ -177,10 +195,12 @@ function SaleRow({
   sale,
   onDelete,
   isDeleting,
+  onPrint,
 }: {
   sale: Sale;
   onDelete: (id: number) => void;
   isDeleting: boolean;
+  onPrint: (sale: Sale) => void;
 }) {
   const [confirming, setConfirming] = useState(false);
 
@@ -196,7 +216,7 @@ function SaleRow({
         'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
         METHOD_COLORS[sale.paymentMethod],
       ].join(' ')}>
-        {METHODS.find(m => m.value === sale.paymentMethod)?.label ?? sale.paymentMethod}
+        {METHOD_LABELS[sale.paymentMethod]}
       </span>
       <span className="shrink-0 text-sm font-semibold tabular-nums text-text-primary">
         {formatColones(sale.amount)}
@@ -204,6 +224,15 @@ function SaleRow({
       <span className="shrink-0 text-xs text-text-muted w-10 text-right">
         {fmtTime(sale.createdAt)}
       </span>
+
+      <button
+        type="button"
+        onClick={() => onPrint(sale)}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-text-muted transition-colors hover:bg-brand-blue/10 hover:text-brand-blue"
+        aria-label="Imprimir recibo"
+      >
+        <Printer size={14} strokeWidth={1.5} aria-hidden />
+      </button>
 
       {confirming ? (
         <div className="flex items-center gap-1 shrink-0">
@@ -213,26 +242,26 @@ function SaleRow({
             disabled={isDeleting}
             className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-brand-error bg-brand-error/10 hover:bg-brand-error/20 transition-colors disabled:opacity-50"
           >
-            {isDeleting ? <Loader2 size={11} className="animate-spin" /> : null}
+            {isDeleting ? <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden /> : null}
             Eliminar
           </button>
           <button
             type="button"
             onClick={() => setConfirming(false)}
-            className="rounded p-1 text-text-muted hover:text-text-primary"
+            className="flex h-8 w-8 items-center justify-center rounded text-text-muted hover:text-text-primary"
             aria-label="Cancelar"
           >
-            <X size={13} />
+            <X size={13} strokeWidth={1.5} aria-hidden />
           </button>
         </div>
       ) : (
         <button
           type="button"
           onClick={() => setConfirming(true)}
-          className="shrink-0 rounded p-1.5 text-text-muted transition-colors hover:bg-brand-error/10 hover:text-brand-error"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded text-text-muted transition-colors hover:bg-brand-error/10 hover:text-brand-error"
           aria-label="Eliminar venta"
         >
-          <Trash2 size={14} />
+          <Trash2 size={14} strokeWidth={1.5} aria-hidden />
         </button>
       )}
     </div>
@@ -296,6 +325,34 @@ export function POSPage() {
     },
   });
 
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: settingsApi.get,
+    staleTime: 5 * 60_000,
+  });
+
+  const printMutation = useMutation({
+    mutationFn: printApi.createJob,
+    onSuccess: (res) => addToast(res.dispatched ? 'Recibo enviado a impresora' : 'Sin impresora conectada'),
+    onError: () => addToast('Error al enviar recibo'),
+  });
+
+  function handlePrint(sale: Sale) {
+    printMutation.mutate({
+      type: 'sale',
+      saleId: sale.id,
+      consecutive: sale.consecutive,
+      description: sale.description,
+      amount: sale.amount,
+      paymentMethod: sale.paymentMethod,
+      createdAt: sale.createdAt,
+      shopName: settings?.shop_name ?? '',
+      shopPhone: settings?.shop_phone ?? '',
+      shopIdNumber: settings?.shop_id_number ?? '',
+      footer: settings?.receipt_footer ?? '',
+    });
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit || !register) return;
@@ -333,7 +390,7 @@ export function POSPage() {
       {/* No register warning */}
       {noRegister && (
         <div className="mb-6 flex items-start gap-3 rounded-lg border border-brand-warning/25 bg-brand-warning/[0.07] px-4 py-3">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-brand-warning" />
+          <AlertTriangle size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-brand-warning" aria-hidden />
           <div className="flex-1">
             <p className="text-sm font-medium text-text-primary">No hay caja abierta</p>
             <p className="mt-0.5 text-xs text-text-muted">
@@ -373,13 +430,13 @@ export function POSPage() {
 
           {/* Amount */}
           <div>
-            <label htmlFor="amount" className="mb-1.5 block text-sm font-medium text-text-secondary">
+            <label htmlFor="pos-amount" className="mb-1.5 block text-sm font-medium text-text-secondary">
               Monto
             </label>
             <div className="relative">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">₡</span>
               <input
-                id="amount"
+                id="pos-amount"
                 ref={amountInputRef}
                 type="number"
                 min={1}
@@ -394,8 +451,8 @@ export function POSPage() {
 
           {/* Payment method */}
           <div>
-            <p className="mb-2 text-sm font-medium text-text-secondary">Método de pago</p>
-            <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label="Método de pago">
+            <p id="method-label" className="mb-2 text-sm font-medium text-text-secondary">Método de pago</p>
+            <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-labelledby="method-label">
               {METHODS.map(({ value, label }) => (
                 <button
                   key={value}
@@ -425,14 +482,14 @@ export function POSPage() {
             className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-brand-blue text-base font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createMutation.isPending ? (
-              <><Loader2 size={18} className="animate-spin" /> Procesando...</>
+              <><Loader2 size={18} strokeWidth={1.5} className="animate-spin" aria-hidden /> Procesando...</>
             ) : (
               amount >= 1 ? `Cobrar ${formatColones(amount)}` : 'Cobrar'
             )}
           </button>
 
           {createMutation.isError && (
-            <p className="text-center text-xs text-brand-error">
+            <p className="text-center text-xs text-brand-error" role="alert">
               {createMutation.error?.message ?? 'Error al registrar la venta'}
             </p>
           )}
@@ -458,8 +515,16 @@ export function POSPage() {
         </div>
 
         {salesLoading ? (
-          <div className="flex h-20 items-center justify-center">
-            <Loader2 size={18} strokeWidth={1.5} className="animate-spin text-text-muted" />
+          <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="flex animate-pulse items-center gap-3 border-b border-border px-4 py-2.5 last:border-0">
+                <div className="h-3 w-6 rounded bg-border" />
+                <div className="h-3 flex-1 rounded bg-border" />
+                <div className="h-5 w-16 rounded-full bg-border/60" />
+                <div className="h-3 w-14 rounded bg-border" />
+                <div className="h-3 w-8 rounded bg-border" />
+              </div>
+            ))}
           </div>
         ) : !salesData?.sales.length ? (
           <div className="flex h-20 items-center justify-center rounded-xl border border-dashed border-border">
@@ -475,6 +540,7 @@ export function POSPage() {
                 sale={sale}
                 onDelete={(id) => deleteMutation.mutate(id)}
                 isDeleting={deleteMutation.isPending && deleteMutation.variables === sale.id}
+                onPrint={handlePrint}
               />
             ))}
           </div>

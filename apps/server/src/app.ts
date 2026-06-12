@@ -1,10 +1,12 @@
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
+import websocket from '@fastify/websocket';
 import Fastify from 'fastify';
 import { config } from './config.js';
 import { sqlite } from './db/client.js';
 import { startAutoCloseCron } from './jobs/auto-close.js';
+import { startBackupCron } from './jobs/backup.js';
 import { startCleanupJobs } from './jobs/cleanup-sessions.js';
 import { registerSecurityHeaders } from './middleware/security-headers.js';
 import authRoutes from './modules/auth/routes.js';
@@ -16,6 +18,9 @@ import salesRoutes from './modules/sales/routes.js';
 import notesRoutes from './modules/notes/routes.js';
 import quotesRoutes from './modules/quotes/routes.js';
 import settingsRoutes from './modules/settings/routes.js';
+import reportsRoutes from './modules/reports/routes.js';
+import dashboardRoutes from './modules/dashboard/routes.js';
+import printRoutes from './modules/print/routes.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -40,12 +45,15 @@ export async function buildApp() {
     // Per-route overrides are set in route config.rateLimit
   });
 
+  await app.register(websocket);
+
   // ── Global security headers ────────────────────────────────────────────────
   registerSecurityHeaders(app);
 
   // ── Background jobs ────────────────────────────────────────────────────────
   startCleanupJobs(app.log);
   startAutoCloseCron(app.log);
+  startBackupCron(app.log);
 
   // ── Routes ─────────────────────────────────────────────────────────────────
   await app.register(authRoutes, { prefix: '/auth' });
@@ -57,6 +65,9 @@ export async function buildApp() {
   await app.register(notesRoutes, { prefix: '/api/notes' });
   await app.register(quotesRoutes, { prefix: '/api/quotes' });
   await app.register(settingsRoutes, { prefix: '/api/settings' });
+  await app.register(reportsRoutes, { prefix: '/api/reports' });
+  await app.register(dashboardRoutes, { prefix: '/api/dashboard' });
+  await app.register(printRoutes, { prefix: '/ws' });
 
   // Health check — no auth, no rate limit (excluded via global 200/min default)
   app.get('/health', async () => {

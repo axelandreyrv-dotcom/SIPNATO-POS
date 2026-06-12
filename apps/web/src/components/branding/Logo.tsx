@@ -24,7 +24,7 @@ export function Logo({ size = 28, showText = true, onDark = true }: LogoProps) {
             onDark ? 'text-white' : 'text-text-primary',
           ].join(' ')}
         >
-          SIPNATO POS
+          SIPNATO
         </span>
       )}
     </div>

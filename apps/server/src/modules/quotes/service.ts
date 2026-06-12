@@ -1,10 +1,12 @@
 import { CotizacionNoEncontrada } from '../../lib/errors.js';
 import type { CreateQuoteInput, QuoteList, QuoteWithItems } from '@sipnato/shared';
+
 import {
   createQuoteRow,
   findQuoteById,
   hardDeleteQuoteRow,
   listQuotesRows,
+  updateQuoteRow,
 } from './repository.js';
 
 interface Meta {
@@ -20,6 +22,12 @@ export function getQuote(id: number): QuoteWithItems {
   const quote = findQuoteById(id);
   if (!quote) throw new CotizacionNoEncontrada();
   return quote;
+}
+
+export function updateQuote(id: number, input: CreateQuoteInput, meta: Meta): QuoteWithItems {
+  const exists = findQuoteById(id);
+  if (!exists) throw new CotizacionNoEncontrada();
+  return updateQuoteRow(id, input, meta);
 }
 
 export function deleteQuote(id: number, meta: Meta): void {

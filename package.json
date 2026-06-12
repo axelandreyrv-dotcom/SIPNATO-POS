@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.1",
   "scripts": {
+    "prepare": "pnpm --filter @sipnato/shared build",
     "dev": "concurrently --kill-others -n server,web -c bgBlue.bold,bgGreen.bold \"pnpm run dev:server\" \"pnpm run dev:web\"",
     "dev:server": "pnpm --filter @sipnato/server run dev",
     "dev:web": "wait-on http://localhost:3000/health && pnpm --filter @sipnato/web run dev",

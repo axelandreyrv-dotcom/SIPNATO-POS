@@ -8,3 +8,6 @@ export * from './schemas/sale.js';
 export * from './schemas/note.js';
 export * from './schemas/quote.js';
 export * from './schemas/settings.js';
+export * from './schemas/report.js';
+export * from './schemas/dashboard.js';
+export * from './schemas/print.js';

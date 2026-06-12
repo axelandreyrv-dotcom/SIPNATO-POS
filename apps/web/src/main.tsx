@@ -10,12 +10,14 @@ import { Route as boletasRoute } from './routes/_auth/boletas';
 import { Route as cotizacionesRoute } from './routes/_auth/cotizaciones';
 import { Route as notasRoute } from './routes/_auth/notas';
 import { Route as nuevaCotizacionRoute } from './routes/_auth/nueva-cotizacion';
+import { Route as editarCotizacionRoute } from './routes/_auth/editar-cotizacion';
 import { Route as cajaRoute } from './routes/_auth/caja';
 import { Route as clientesRoute } from './routes/_auth/clientes';
 import { Route as dashboardRoute } from './routes/_auth/dashboard';
 import { Route as gastosRoute } from './routes/_auth/gastos';
 import { Route as nuevaBoletaRoute } from './routes/_auth/nueva-boleta';
 import { Route as posRoute } from './routes/_auth/pos';
+import { Route as reportesRoute } from './routes/_auth/reportes';
 import { Route as settingsRoute } from './routes/_auth/settings';
 import { Route as notFoundRoute } from './routes/_auth/$';
 import { Route as loginRoute } from './routes/login';
@@ -32,11 +34,13 @@ const routeTree = rootRoute.addChildren([
     cotizacionesRoute,
     notasRoute,
     nuevaCotizacionRoute,
+    editarCotizacionRoute,
     clientesRoute,
     dashboardRoute,
     gastosRoute,
     nuevaBoletaRoute,
     posRoute,
+    reportesRoute,
     settingsRoute,
     notFoundRoute,
   ]),
