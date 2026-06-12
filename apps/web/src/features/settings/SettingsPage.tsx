@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, Copy, Loader2, Printer, Wifi, WifiOff } from 'lucide-react';
+import { CheckCircle, Loader2, Printer } from 'lucide-react';
 import type { Settings } from '@sipnato/shared';
 import { settingsApi } from './api';
-import { printApi } from '../print/api';
 
 const inputClass = [
   'h-9 w-full rounded-lg border px-3 text-sm text-text-primary',
@@ -47,147 +47,86 @@ function Section({
   );
 }
 
-function PrintBridgeSection() {
-  const [revealedToken, setRevealedToken] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+function PrintSection({ settings }: { settings: Settings | null }) {
+  const [testPrint, setTestPrint] = useState(false);
 
-  const { data: status, refetch: refetchStatus } = useQuery({
-    queryKey: ['print', 'status'],
-    queryFn: printApi.getStatus,
-    staleTime: 30_000,
-    refetchInterval: 30_000,
-    retry: false,
-  });
+  useEffect(() => {
+    if (!testPrint) return;
+    const timer = setTimeout(() => {
+      const pageStyle = document.createElement('style');
+      pageStyle.textContent = '@media print { @page { size: 80mm auto; margin: 4mm 5mm; } }';
+      document.head.appendChild(pageStyle);
+      document.body.classList.add('print-sale');
+      window.print();
+      document.body.classList.remove('print-sale');
+      pageStyle.remove();
+      setTestPrint(false);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [testPrint]);
 
-  const generateMutation = useMutation({
-    mutationFn: printApi.generateToken,
-    onSuccess: (data) => {
-      setRevealedToken(data.token);
-      void refetchStatus();
-    },
-  });
-
-  const testMutation = useMutation({
-    mutationFn: printApi.testPrint,
-  });
-
-  function handleCopy() {
-    if (!revealedToken) return;
-    void navigator.clipboard.writeText(revealedToken).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
-
-  const isConnected = status?.connected ?? false;
-  const tokenSet = status?.tokenSet ?? false;
-  const serverUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/print`;
+  const shopName = settings?.shop_name?.trim() || 'Dosuxsoft';
+  const shopPhone = settings?.shop_phone?.trim();
+  const footer = settings?.receipt_footer?.trim();
+  const now = new Date();
+  const date = now.toLocaleDateString('es-CR', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'America/Costa_Rica' });
+  const time = now.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Costa_Rica' });
 
   return (
     <Section
-      title="Puente de impresión"
-      description="Conecta la ticketera física (Epson TM-T20/T88) a través del servicio local print-bridge."
+      title="Impresora de tickets"
+      description="Los tickets se imprimen directamente desde el navegador. Configura la Epson TM-T20II como impresora predeterminada en Windows."
     >
-      {/* Status row */}
-      <div className="flex items-center gap-2 py-1">
-        {isConnected ? (
-          <Wifi size={15} strokeWidth={1.5} className="text-brand-success shrink-0" aria-hidden />
-        ) : (
-          <WifiOff size={15} strokeWidth={1.5} className="text-text-muted shrink-0" aria-hidden />
-        )}
-        <span className="text-sm text-text-primary">
-          {isConnected ? 'Impresora conectada' : tokenSet ? 'Esperando conexión del bridge' : 'Sin configurar'}
-        </span>
+      <div className="flex items-center gap-2">
+        <div className="h-2 w-2 rounded-full bg-brand-success shrink-0" aria-hidden />
+        <span className="text-sm text-text-primary">Impresión por navegador activa</span>
       </div>
 
-      {/* Server URL for the bridge */}
-      <div>
-        <FieldLabel htmlFor="bridge-url">URL del servidor (para print-bridge)</FieldLabel>
-        <div className="flex items-center gap-2">
-          <input
-            id="bridge-url"
-            type="text"
-            readOnly
-            value={serverUrl}
-            className="h-9 flex-1 rounded-lg border border-border bg-surface-bg px-3 text-sm text-text-muted font-mono outline-none select-all"
-          />
-        </div>
-      </div>
+      <p className="text-sm text-text-muted leading-relaxed">
+        En el módulo POS, cada venta tiene un botón de impresora. Al hacer clic se abre el diálogo del navegador — selecciona la Epson y confirma.
+      </p>
 
-      {/* Token generation */}
-      <div>
-        <p className="text-sm font-medium text-text-secondary mb-2">Token de autenticación</p>
-        {revealedToken ? (
-          <div className="rounded-lg border border-brand-warning/30 bg-brand-warning/[0.06] p-3 space-y-2">
-            <p className="text-xs text-brand-warning font-medium">Copia este token ahora — no se mostrará de nuevo.</p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 rounded bg-surface-bg px-2 py-1.5 text-xs font-mono text-text-primary break-all">
-                {revealedToken}
-              </code>
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
-                aria-label="Copiar token"
-              >
-                {copied ? (
-                  <CheckCircle size={14} strokeWidth={1.5} className="text-brand-success" aria-hidden />
-                ) : (
-                  <Copy size={14} strokeWidth={1.5} aria-hidden />
-                )}
-              </button>
+      <button
+        type="button"
+        onClick={() => setTestPrint(true)}
+        className="flex h-9 items-center gap-2 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
+      >
+        <Printer size={14} strokeWidth={1.5} aria-hidden />
+        Imprimir ticket de prueba
+      </button>
+
+      {testPrint && createPortal(
+        <div className="sale-print-overlay" style={{ fontFamily: '"Courier New", Courier, monospace', color: '#000' }}>
+          <div style={{ width: '100%', maxWidth: 270, margin: '0 auto', padding: '6px 2px', fontSize: 11, lineHeight: 1.45 }}>
+            <div style={{ textAlign: 'center', marginBottom: 6 }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{shopName}</div>
+              {shopPhone && <div style={{ fontSize: 10 }}>Tel: {shopPhone}</div>}
+            </div>
+            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
+            <div style={{ textAlign: 'center', marginBottom: 5 }}>
+              <div style={{ fontSize: 11, fontWeight: 600 }}>*** TICKET DE PRUEBA ***</div>
+              <div style={{ fontSize: 10 }}>{date} — {time}</div>
+            </div>
+            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
+            <div style={{ fontSize: 10, marginBottom: 5 }}>Reparación de pantalla Samsung</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 1 }}>
+              <span>Método:</span><span>Efectivo</span>
+            </div>
+            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span style={{ fontSize: 11, fontWeight: 700 }}>TOTAL</span>
+              <span style={{ fontSize: 17, fontWeight: 700 }}>₡25 000</span>
+            </div>
+            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
+            <div style={{ textAlign: 'center', fontSize: 10 }}>
+              {footer
+                ? <span style={{ whiteSpace: 'pre-wrap' }}>{footer}</span>
+                : <span>Gracias por su compra</span>
+              }
             </div>
           </div>
-        ) : (
-          <p className="text-sm text-text-muted">
-            {tokenSet ? 'Token configurado. Genera uno nuevo para reemplazarlo.' : 'Genera un token para conectar el bridge.'}
-          </p>
-        )}
-
-        <button
-          type="button"
-          disabled={generateMutation.isPending}
-          onClick={() => generateMutation.mutate()}
-          className={[
-            'mt-3 flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium',
-            'border border-brand-error/30 text-brand-error',
-            'transition-colors hover:bg-brand-error/[0.06]',
-            'disabled:cursor-not-allowed disabled:opacity-60',
-          ].join(' ')}
-        >
-          {generateMutation.isPending ? (
-            <Loader2 size={13} strokeWidth={1.5} className="animate-spin" aria-hidden />
-          ) : null}
-          {tokenSet ? 'Rotar token' : 'Generar token'}
-        </button>
-        {generateMutation.isError && (
-          <p className="mt-1.5 text-xs text-brand-error">No se pudo generar el token. Intenta de nuevo.</p>
-        )}
-      </div>
-
-      {/* Test print */}
-      {isConnected && (
-        <div>
-          <button
-            type="button"
-            disabled={testMutation.isPending}
-            onClick={() => testMutation.mutate()}
-            className={[
-              'flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white',
-              'bg-brand-blue transition-all hover:brightness-110 active:scale-[0.98]',
-              'disabled:cursor-not-allowed disabled:opacity-60',
-            ].join(' ')}
-          >
-            <Printer size={14} strokeWidth={1.5} aria-hidden />
-            {testMutation.isPending ? 'Enviando...' : 'Imprimir prueba'}
-          </button>
-          {testMutation.isSuccess && (
-            <p className="mt-1.5 text-xs text-brand-success flex items-center gap-1">
-              <CheckCircle size={12} strokeWidth={1.5} aria-hidden />
-              Trabajo de prueba enviado
-            </p>
-          )}
-        </div>
+        </div>,
+        document.body,
       )}
     </Section>
   );
@@ -385,8 +324,8 @@ export function SettingsPage() {
             </div>
           </Section>
 
-          {/* ── Puente de impresión ─────────────────────────────────────── */}
-          <PrintBridgeSection />
+          {/* ── Impresora de tickets ────────────────────────────────────── */}
+          <PrintSection settings={current} />
 
           {/* ── Cierre automático ───────────────────────────────────────── */}
           <Section
