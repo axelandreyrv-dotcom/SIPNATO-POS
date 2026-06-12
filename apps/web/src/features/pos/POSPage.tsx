@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,12 +10,11 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import type { PaymentMethod, Sale } from '@sipnato/shared';
+import type { PaymentMethod, Sale, Settings } from '@sipnato/shared';
 import { formatColones } from '@sipnato/shared';
 import { fmtTime } from '../../lib/format';
 import { cashRegisterApi } from '../cash-register/api';
 import { salesApi } from './api';
-import { printApi } from '../print/api';
 import { settingsApi } from '../settings/api';
 
 const METHODS: { value: PaymentMethod; label: string }[] = [
@@ -268,6 +268,83 @@ function SaleRow({
   );
 }
 
+// ── Sale print view (portal, only visible on print) ───────────────────────────
+function SalePrintView({ sale, settings }: { sale: Sale; settings: Settings | undefined }) {
+  const date = new Date(sale.createdAt).toLocaleDateString('es-CR', {
+    year: 'numeric', month: 'short', day: 'numeric',
+    timeZone: 'America/Costa_Rica',
+  });
+  const time = new Date(sale.createdAt).toLocaleTimeString('es-CR', {
+    hour: '2-digit', minute: '2-digit',
+    timeZone: 'America/Costa_Rica',
+  });
+
+  const shopName = settings?.shop_name?.trim() || 'Dosuxsoft';
+  const shopPhone = settings?.shop_phone?.trim();
+  const shopId = settings?.shop_id_number?.trim();
+  const footer = settings?.receipt_footer?.trim();
+
+  const row = (label: string, value: string) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 1 }}>
+      <span>{label}</span><span>{value}</span>
+    </div>
+  );
+
+  return (
+    <div className="sale-print-overlay" style={{ fontFamily: '"Courier New", Courier, monospace', color: '#000' }}>
+      <div style={{ width: '100%', maxWidth: 270, margin: '0 auto', padding: '6px 2px', fontSize: 11, lineHeight: 1.45 }}>
+
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: 6 }}>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>{shopName}</div>
+          {shopId && <div style={{ fontSize: 10 }}>Cédula: {shopId}</div>}
+          {shopPhone && <div style={{ fontSize: 10 }}>Tel: {shopPhone}</div>}
+        </div>
+
+        <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
+
+        {/* Consecutive & date */}
+        <div style={{ textAlign: 'center', marginBottom: 5 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em' }}>RECIBO DE VENTA</div>
+          <div style={{ fontSize: 10 }}>#{String(sale.consecutive).padStart(4, '0')}</div>
+          <div style={{ fontSize: 10 }}>{date} — {time}</div>
+        </div>
+
+        <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
+
+        {/* Description */}
+        {sale.description && (
+          <div style={{ fontSize: 10, marginBottom: 5, wordBreak: 'break-word' }}>
+            {sale.description}
+          </div>
+        )}
+
+        {/* Method */}
+        {row('Método:', METHOD_LABELS[sale.paymentMethod])}
+
+        <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
+
+        {/* Total */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <span style={{ fontSize: 11, fontWeight: 700 }}>TOTAL</span>
+          <span style={{ fontSize: 17, fontWeight: 700 }}>{formatColones(sale.amount)}</span>
+        </div>
+
+        <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
+
+        {/* Footer */}
+        <div style={{ textAlign: 'center', fontSize: 10 }}>
+          {footer
+            ? <span style={{ whiteSpace: 'pre-wrap' }}>{footer}</span>
+            : <span>Gracias por su compra</span>
+          }
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export function POSPage() {
   const queryClient = useQueryClient();
@@ -331,26 +408,28 @@ export function POSPage() {
     staleTime: 5 * 60_000,
   });
 
-  const printMutation = useMutation({
-    mutationFn: printApi.createJob,
-    onSuccess: (res) => addToast(res.dispatched ? 'Recibo enviado a impresora' : 'Sin impresora conectada'),
-    onError: () => addToast('Error al enviar recibo'),
-  });
+  const [salePrintData, setSalePrintData] = useState<Sale | null>(null);
+
+  useEffect(() => {
+    if (!salePrintData) return;
+    const timer = setTimeout(() => {
+      // Inject 80mm @page override; removed after print() returns
+      const pageStyle = document.createElement('style');
+      pageStyle.textContent = '@media print { @page { size: 80mm auto; margin: 4mm 5mm; } }';
+      document.head.appendChild(pageStyle);
+      document.body.classList.add('print-sale');
+
+      window.print();
+
+      document.body.classList.remove('print-sale');
+      pageStyle.remove();
+      setSalePrintData(null);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [salePrintData]);
 
   function handlePrint(sale: Sale) {
-    printMutation.mutate({
-      type: 'sale',
-      saleId: sale.id,
-      consecutive: sale.consecutive,
-      description: sale.description,
-      amount: sale.amount,
-      paymentMethod: sale.paymentMethod,
-      createdAt: sale.createdAt,
-      shopName: settings?.shop_name ?? '',
-      shopPhone: settings?.shop_phone ?? '',
-      shopIdNumber: settings?.shop_id_number ?? '',
-      footer: settings?.receipt_footer ?? '',
-    });
+    setSalePrintData(sale);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -559,6 +638,12 @@ export function POSPage() {
 
       {/* Toasts */}
       <ToastList toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
+
+      {/* Sale print portal — only visible during window.print() */}
+      {salePrintData && createPortal(
+        <SalePrintView sale={salePrintData} settings={settings} />,
+        document.body,
+      )}
     </div>
   );
 }

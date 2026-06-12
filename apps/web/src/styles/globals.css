@@ -58,33 +58,46 @@ html {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Print — PDF de cotizaciones ──────────────────────────────────────────────── */
-.quote-print-overlay {
+/* Print — overlays (hidden en pantalla, visibles al imprimir) ──────────────── */
+.quote-print-overlay,
+.sale-print-overlay {
   display: none;
   position: fixed;
   inset: 0;
   background: #fff;
-  padding: 48px;
   overflow: auto;
   z-index: 9999;
 }
+.quote-print-overlay {
+  padding: 48px;
+}
 
 @media print {
-  /* Remove browser date/time, URL and page number headers */
-  @page {
-    margin: 0;
+  /* — Cotizaciones (A4 / carta) — */
+  body:not(.print-sale) {
+    @page { margin: 0; }
   }
-  /* Hide the app; show only the print overlay (rendered as a body child via portal) */
-  body > *:not(.quote-print-overlay) {
+  body:not(.print-sale) > *:not(.quote-print-overlay) {
     display: none !important;
   }
-  .quote-print-overlay {
+  body:not(.print-sale) .quote-print-overlay {
     display: block;
     position: static;
     overflow: visible;
     padding: 40px 52px;
     background: #fff;
     min-height: 100vh;
+  }
+
+  /* — Ticket de venta (80mm térmico) — */
+  body.print-sale > *:not(.sale-print-overlay) {
+    display: none !important;
+  }
+  body.print-sale .sale-print-overlay {
+    display: block;
+    position: static;
+    overflow: visible;
+    background: #fff;
   }
 }
 

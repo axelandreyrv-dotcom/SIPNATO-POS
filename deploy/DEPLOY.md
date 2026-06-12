@@ -154,43 +154,28 @@ Agregar:
 
 ---
 
-## 10. Instalar print bridge en la PC del taller (Windows)
+## 10. Impresión de tickets en la PC del taller (sin software adicional)
 
-El print bridge corre en la PC que tiene la ticketera USB conectada.
+La app imprime directamente desde el navegador — no requiere instalar ningún servicio local.
 
-### Requisitos
-- Node.js 20+ instalado en Windows
-- Ticketera Epson TM-T20 / TM-T88 conectada por USB
+### Configurar la impresora en Windows
 
-### Instalación
-```powershell
-cd apps\print-bridge
-npm install
-```
+1. Conectar la Epson TM-T20II por USB e instalar los drivers de Epson.
+2. En Windows: **Configuración → Bluetooth y dispositivos → Impresoras** → verificar que aparece como impresora disponible.
+3. Establecerla como **impresora predeterminada** (clic derecho → "Establecer como predeterminada").
 
-### Configuración
-Crear `apps\print-bridge\.env`:
-```
-SERVER_URL=wss://www.dosuxsoft.com/ws/print
-BRIDGE_TOKEN=<token generado desde Configuración → Impresora>
-PRINTER_PATH=\\.\USB001
-```
+### Imprimir un ticket
 
-### Instalar como servicio de Windows (con NSSM)
+En el módulo POS, cada fila de venta tiene el ícono de impresora. Al hacer clic:
+- Se abre el diálogo de impresión del navegador.
+- Seleccionar la Epson TM-T20II.
+- El ticket sale en formato 80mm automáticamente.
 
-Con NSSM (recomendado):
-1. Descargar NSSM desde https://nssm.cc
-2. Compilar el bridge:
-```powershell
-cd apps\print-bridge
-npm run build
-```
-3. Instalar el servicio (ejecutar PowerShell como administrador):
-```powershell
-nssm install SipnatoPrintBridge "node" "C:\ruta\apps\print-bridge\dist\index.js"
-nssm set SipnatoPrintBridge AppDirectory "C:\ruta\apps\print-bridge"
-nssm start SipnatoPrintBridge
-```
+**Consejo:** En Chrome, la primera vez que imprimes, desactivar "Encabezados y pies de página" y guardar la configuración para esa impresora. Las siguientes veces no se muestra el diálogo si ya está guardado como predeterminado.
+
+### Print bridge WebSocket (avanzado, opcional)
+
+Si en el futuro se necesita impresión silenciosa sin diálogo, el proyecto incluye `apps/print-bridge/`. Ver la documentación en ese directorio.
 
 ---
 
