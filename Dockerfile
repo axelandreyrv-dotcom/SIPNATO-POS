@@ -35,7 +35,11 @@ COPY apps/server/package.json ./apps/server/
 
 # Copy pre-built node_modules from build stage — includes compiled native
 # binaries for better-sqlite3 and argon2 (node-gyp already ran there).
+# pnpm workspaces: each package has its own node_modules with symlinks into
+# the root .pnpm virtual store, so all three must be copied.
 COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/apps/server/node_modules ./apps/server/node_modules
+COPY --from=build /app/packages/shared/node_modules ./packages/shared/node_modules
 
 # Copy compiled TypeScript output
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
