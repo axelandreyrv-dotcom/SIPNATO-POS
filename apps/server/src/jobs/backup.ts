@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import type { FastifyBaseLogger } from 'fastify';
-import { copyFileSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { sqlite } from '../db/client.js';
 import { config } from '../config.js';
@@ -35,6 +35,12 @@ export async function runDailyBackup(log: FastifyBaseLogger): Promise<void> {
 
 // 03:00 AM Costa Rica = 09:00 UTC (UTC-6 permanente, sin horario de verano)
 export function startBackupCron(log: FastifyBaseLogger): void {
+  // Generate an initial backup on startup so the download endpoint works from day one.
+  const latest = join(config.BACKUP_PATH, 'sipnato-latest.db');
+  if (!existsSync(latest)) {
+    void runDailyBackup(log);
+  }
+
   cron.schedule('0 9 * * *', () => { void runDailyBackup(log); });
   log.info('backup cron iniciado (03:00 AM CR diario)');
 }

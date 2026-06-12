@@ -6,6 +6,16 @@ www.sipnato.com {
         reverse_proxy server:3000
     }
 
+    # Auth endpoints — prefijo /auth, no /api
+    handle /auth/* {
+        reverse_proxy server:3000
+    }
+
+    # Health check
+    handle /health {
+        reverse_proxy server:3000
+    }
+
     # WebSocket print bridge → Fastify
     handle /ws/* {
         reverse_proxy server:3000

@@ -11,6 +11,11 @@ backups/
 .DS_Store
 Thumbs.db
 
+# Artefactos generados por tsc -b (tsbuildinfo + compiled config files)
+*.tsbuildinfo
+apps/web/vite.config.js
+apps/web/vite.config.d.ts
+
 # Datos en runtime — directorios trackeados via .gitkeep, contenido ignorado
 apps/server/data/*
 !apps/server/data/.gitkeep

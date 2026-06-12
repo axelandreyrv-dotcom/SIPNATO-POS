@@ -10,21 +10,15 @@ RUN corepack enable pnpm
 
 WORKDIR /app
 
-# Copy manifests first for layer cache efficiency
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY packages/shared/package.json ./packages/shared/
-COPY apps/server/package.json ./apps/server/
-COPY apps/web/package.json ./apps/web/
+# Copy everything before install so the `prepare` hook (builds shared) has source available.
+# This trades install-layer caching for correctness — acceptable for a single-service project.
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json ./
+COPY packages/ ./packages/
+COPY apps/ ./apps/
 
 RUN pnpm install --frozen-lockfile
 
-# Copy source
-COPY tsconfig.base.json ./
-COPY packages/shared/ ./packages/shared/
-COPY apps/server/ ./apps/server/
-COPY apps/web/ ./apps/web/
-
-# Build order: shared → web → server
+# Build order: shared → web → server (prepare already ran shared, but explicit is safer)
 RUN pnpm --filter @sipnato/shared build
 RUN pnpm --filter @sipnato/web build
 RUN pnpm --filter @sipnato/server build

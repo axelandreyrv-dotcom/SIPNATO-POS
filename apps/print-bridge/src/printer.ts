@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import iconv from 'iconv-lite';
 import type {
   SalePrintPayload,
   BoletaPrintPayload,
@@ -22,7 +23,7 @@ const SIZE_DOUBLE = Buffer.from([GS, 0x21, 0x11]);
 const SIZE_NORMAL = Buffer.from([GS, 0x21, 0x00]);
 // CP858 codepage — supports ñ, tildes, and ₡
 const CODEPAGE_CP858 = Buffer.from([ESC, 0x74, 0x13]);
-const LF = Buffer.from([0x0a]);
+const LF = Buffer.from([0x0a]); // extra blank line (line() already appends LF)
 const CUT = Buffer.from([GS, 0x56, 0x42, 0x00]);
 
 const COLS = 48; // characters per line at normal size
@@ -30,7 +31,8 @@ const COLS = 48; // characters per line at normal size
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function line(text = ''): Buffer {
-  return Buffer.from(text.slice(0, COLS) + '\n', 'latin1');
+  // iconv-lite encodes to CP858 so ñ, tildes, and ₡ map to the correct byte positions.
+  return Buffer.concat([iconv.encode(text.slice(0, COLS), 'cp858'), Buffer.from([0x0a])]);
 }
 
 function padLine(left: string, right: string): Buffer {
@@ -43,7 +45,10 @@ function divider(): Buffer {
 }
 
 function formatAmount(colones: number): string {
-  return `₡${colones.toLocaleString('es-CR')}`;
+  // Avoid toLocaleString: it may insert narrow no-break spaces (U+202F) that don't
+  // exist in CP858. Use plain ASCII thousands separator instead.
+  const formatted = colones.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return `₡${formatted}`; // U+20A1 = ₡, encoded to 0xD5 by iconv CP858
 }
 
 // ── Formatters ────────────────────────────────────────────────────────────────

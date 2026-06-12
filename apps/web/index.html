@@ -11,14 +11,8 @@
     <meta property="og:image" content="/og-image.png" />
     <meta name="theme-color" content="#1E3A5F" />
     <title>SIPNATO</title>
-    <!-- Prevent dark-mode flash before React mounts -->
-    <script>
-      (function () {
-        if (localStorage.getItem('sipnato-theme') === 'dark') {
-          document.documentElement.classList.add('dark');
-        }
-      })();
-    </script>
+    <!-- Prevent dark-mode flash before React mounts — external file required for CSP script-src 'self' -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

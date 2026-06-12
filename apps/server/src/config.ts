@@ -11,7 +11,6 @@ const envSchema = z.object({
     .string()
     .min(64, 'SESSION_SECRET debe tener al menos 64 caracteres')
     .default('sipnato-dev-secret-reemplazar-antes-de-produccion-abcdefghijklmnopqrstuvwxyz01'),
-  PRINT_BRIDGE_TOKEN_HASH: z.string().optional(),
   ALLOWED_ORIGIN: z.string().default('http://localhost:5173'),
 });
 

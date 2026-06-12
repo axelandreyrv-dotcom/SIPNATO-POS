@@ -118,8 +118,8 @@ Caddy obtiene el certificado HTTPS automáticamente en el primer inicio (requier
 ## 7. Verificar el despliegue
 
 ```bash
-# Health check del servidor
-curl https://www.sipnato.com/api/health
+# Health check del servidor (ruta directa — no lleva /api)
+curl https://www.sipnato.com/health
 
 # Debe responder: {"status":"ok","db":"ok","env":"production",...}
 ```
@@ -177,17 +177,37 @@ BRIDGE_TOKEN=<token generado desde Configuración → Impresora>
 PRINTER_PATH=\\.\USB001
 ```
 
-### Instalar como servicio de Windows (con node-windows o NSSM)
+### Instalar como servicio de Windows (con NSSM)
 
 Con NSSM (recomendado):
 1. Descargar NSSM desde https://nssm.cc
-2. Ejecutar en PowerShell como administrador:
+2. Compilar el bridge:
 ```powershell
-nssm install SipnatoPrintBridge "node" "C:\ruta\apps\print-bridge\src\index.ts"
+cd apps\print-bridge
+npm run build
+```
+3. Instalar el servicio (ejecutar PowerShell como administrador):
+```powershell
+nssm install SipnatoPrintBridge "node" "C:\ruta\apps\print-bridge\dist\index.js"
 nssm set SipnatoPrintBridge AppDirectory "C:\ruta\apps\print-bridge"
-nssm set SipnatoPrintBridge AppEnvironmentExtra "NODE_OPTIONS=--import tsx/esm"
 nssm start SipnatoPrintBridge
 ```
+
+---
+
+## 11. Recuperación de emergencia (break-glass)
+
+Si perdiste acceso y no podés ingresar con contraseña ni recovery code:
+
+```bash
+# Conectarse al VPS por SSH
+ssh root@<IP_DEL_VPS>
+
+# Ejecutar el script dentro del contenedor
+docker exec -it deploy-server-1 node --import tsx/esm apps/server/scripts/reset-admin.ts
+```
+
+El script imprime una contraseña temporal y un nuevo recovery code. Cambiar la contraseña inmediatamente al iniciar sesión.
 
 ---
 
@@ -219,7 +239,7 @@ git pull
 docker compose -f deploy/docker-compose.yml build
 docker compose -f deploy/docker-compose.yml up -d
 
-# Restaurar un backup
-docker cp sipnato-2026-06-15.db sipnato-pos-server-1:/app/data/sipnato.db
+# Restaurar un backup (el nombre del contenedor depende de la carpeta deploy/)
+docker cp sipnato-2026-06-15.db deploy-server-1:/app/data/sipnato.db
 docker compose -f deploy/docker-compose.yml restart server
 ```

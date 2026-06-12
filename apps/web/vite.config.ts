@@ -12,5 +12,11 @@ export default defineConfig({
   },
   server: {
     port: parseInt(process.env['PORT'] ?? '5173'),
+    proxy: {
+      '/api': 'http://localhost:3000',
+      '/auth': 'http://localhost:3000',
+      '/health': 'http://localhost:3000',
+      '/ws': { target: 'ws://localhost:3000', ws: true, changeOrigin: true },
+    },
   },
 });
