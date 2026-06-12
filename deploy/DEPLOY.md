@@ -2,7 +2,7 @@
 
 ## Requisitos previos
 
-- VPS Ubuntu 22.04 LTS (mínimo 1 vCPU, 1 GB RAM, 20 GB disco)
+- VPS Ubuntu 22.04 / 24.04 LTS (mínimo 1 vCPU, 1 GB RAM, 20 GB disco)
 - Dominio `dosuxsoft.com` apuntando al IP del VPS (registro A para `@` y `www`)
 - Docker + Docker Compose instalados en el VPS
 
@@ -68,9 +68,9 @@ ufw status
 ## 4. Clonar el repositorio
 
 ```bash
-mkdir -p /opt/sipnato
-cd /opt/sipnato
-git clone https://github.com/<tu-usuario>/sipnato-pos.git .
+mkdir -p /opt/dosuxsoft
+cd /opt/dosuxsoft
+git clone https://github.com/axelandreyrv-dotcom/SIPNATO-POS.git .
 ```
 
 ---
@@ -78,7 +78,7 @@ git clone https://github.com/<tu-usuario>/sipnato-pos.git .
 ## 5. Configurar variables de entorno
 
 ```bash
-cd /opt/sipnato/deploy
+cd /opt/dosuxsoft/deploy
 cp .env.example .env
 nano .env
 ```
@@ -92,7 +92,6 @@ El archivo `.env` final debe verse así:
 ```
 SESSION_SECRET=<96 caracteres hexadecimales aleatorios>
 ALLOWED_ORIGIN=https://www.dosuxsoft.com
-PRINT_BRIDGE_TOKEN_HASH=
 ```
 
 ---
@@ -100,7 +99,7 @@ PRINT_BRIDGE_TOKEN_HASH=
 ## 6. Construir y levantar los contenedores
 
 ```bash
-cd /opt/sipnato/deploy
+cd /opt/dosuxsoft/deploy
 docker compose build
 docker compose up -d
 ```
@@ -142,13 +141,13 @@ El servidor hace backup interno diariamente a las 3:00 AM CR (guardado en el vol
 
 Para tener también una copia en el host (recomendado):
 ```bash
-chmod +x /opt/sipnato/deploy/backup.sh
+chmod +x /opt/dosuxsoft/deploy/backup.sh
 crontab -e
 ```
 
 Agregar:
 ```
-0 10 * * * /opt/sipnato/deploy/backup.sh
+0 10 * * * /opt/dosuxsoft/deploy/backup.sh
 ```
 
 (10:00 UTC = 4:00 AM Costa Rica)
@@ -228,18 +227,18 @@ El script imprime una contraseña temporal y un nuevo recovery code. Cambiar la 
 
 ```bash
 # Ver logs en tiempo real
-docker compose -f /opt/sipnato/deploy/docker-compose.yml logs -f
+docker compose -f /opt/dosuxsoft/deploy/docker-compose.yml logs -f
 
 # Reiniciar el servidor (sin downtime de Caddy)
-docker compose -f /opt/sipnato/deploy/docker-compose.yml restart server
+docker compose -f /opt/dosuxsoft/deploy/docker-compose.yml restart server
 
 # Actualizar a nueva versión
-cd /opt/sipnato
+cd /opt/dosuxsoft
 git pull
 docker compose -f deploy/docker-compose.yml build
 docker compose -f deploy/docker-compose.yml up -d
 
 # Restaurar un backup (el nombre del contenedor depende de la carpeta deploy/)
-docker cp sipnato-2026-06-15.db deploy-server-1:/app/data/sipnato.db
+docker cp dosuxsoft-2026-06-15.db deploy-server-1:/app/data/dosuxsoft.db
 docker compose -f deploy/docker-compose.yml restart server
 ```
