@@ -4,6 +4,7 @@ import rateLimit from '@fastify/rate-limit';
 import Fastify from 'fastify';
 import { config } from './config.js';
 import { sqlite } from './db/client.js';
+import { AppError } from './lib/errors.js';
 import { startAutoCloseCron } from './jobs/auto-close.js';
 import { startBackupCron } from './jobs/backup.js';
 import { startCleanupJobs } from './jobs/cleanup-sessions.js';
@@ -47,6 +48,15 @@ export async function buildApp() {
 
   // ── Global security headers ────────────────────────────────────────────────
   registerSecurityHeaders(app);
+
+  // ── Global error handler ───────────────────────────────────────────────────
+  app.setErrorHandler((err, _req, reply) => {
+    if (err instanceof AppError) {
+      return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+    }
+    app.log.error({ err }, 'unhandled error');
+    return reply.status(500).send({ error: { code: 'INTERNAL', message: 'Error interno del servidor' } });
+  });
 
   // ── Background jobs ────────────────────────────────────────────────────────
   startCleanupJobs(app.log);
