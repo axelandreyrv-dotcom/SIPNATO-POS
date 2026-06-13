@@ -9,6 +9,10 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, 'src'),
     },
+    dedupe: ['react', 'react-dom'],
+  },
+  optimizeDeps: {
+    include: ['framer-motion'],
   },
   server: {
     port: parseInt(process.env['PORT'] ?? '5173'),

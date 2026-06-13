@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { MeshGradientCharacter } from '../../components/ui/MeshGradientCharacter';
 
 interface AuthShellProps {
   children: ReactNode;
@@ -39,14 +40,17 @@ export function AuthShell({ children }: AuthShellProps) {
           </div>
         </div>
 
-        {/* Center decorative tagline */}
-        <div className="relative z-10 space-y-2">
-          <p className="text-2xl font-semibold leading-tight tracking-tight text-white">
-            Tu taller,<br />tu sistema.
-          </p>
-          <p className="text-sm text-white/50">
-            Gestión de ventas, caja y clientes en un solo lugar.
-          </p>
+        {/* Center — character + tagline */}
+        <div className="relative z-10 space-y-6">
+          <MeshGradientCharacter />
+          <div className="space-y-2">
+            <p className="text-2xl font-semibold leading-tight tracking-tight text-white">
+              Tu taller,<br />tu sistema.
+            </p>
+            <p className="text-sm text-white/50">
+              Gestión de ventas, caja y clientes en un solo lugar.
+            </p>
+          </div>
         </div>
 
         {/* Footer detail */}
