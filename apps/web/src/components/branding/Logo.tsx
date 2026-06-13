@@ -8,12 +8,12 @@ export function Logo({ size = 28, showText = true, onDark = true }: LogoProps) {
   return (
     <div className="flex items-center gap-2.5">
       <img
-        src="/logo.jpg"
+        src="/logo.png"
         alt=""
         width={size}
         height={size}
         aria-hidden
-        className="shrink-0 mix-blend-screen"
+        className="shrink-0"
       />
       {showText && (
         <span

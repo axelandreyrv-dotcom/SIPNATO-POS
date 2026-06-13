@@ -28,12 +28,12 @@ export function AuthShell({ children }: AuthShellProps) {
         <div className="relative z-10">
           <div className="mb-2 flex items-center gap-2.5">
             <img
-              src="/logo.jpg"
+              src="/logo.png"
               alt=""
               width={32}
               height={32}
               aria-hidden
-              className="shrink-0 mix-blend-screen"
+              className="shrink-0"
             />
             <span className="text-lg font-semibold tracking-tight text-white">Dosuxsoft</span>
           </div>
@@ -60,7 +60,7 @@ export function AuthShell({ children }: AuthShellProps) {
         {/* Mobile brand strip */}
         <div className="mb-10 flex items-center gap-2 lg:hidden">
           <img
-            src="/logo.jpg"
+            src="/logo.png"
             alt=""
             width={28}
             height={28}
