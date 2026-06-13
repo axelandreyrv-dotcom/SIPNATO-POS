@@ -13,7 +13,7 @@ export function Logo({ size = 28, showText = true, onDark = true }: LogoProps) {
         width={size}
         height={size}
         aria-hidden
-        className="shrink-0 rounded-md object-cover"
+        className="shrink-0 mix-blend-screen"
       />
       {showText && (
         <span

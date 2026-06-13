@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
 import {
-  AlertTriangle,
   BarChart3,
   FileOutput,
   FileText,
@@ -23,7 +21,6 @@ import {
 import { Logo } from '../../components/branding/Logo';
 import { useDarkMode } from '../../lib/hooks/useDarkMode';
 import { authApi } from '../../features/auth/api';
-import { cashRegisterApi } from '../../features/cash-register/api';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
@@ -132,13 +129,6 @@ function SidebarNav({ onNav }: { onNav?: () => void }) {
 export function AppLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const { data: currentRegister } = useQuery({
-    queryKey: ['cash-register', 'current'],
-    queryFn: cashRegisterApi.getCurrent,
-    staleTime: 30_000,
-    refetchInterval: 60_000,
-  });
-
   function closeDrawer() {
     setDrawerOpen(false);
   }
@@ -202,18 +192,6 @@ export function AppLayout() {
         className="flex-1 overflow-auto pt-14 sm:pt-0 bg-surface-bg vt-page"
         inert={drawerOpen || undefined}
       >
-        {currentRegister === null && (
-          <div className="sticky top-14 sm:top-0 z-10 flex items-center gap-2 border-b border-brand-warning/20 bg-brand-warning/[0.08] px-4 py-2.5">
-            <AlertTriangle size={13} strokeWidth={1.5} className="shrink-0 text-brand-warning" aria-hidden />
-            <span className="text-xs text-text-secondary">No hay caja abierta.</span>
-            <Link
-              to="/caja"
-              className="ml-auto text-xs font-medium text-brand-warning underline-offset-2 hover:underline"
-            >
-              Abrir caja →
-            </Link>
-          </div>
-        )}
         <Outlet />
       </main>
     </div>

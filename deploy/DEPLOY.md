@@ -152,6 +152,8 @@ Agregar:
 
 (10:00 UTC = 4:00 AM Costa Rica)
 
+El script guarda los backups en `/opt/dosuxsoft/backups/dosuxsoft-YYYY-MM-DD.db` con rotación de 30 días.
+
 ---
 
 ## 10. Impresión de tickets en la PC del taller (sin software adicional)
