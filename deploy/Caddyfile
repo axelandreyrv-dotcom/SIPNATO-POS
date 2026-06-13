@@ -16,11 +16,6 @@ www.dosuxsoft.com {
         reverse_proxy server:3000
     }
 
-    # WebSocket print bridge → Fastify
-    handle /ws/* {
-        reverse_proxy server:3000
-    }
-
     # SPA: servir archivos estáticos, fallback a index.html para React Router
     handle {
         try_files {path} /index.html
@@ -33,7 +28,7 @@ www.dosuxsoft.com {
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         Referrer-Policy "strict-origin-when-cross-origin"
-        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' wss://www.dosuxsoft.com; frame-ancestors 'none'"
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'"
         -Server
     }
 

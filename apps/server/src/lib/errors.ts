@@ -86,3 +86,15 @@ export class NotaNoEncontrada extends AppError {
     super('NOTA_NO_ENCONTRADA', 'Nota no encontrada', 404);
   }
 }
+
+export class ApartadoNoEncontrado extends AppError {
+  constructor() {
+    super('APARTADO_NO_ENCONTRADO', 'Apartado no encontrado', 404);
+  }
+}
+
+export class ApartadoNoActivo extends AppError {
+  constructor() {
+    super('APARTADO_NO_ACTIVO', 'Este apartado no está activo', 400);
+  }
+}

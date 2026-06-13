@@ -14,13 +14,15 @@ Sistema de punto de venta para taller de reparación de celulares y venta de acc
 | **Caja** | Apertura y cierre de caja con monto inicial. Cierre automático programable. Resumen de totales por método |
 | **Boletas** | Órdenes de reparación con datos del cliente, dispositivo, IMEI (validación Luhn), contraseña y descripción del servicio |
 | **Clientes** | Base de datos con historial de boletas por cliente. Búsqueda por nombre, teléfono o IMEI |
-| **Cotizaciones** | Presupuestos con múltiples ítems, exportación a PDF con datos del negocio. Edición posterior |
+| **Cotizaciones** | Presupuestos con múltiples ítems, impresión con datos del negocio. Edición posterior |
+| **Apartados** | Reservas tipo layaway con abonos parciales, progreso de pago y cierre automático al completar |
 | **Gastos** | Registro de gastos vinculados a la caja activa. Soft-delete con trazabilidad |
 | **Reportes** | Ventas por período con gráfica diaria, filtros por método de pago y exportación CSV |
 | **Dashboard** | Resumen del día: ventas por método, gastos, balance, estado de caja y contadores |
 | **Notas internas** | Bloc de notas personal tipo tarjetas para el administrador |
-| **Configuración** | Datos del negocio, cierre automático, puente de impresión |
-| **Print Bridge** | Impresión silenciosa en ticketera térmica Epson (ESC/POS 80mm) desde cualquier módulo |
+| **Configuración** | Datos del negocio, leyendas de tickets, cierre automático e impresión de prueba |
+
+> **Impresión:** los tickets de 80mm y las cotizaciones se imprimen directamente desde el navegador (`window.print()`) hacia la Epson predeterminada en Windows. No requiere instalar ningún servicio local.
 
 ---
 
@@ -32,7 +34,6 @@ Sistema de punto de venta para taller de reparación de celulares y venta de acc
 |---|---|
 | `apps/web` | React 19, Vite 6, Tailwind CSS v4, TanStack Router, TanStack Query, Recharts |
 | `apps/server` | Fastify 5, better-sqlite3, Drizzle ORM, argon2id, node-cron |
-| `apps/print-bridge` | Node.js, ws, ESC/POS (Epson TM-T20/T88) |
 | `packages/shared` | Schemas Zod compartidos, formateo de moneda ₡ |
 
 ### Infraestructura
@@ -46,16 +47,13 @@ Sistema de punto de venta para taller de reparación de celulares y venta de acc
 ## Arquitectura
 
 ```
-[Navegador — SPA React]
+[Navegador — SPA React] ──window.print()──► Ticketera 80mm (Epson)
         │ HTTPS (Caddy)
         ▼
    API Fastify ──── node-cron (cierre auto, backup, limpieza sesiones)
         │
         ▼
    SQLite /app/data/dosuxsoft.db  +  /app/data/backups/
-        ▲
-        │ WebSocket (token 256-bit hasheado argon2id)
-[PC del taller] print-bridge ──ESC/POS──► Ticketera 80mm
 ```
 
 ---
@@ -79,17 +77,6 @@ pnpm dev
 - API: `http://localhost:3000/health`
 
 En el primer arranque, el sistema redirige a `/setup` para crear el usuario administrador.
-
-### Print bridge (opcional en dev)
-
-```bash
-# En apps/print-bridge, crear .env con:
-# SERVER_URL=ws://localhost:3000/ws/print
-# BRIDGE_TOKEN=<token generado desde Configuración>
-# PRINTER_PATH=  (vacío = modo stub, imprime a consola)
-
-pnpm --filter @sipnato/print-bridge dev
-```
 
 ---
 
@@ -136,15 +123,14 @@ apps/
       jobs/         # cron: auto-close, backup, cleanup-sessions
       lib/          # errors, constantes, cr-time
       middleware/   # auth, security-headers
-      modules/      # auth, cash-registers, sales, boletas, customers,
-                    # expenses, quotes, notes, reports, dashboard, print, settings
+      modules/      # auth, cash-registers, sales, boletas, customers, expenses,
+                    # quotes, apartados, notes, reports, dashboard, settings
       scripts/      # reset-admin (break-glass)
   web/              # SPA React
     src/
-      features/     # módulo por feature (POS, caja, boletas, etc.)
+      features/     # módulo por feature (POS, caja, boletas, apartados, etc.)
       routes/       # TanStack Router (login, setup, _auth/*)
       components/   # branding, shared UI
-  print-bridge/     # servicio local de impresión ESC/POS
 
 packages/
   shared/           # schemas Zod + money.ts (compartido server + web)

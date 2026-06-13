@@ -173,10 +173,6 @@ En el módulo POS, cada fila de venta tiene el ícono de impresora. Al hacer cli
 
 **Consejo:** En Chrome, la primera vez que imprimes, desactivar "Encabezados y pies de página" y guardar la configuración para esa impresora. Las siguientes veces no se muestra el diálogo si ya está guardado como predeterminado.
 
-### Print bridge WebSocket (avanzado, opcional)
-
-Si en el futuro se necesita impresión silenciosa sin diálogo, el proyecto incluye `apps/print-bridge/`. Ver la documentación en ese directorio.
-
 ---
 
 ## 11. Recuperación de emergencia (break-glass)

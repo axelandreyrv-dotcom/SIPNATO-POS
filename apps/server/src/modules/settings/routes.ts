@@ -5,29 +5,12 @@ import { settingsSchema } from '@sipnato/shared';
 import { AppError } from '../../lib/errors.js';
 import { config } from '../../config.js';
 import { requireAuth } from '../../middleware/auth.js';
-import { getSettings, updateSettings, generatePrintToken } from './service.js';
+import { getSettings, updateSettings } from './service.js';
 
 export default async function settingsRoutes(app: FastifyInstance) {
   // ── GET /api/settings ────────────────────────────────────────────────────
   app.get('/', { preHandler: [requireAuth] }, async () => {
     return getSettings();
-  });
-
-  // ── POST /api/settings/generate-print-token ──────────────────────────────
-  // Generates a new print bridge token, stores the hash, returns the plain token ONCE.
-  app.post('/generate-print-token', { preHandler: [requireAuth] }, async (request, reply) => {
-    try {
-      const token = await generatePrintToken({
-        ip: request.ip ?? null,
-        userAgent: request.headers['user-agent'] ?? null,
-      });
-      return reply.status(201).send({ token });
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
   });
 
   // ── GET /api/settings/backup/download ───────────────────────────────────

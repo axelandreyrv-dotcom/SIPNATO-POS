@@ -2,7 +2,7 @@
 
 > Desarrollo por fases pequeñas y lógicas. Cada fase es atómica: una sola responsabilidad, verificable antes de avanzar.
 > Al completar cada fase: marcar `[x]`, anotar la fecha y actualizar `CLAUDE.md`.
-> Última actualización: 2026-06-11 · Fase 13 ✅ COMPLETA — ¡SIPNATO listo para producción!
+> Última actualización: 2026-06-12 · Todas las fases ✅ + módulo Apartados · impresión migrada a navegador (print-bridge eliminado)
 
 ---
 
@@ -11,7 +11,7 @@
 | Fase | Nombre | Estado |
 |---|---|---|
 | 0 | Monorepo & Tooling | ✅ COMPLETADA 2026-06-10 |
-| 0.5 | Spike de Impresión (validación de hardware) | ⏭ Omitida provisionalmente — retomar en Fase 12 |
+| 0.5 | Spike de Impresión (validación de hardware) | ⏭ Omitida — superada por impresión vía navegador |
 | 1 | Schema de BD & Migraciones | ✅ COMPLETADA 2026-06-10 |
 | 2 | Auth & Seguridad | ✅ COMPLETADA 2026-06-10 |
 | 3 | Branding & Configuración Base | ✅ COMPLETADA 2026-06-10 |
@@ -23,8 +23,9 @@
 | 9 | Notas Internas | ✅ COMPLETADA 2026-06-10 |
 | 10 | Reporte de Ventas | ✅ COMPLETADA 2026-06-11 |
 | 11 | Dashboard | ✅ COMPLETADA 2026-06-11 |
-| 12 | Puente de Impresión (Print Bridge) | ✅ COMPLETADA 2026-06-11 |
+| 12 | Impresión de Tickets (vía navegador) | ✅ COMPLETADA 2026-06-12 — reemplazó al print-bridge WebSocket |
 | 13 | Despliegue (VPS + Docker + Caddy) | ✅ COMPLETADA 2026-06-11 |
+| 14 | Módulo de Apartados (layaway) | ✅ COMPLETADA 2026-06-12 |
 
 ---
 
@@ -82,7 +83,7 @@ Un ticket de prueba sale impreso correctamente de la impresora física, con espa
 
 ### Tareas
 - [ ] Configurar `better-sqlite3` con WAL mode (`PRAGMA journal_mode=WAL`)
-- [ ] Definir schema Drizzle completo (14 tablas):
+- [ ] Definir schema Drizzle completo (tablas del dominio):
   - `admin` — hash contraseña + hash recovery code
   - `sessions` — token_hash, user_id, expires_at, last_active_at
   - `settings` — clave/valor (datos taller, leyendas, config cierre auto)
@@ -94,7 +95,6 @@ Un ticket de prueba sale impreso correctamente de la impresora física, con espa
   - `quotes` — consecutivo, total INTEGER, created_at
   - `quote_items` — quote FK, descripción, monto INTEGER
   - `notes` — título, texto, created_at, updated_at
-  - `print_jobs` — tipo, payload JSON, estado (pending/printed/failed), intentos, created_at
   - `counters` — tipo documento, valor actual (incremento transaccional)
   - `audit_log` — action, entity_type, entity_id, payload_snapshot JSON, ip, user_agent, created_at
 - [ ] Generar y aplicar migración inicial con `drizzle-kit migrate`
@@ -113,7 +113,7 @@ Un ticket de prueba sale impreso correctamente de la impresora física, con espa
 ### Criterio de completitud
 Migraciones corren desde cero sin errores. Tests de BD pasan. Schema completo verificado con Drizzle Studio.
 
-**✅ COMPLETADA 2026-06-10** — 14 tablas Drizzle, WAL mode, FK ON, busy_timeout=5000. Auto-migración en startup. Seed de dev. 8 tests pasan (consecutivos, soft-delete, WAL, FK). `/health` incluye `{ db: "ok" }`. Invocar `/grill-me` antes de Fase 2.
+**✅ COMPLETADA 2026-06-10** — Schema Drizzle, WAL mode, FK ON, busy_timeout=5000. Auto-migración en startup. Seed de dev. 8 tests pasan (consecutivos, soft-delete, WAL, FK). `/health` incluye `{ db: "ok" }`. Invocar `/grill-me` antes de Fase 2. *(Nota 2026-06-12: la tabla `print_jobs` se eliminó al migrar a impresión por navegador; se añadieron `apartados` + `apartado_payments` en la Fase 14.)*
 
 ---
 
@@ -413,40 +413,27 @@ Dashboard carga en < 300ms, datos correctos. Primera pantalla que ve el admin al
 
 ---
 
-## Fase 12 — Puente de Impresión (Print Bridge)
+## Fase 12 — Impresión de Tickets (vía navegador) ✅ COMPLETADA 2026-06-12
 
-**Objetivo:** impresión silenciosa con un clic desde cualquier módulo con ticketera USB local.
+**Objetivo:** imprimir tickets de 80mm y cotizaciones directamente desde el navegador, sin servicio local ni hardware especial.
 
-### Tareas Backend
-- [ ] Endpoint WebSocket `/ws/print` — acepta conexión del bridge con token (header `Authorization: Bearer`)
-- [ ] `POST /api/print/jobs` — crea trabajo de impresión (guardado en `print_jobs`)
-- [ ] `PATCH /api/print/jobs/:id/ack` — bridge confirma impresión exitosa
-- [ ] `PATCH /api/print/jobs/:id/fail` — bridge reporta fallo
-- [ ] `GET /api/print/jobs/pending` — trabajos pendientes (para reenvío al reconectar)
-- [ ] Configuración de impresora y token del bridge en Settings (genera token con `crypto.randomBytes(32).toString('hex')`)
-- [ ] Endpoint `POST /api/print/test` — envía trabajo de prueba
+> **Decisión de diseño (2026-06-12):** se construyó primero un print-bridge WebSocket (servidor `/ws/print` + app `apps/print-bridge` con ESC/POS + token argon2id), pero el setup era demasiado frágil para un solo usuario (instalar servicio de Windows, generar/rotar token, mantener el WS vivo). Se reemplazó por **impresión nativa del navegador** (`window.print()` con `@page { size: 80mm auto }` y overlays vía React Portal). El print-bridge completo fue eliminado del código el 2026-06-12 (ver CLAUDE.md, historial).
 
-### Tareas Frontend
-- [ ] Indicador de estado del bridge en el layout (conectado / desconectado)
-- [ ] Botón "Reimprimir" en ventas, boletas y cotizaciones
-- [ ] Página de configuración de impresora + botón de prueba
-- [ ] Generación de token del bridge (mostrado UNA vez, con advertencia)
+### Implementación
+- [x] Impresión de tickets de venta 80mm desde POS (`SalePrintView` + portal, body class `print-sale`)
+- [x] Impresión de cotizaciones (layout A4, `QuotePrintView` + portal)
+- [x] Botón de impresora por venta en POS
+- [x] Sección "Impresora de tickets" en Configuración con botón de ticket de prueba
+- [x] Instrucciones de impresora predeterminada Epson en `deploy/DEPLOY.md`
 
-### Tareas Print Bridge (`apps/print-bridge`)
-- [ ] Cliente WebSocket con reconexión exponential backoff
-- [ ] Conversión de payload → bytes ESC/POS para tickets de 80mm
-- [ ] Instalación como servicio de Windows (instrucciones en README del bridge)
-
-### Checklist de seguridad (Fase 12)
-- [ ] Token del bridge validado en el handshake WS — conexiones sin token son rechazadas con código 401
-- [ ] Token almacenado hasheado en BD — solo el hash, nunca el token plano
-- [ ] El bridge NO tiene acceso a ningún endpoint de datos de negocio
-- [ ] Rate limit de reconexiones: máximo 3 fallos por minuto antes de blacklist temporal
+### Eliminado al migrar
+- [x] `apps/print-bridge/` (app completa)
+- [x] `apps/server/src/modules/print/` (WebSocket + `print_jobs`)
+- [x] `packages/shared/src/schemas/print.ts`, `apps/web/src/features/print/`
+- [x] Token del bridge en Settings + plugin `@fastify/websocket` + tabla `print_jobs` (migración 0004)
 
 ### Criterio de completitud
-Imprimir una venta desde la UI genera ticket en la ticketera física sin diálogos intermedios. Reimprimir funciona. Desconectar el bridge y reconectar despacha los trabajos pendientes.
-
-**Al completar:** invocar `/grill-me` · actualizar `CLAUDE.md` · marcar `[x]` aquí.
+Imprimir una venta o cotización abre el diálogo del navegador y sale el ticket en la Epson predeterminada. No requiere instalar nada en la PC del taller.
 
 ---
 
@@ -467,7 +454,7 @@ Imprimir una venta desde la UI genera ticket en la ticketera física sin diálog
 - [ ] Variable `ALLOWED_ORIGIN` apuntando al subdominio real
 - [ ] Verificar `GET /health` desde internet
 - [ ] Test de descarga de backup desde el panel
-- [ ] Instalar print-bridge en PC del taller como servicio de Windows
+- [ ] Configurar la Epson TM-T20II como impresora predeterminada en la PC del taller
 
 ### Checklist de seguridad (Fase 13)
 - [ ] `NODE_ENV=production` en el contenedor del servidor
@@ -481,6 +468,33 @@ Imprimir una venta desde la UI genera ticket en la ticketera física sin diálog
 SIPNATO accesible desde internet por subdominio HTTPS. Login funciona. Una venta completa genera ticket impreso. Backup descargable desde Configuración.
 
 **Al completar:** actualizar `CLAUDE.md` con fecha de go-live · marcar `[x]` aquí · **¡SIPNATO está en producción!**
+
+---
+
+## Fase 14 — Módulo de Apartados (Layaway) ✅ COMPLETADA 2026-06-12
+
+**Objetivo:** registrar reservas de productos con abonos parciales hasta completar el pago.
+
+### Tareas Backend
+- [x] Tablas `apartados` + `apartado_payments` (migración 0003), contador `apartado`
+- [x] `GET /api/apartados` — listado con filtro por estado y búsqueda (nombre/teléfono/descripción)
+- [x] `GET /api/apartados/:id` — detalle con historial de abonos
+- [x] `POST /api/apartados` — crea apartado con depósito inicial opcional (transacción + audit_log)
+- [x] `POST /api/apartados/:id/payments` — registra abono, auto-completa al alcanzar el total
+- [x] `POST /api/apartados/:id/cancel` — cancela apartado activo
+
+### Tareas Frontend
+- [x] `ApartadosPage` — tabs por estado (Activos/Completados/Cancelados), búsqueda, barra de progreso de pago
+- [x] Modal de creación, formulario de abono inline, cancelación con confirmación
+- [x] Ítem de navegación en el sidebar (ícono `Package`)
+
+### Checklist de seguridad (Fase 14)
+- [x] Montos validados `INTEGER` ≥ 1 en servidor; teléfono 8 dígitos CR
+- [x] Estado y total recalculados en el servidor — nunca del cliente
+- [x] Soft-delete (`deleted_at`) en `apartados`; audit_log en crear/abonar/cancelar
+
+### Criterio de completitud
+Crear un apartado con depósito, registrar abonos sucesivos y ver el estado pasar a "completado" automáticamente al cubrir el total.
 
 ---
 

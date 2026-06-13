@@ -81,39 +81,3 @@ export function getSetting(key: SettingKey): string | null {
   const row = db.select().from(settings).where(eq(settings.key, key)).limit(1).get();
   return row?.value ?? null;
 }
-
-// ── Print bridge token (not part of UI settings) ──────────────────────────────
-
-const PRINT_TOKEN_KEY = 'print_bridge_token_hash';
-
-export function getPrintBridgeTokenHash(): string | null {
-  const row = db
-    .select({ value: settings.value })
-    .from(settings)
-    .where(eq(settings.key, PRINT_TOKEN_KEY))
-    .limit(1)
-    .get();
-  return row?.value ?? null;
-}
-
-export function setPrintBridgeTokenHash(
-  hash: string,
-  audit: { ip: string | null; userAgent: string | null },
-): void {
-  const now = new Date().toISOString();
-  db.transaction((tx) => {
-    tx
-      .insert(settings)
-      .values({ key: PRINT_TOKEN_KEY, value: hash })
-      .onConflictDoUpdate({ target: settings.key, set: { value: hash, updatedAt: now } })
-      .run();
-    tx.insert(auditLog).values({
-      action: 'PRINT_TOKEN_ROTATED',
-      entityType: 'settings',
-      entityId: null,
-      payloadSnapshot: null,
-      ip: audit.ip,
-      userAgent: audit.userAgent,
-    }).run();
-  });
-}

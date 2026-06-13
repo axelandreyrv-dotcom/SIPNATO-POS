@@ -1,8 +1,5 @@
-import crypto from 'node:crypto';
-import argon2 from 'argon2';
 import type { Settings } from '@sipnato/shared';
-import { getAllSettings, setAllSettings, setPrintBridgeTokenHash, getPrintBridgeTokenHash, type SettingKey } from './repository.js';
-import { setTokenSetFlag } from '../print/service.js';
+import { getAllSettings, setAllSettings, type SettingKey } from './repository.js';
 
 export function getSettings(): Settings {
   const raw = getAllSettings();
@@ -42,18 +39,4 @@ export function updateSettings(
   });
 
   return data;
-}
-
-export async function generatePrintToken(
-  meta: { ip: string | null; userAgent: string | null },
-): Promise<string> {
-  const token = crypto.randomBytes(32).toString('hex');
-  const hash = await argon2.hash(token, { memoryCost: 65536, timeCost: 3, parallelism: 4 });
-  setPrintBridgeTokenHash(hash, meta);
-  setTokenSetFlag(true);
-  return token;
-}
-
-export function isPrintTokenSet(): boolean {
-  return getPrintBridgeTokenHash() !== null;
 }

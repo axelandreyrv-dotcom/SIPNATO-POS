@@ -196,27 +196,60 @@ export const notes = sqliteTable('notes', {
     .default(sql`(datetime('now'))`),
 });
 
-// ─── print_jobs ───────────────────────────────────────────────────────────────
-export const printJobs = sqliteTable('print_jobs', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  type: text('type', { enum: ['sale', 'boleta', 'quote', 'test'] }).notNull(),
-  payload: text('payload').notNull(),
-  status: text('status', { enum: ['pending', 'printed', 'failed'] })
-    .notNull()
-    .default('pending'),
-  attempts: integer('attempts').notNull().default(0),
-  createdAt: text('created_at')
-    .notNull()
-    .default(sql`(datetime('now'))`),
-  updatedAt: text('updated_at')
-    .notNull()
-    .default(sql`(datetime('now'))`),
-});
+// ─── apartados ────────────────────────────────────────────────────────────────
+export const apartados = sqliteTable(
+  'apartados',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    consecutive: integer('consecutive').notNull(),
+    customerName: text('customer_name').notNull(),
+    customerPhone: text('customer_phone').notNull(),
+    description: text('description').notNull(),
+    totalAmount: integer('total_amount').notNull(),
+    status: text('status', { enum: ['activo', 'completado', 'cancelado'] })
+      .notNull()
+      .default('activo'),
+    notes: text('notes'),
+    deletedAt: text('deleted_at'),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => ({
+    phoneIdx: index('apartados_phone_idx').on(t.customerPhone),
+    statusIdx: index('apartados_status_idx').on(t.status),
+  }),
+);
+
+// ─── apartado_payments ────────────────────────────────────────────────────────
+export const apartadoPayments = sqliteTable(
+  'apartado_payments',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    apartadoId: integer('apartado_id')
+      .notNull()
+      .references(() => apartados.id),
+    amount: integer('amount').notNull(),
+    paymentMethod: text('payment_method', {
+      enum: ['efectivo', 'tarjeta', 'transferencia', 'sinpe'],
+    }).notNull(),
+    note: text('note'),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => ({
+    apartadoIdx: index('apartado_payments_apartado_idx').on(t.apartadoId),
+  }),
+);
 
 // ─── counters ─────────────────────────────────────────────────────────────────
 // Single row per document type — incremented inside a transaction.
 export const counters = sqliteTable('counters', {
-  type: text('type', { enum: ['sale', 'boleta', 'quote'] }).primaryKey(),
+  type: text('type', { enum: ['sale', 'boleta', 'quote', 'apartado'] }).primaryKey(),
   currentValue: integer('current_value').notNull().default(0),
 });
 

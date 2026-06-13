@@ -1,7 +1,7 @@
 # CLAUDE.md — Biblia del Proyecto SIPNATO POS
 
 > Este archivo es la fuente de verdad del proyecto. Se actualiza al finalizar cada fase.
-> Última actualización: 2026-06-11 · Fase actual: **COMPLETO** — todas las fases finalizadas ✅
+> Última actualización: 2026-06-12 · Estado: **COMPLETO** + módulo Apartados · impresión migrada a navegador (print-bridge eliminado) ✅
 
 ---
 
@@ -85,20 +85,13 @@
 | pino | Logging estructurado |
 | zod | Validación de env vars y requests |
 
-### `apps/print-bridge` — Servicio local de impresión
-| Herramienta | Propósito |
-|---|---|
-| Node.js | Runtime |
-| ws | Cliente WebSocket con reconexión |
-| node-escpos / escpos-usb | Comunicación ESC/POS con ticketera 80mm |
-
-> **Impresora objetivo:** Epson TM-T20 / TM-T88 (ESC/POS estándar, soporte impecable en Node). Validada con un spike temprano (Fase 0.5) antes de construir el módulo completo en la Fase 12. Codificación a verificar: CP858/PC858 para tildes, ñ y el símbolo ₡.
+### Impresión de tickets — vía navegador
+> Los tickets de 80mm (ventas) y las cotizaciones se imprimen con `window.print()` desde la SPA: un overlay renderizado vía React Portal + `@page { size: 80mm auto }` inyectado dinámicamente. **No hay servicio local ni `apps/print-bridge`** — el print-bridge WebSocket original (ESC/POS sobre `apps/print-bridge` + módulo `/ws/print`) se eliminó el 2026-06-12 por ser demasiado frágil para un solo usuario. La impresora objetivo (Epson TM-T20II) se configura como predeterminada en Windows; el navegador maneja la codificación.
 
 ### `packages/shared` — Contrato común
 | Contenido | Propósito |
 |---|---|
 | `schemas/` | DTOs zod usados por frontend Y backend |
-| `tickets/` | Tipos de payload + render ESC/POS + preview HTML |
 | `money.ts` | Manejo de ₡ como INTEGER — único punto de formateo |
 
 ### Infraestructura
@@ -115,16 +108,13 @@
 ## 4. Arquitectura
 
 ```
-[Navegador — SPA React]
+[Navegador — SPA React] ──window.print()──► Ticketera 80mm (Epson predeterminada)
         │ HTTPS (Caddy)
         ▼
    API Fastify ──── node-cron (cierre auto + backup diario)
         │
         ▼
    SQLite /app/data/sipnato.db  +  /app/data/backups/
-        ▲
-        │ WebSocket (token hash 256-bit)
-[PC del taller] print-bridge ──ESC/POS──► Ticketera 80mm
 ```
 
 ### Principio de módulos
@@ -169,9 +159,9 @@ Agregar un módulo nuevo = crear esas carpetas. **Nada existente se modifica.**
 ### Branding
 | Archivo fuente | Uso en la app |
 |---|---|
-| `BRAND/LOGO SVG.svg` | Logo en sidebar, topbar · copiado a `web/public/favicon.svg` |
-| `BRAND/SIPNATO-LOGO.ico` | Favicon fallback · copiado a `web/public/favicon.ico` |
-| `BRAND/SIPNATO LOGO.png` | Open Graph / Twitter meta tags · copiado a `web/public/og-image.png` |
+| `BRAND/*.jpg` (monograma DS) | Logo principal en sidebar/topbar y favicon · copiado a `web/public/logo.jpg` |
+| `web/public/favicon.svg` + `favicon.ico` | Favicons fallback (declarados en `index.html`) |
+| `web/public/og-image.png` | Open Graph / Twitter meta tags |
 
 ### Tipografía
 - Fuente: `Inter` (Google Fonts o bundleada con Fontsource).
@@ -195,12 +185,9 @@ Agregar un módulo nuevo = crear esas carpetas. **Nada existente se modifica.**
 | Al cambiar contraseña | Invalidar **todas** las filas de `sessions` del usuario |
 | Recovery code | Generado con `crypto.randomBytes(16).toString('hex')` · mostrado UNA vez · almacenado hasheado con argon2id · invalidado al usarse (genera uno nuevo) |
 
-### 6.2 Print-bridge token
-- Generado con `crypto.randomBytes(32).toString('hex')` (256 bits de entropía).
-- Almacenado **hasheado** (argon2id) en la BD, en tabla `settings`.
-- Mostrado UNA sola vez en Configuración al generarlo.
-- WebSocket valida el token en el handshake (header `Authorization: Bearer <token>`).
-- El bridge solo puede recibir trabajos de impresión y enviar ACK — sin acceso a ningún dato de negocio.
+### 6.2 Impresión de tickets (sin token de bridge)
+- La impresión ocurre **100% en el navegador** vía `window.print()` — no hay servicio externo, WebSocket ni token que proteger.
+- *(Histórico: existió un print-bridge WebSocket con token argon2id de 256 bits; se eliminó el 2026-06-12 junto con su superficie de seguridad.)*
 
 ### 6.3 Endpoint de descarga de backup
 - Verificación de sesión activa **server-side** obligatoria antes de servir el archivo.
@@ -215,7 +202,6 @@ Agregar un módulo nuevo = crear esas carpetas. **Nada existente se modifica.**
 | `POST /auth/login` | 5 intentos por IP cada 15 minutos |
 | `POST /auth/recover` | 3 intentos por IP cada 30 minutos |
 | `GET /api/settings/backup/download` | 5 descargas por hora por sesión |
-| WebSocket print-bridge | 3 reconexiones fallidas por minuto → blacklist temporal de IP |
 
 ### 6.5 CORS
 - Configuración: `origin: ['https://<tu-subdominio>']` — **nunca `*`** en endpoints autenticados.
@@ -320,7 +306,6 @@ Definidas en `.env` (nunca en el repositorio). Ver `.env.example` para estructur
 | Variable | Descripción |
 |---|---|
 | `SESSION_SECRET` | Secret para firmar cookies de sesión (min 64 chars, random) |
-| `PRINT_BRIDGE_TOKEN_HASH` | Hash argon2id del token del puente de impresión |
 | `DATABASE_PATH` | Ruta absoluta al archivo SQLite (default: `/app/data/sipnato.db`) |
 | `BACKUP_PATH` | Ruta absoluta al directorio de backups (default: `/app/data/backups/`) |
 | `LOG_PATH` | Ruta absoluta al directorio de logs (default: `/app/logs/`) |
@@ -381,3 +366,6 @@ La estructura está fijada y aprobada — no modificar sin actualizar este archi
 | 2026-06-11 | Fase 11 | `/grill-me` ejecutado sobre backend de dashboard. 1 hallazgo corregido: `crDayRangeToUtc` + `CR_OFFSET_HOURS` duplicados entre `reports/repository.ts` y `dashboard/repository.ts` — extraídos a `src/lib/cr-time.ts` (exporta `crDayRangeToUtc` y `todayCR`); ambos repositorios ahora importan desde ahí. `service.ts` pass-through mantenido intencionalmente para consistencia y extensibilidad en Fase 12. tsc --noEmit limpio. |
 | 2026-06-11 | Fase 13 | Despliegue completo. `Dockerfile` multi-stage (build → server + caddy), `deploy/docker-compose.yml`, `deploy/Caddyfile` (HTTPS + SPA routing + WebSocket + security headers), `deploy/backup.sh` (copia externa diaria), `deploy/.env.example`, `deploy/DEPLOY.md` (guía paso a paso VPS + SSH + UFW + print-bridge Windows). `packages/shared/package.json` actualizado con conditional exports (`"types"` + `"tsx"` + `"default"`) y script `build: tsc` — resuelve compatibilidad de módulos en producción Node.js. `prepare` script en raíz auto-compila shared tras `pnpm install`. Backup job interno añadido (`src/jobs/backup.ts` — 03:00 AM CR, rotación 30 días). Endpoint `GET /api/settings/backup/download` implementado (rate limit 5/hora, Content-Disposition: attachment, ruta hardcodeada). tsc --noEmit limpio en todos los workspaces. |
 | 2026-06-11 | Fase 12 | Print Bridge completo. Shared: `schemas/print.ts` (SalePrintPayload, BoletaPrintPayload, QuotePrintPayload, TestPrintPayload, createPrintJobSchema, PrintBridgeStatus). Backend: `modules/print/` — repository (insertPrintJob, ackJob con audit_log en transacción, failJob con max 3 intentos), service (in-memory `activeSocket`, registerBridgeSocket/clearBridgeSocket, IP blacklist 3 fallos/min), routes (`GET /ws/print` WS con auth argon2id, `GET /ws/print/status`, `POST /ws/print/jobs`, `POST /ws/print/test`). Settings: `getPrintBridgeTokenHash/setPrintBridgeTokenHash` + `POST /api/settings/generate-print-token` (crypto.randomBytes(32) + argon2id hash). `@fastify/websocket` v11 + `@types/ws` añadidos. Print-bridge: `ws-client.ts` (exponential backoff 1s→30s×2), `printer.ts` (ESC/POS para Epson TM-T20/T88: CP858, COLS=48, stub no-op cuando PRINTER_PATH vacío), `index.ts`. Frontend: `features/print/api.ts`, `AppLayout` con dot verde/gris tokenSet-only, `SettingsPage` con sección bridge (URL, generar/rotar token, copy-once, test print), `POSPage` con botón Printer en SaleRow. `/grill-me`: 1 hallazgo corregido — inicialización tokenSetFlag en nivel de módulo movida dentro de la función plugin (ejecuta después de runMigrations). tsc --noEmit limpio en todos los workspaces. |
+| 2026-06-12 | Fase 12 (revisión) | **Print-bridge reemplazado por impresión vía navegador.** El WebSocket bridge resultó demasiado frágil para un solo usuario. Frontend: `window.print()` con overlay React Portal + `@page { size: 80mm auto }` inyectado dinámicamente; body class `print-sale` distingue tickets 80mm (POS) de cotizaciones A4. `SalePrintView` en POSPage, `QuotePrintView` en QuotesPage, ticket de prueba en SettingsPage. Rebrand UI SIPNATO → Dosuxsoft. DEPLOY.md §10 reescrito a instrucciones de impresora predeterminada. |
+| 2026-06-12 | Fase 14 | **Módulo Apartados (layaway).** Shared: `schemas/apartado.ts` (createApartadoSchema con depósito inicial, addApartadoPaymentSchema, Apartado/ApartadoWithPayments/ApartadoList). DB: tablas `apartados` + `apartado_payments` (migración 0003), contador `apartado`. Backend: `modules/apartados/` — repository (consecutivo transaccional, paidAmount vía subquery SUM, auto-completado al alcanzar total, audit_log en crear/abonar/cancelar, soft-delete), service (valida estado activo), 5 rutas REST en `/api/apartados`. Errores `ApartadoNoEncontrado` + `ApartadoNoActivo`. Frontend: `ApartadosPage.tsx` (tabs por estado, búsqueda, barra de progreso, modal de creación, abono inline, cancelación con confirmación), ruta `/apartados`, ítem de sidebar (`Package`). Logo/favicon actualizado a `logo.jpg` (monograma DS). tsc --noEmit limpio en los 3 workspaces. |
+| 2026-06-12 | Limpieza | **Eliminado todo el print-bridge huérfano** tras migrar a browser-print: `apps/print-bridge/` (app completa), `apps/server/src/modules/print/`, `apps/web/src/features/print/`, `packages/shared/src/schemas/print.ts`, tabla `print_jobs` (migración 0004 DROP), token del bridge en Settings (`generatePrintToken`, `get/setPrintBridgeTokenHash`, ruta `/generate-print-token`), plugin `@fastify/websocket` + `@types/ws`, bloque `/ws/*` en Caddyfile + `wss://` en CSP. Docs sincronizados (README, ROADMAP, CLAUDE, DEPLOY, .env.example). tsc limpio + 8 tests pasan. |

@@ -1,7 +1,6 @@
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
-import websocket from '@fastify/websocket';
 import Fastify from 'fastify';
 import { config } from './config.js';
 import { sqlite } from './db/client.js';
@@ -20,7 +19,7 @@ import quotesRoutes from './modules/quotes/routes.js';
 import settingsRoutes from './modules/settings/routes.js';
 import reportsRoutes from './modules/reports/routes.js';
 import dashboardRoutes from './modules/dashboard/routes.js';
-import printRoutes from './modules/print/routes.js';
+import apartadosRoutes from './modules/apartados/routes.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -45,8 +44,6 @@ export async function buildApp() {
     // Per-route overrides are set in route config.rateLimit
   });
 
-  await app.register(websocket);
-
   // ── Global security headers ────────────────────────────────────────────────
   registerSecurityHeaders(app);
 
@@ -67,7 +64,7 @@ export async function buildApp() {
   await app.register(settingsRoutes, { prefix: '/api/settings' });
   await app.register(reportsRoutes, { prefix: '/api/reports' });
   await app.register(dashboardRoutes, { prefix: '/api/dashboard' });
-  await app.register(printRoutes, { prefix: '/ws' });
+  await app.register(apartadosRoutes, { prefix: '/api/apartados' });
 
   // Health check — no auth, no rate limit (excluded via global 200/min default)
   app.get('/health', async () => {

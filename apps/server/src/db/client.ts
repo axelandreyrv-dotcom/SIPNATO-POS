@@ -31,6 +31,7 @@ export async function bootstrapDb(): Promise<void> {
     { type: 'sale', currentValue: 0 },
     { type: 'boleta', currentValue: 0 },
     { type: 'quote', currentValue: 0 },
+    { type: 'apartado', currentValue: 0 },
   ]).onConflictDoNothing();
 
   await db.insert(settings).values([

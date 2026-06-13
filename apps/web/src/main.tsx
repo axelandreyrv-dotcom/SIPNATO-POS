@@ -19,6 +19,7 @@ import { Route as nuevaBoletaRoute } from './routes/_auth/nueva-boleta';
 import { Route as posRoute } from './routes/_auth/pos';
 import { Route as reportesRoute } from './routes/_auth/reportes';
 import { Route as settingsRoute } from './routes/_auth/settings';
+import { Route as apartadosRoute } from './routes/_auth/apartados';
 import { Route as notFoundRoute } from './routes/_auth/$';
 import { Route as loginRoute } from './routes/login';
 import { Route as setupRoute } from './routes/setup';
@@ -41,6 +42,7 @@ const routeTree = rootRoute.addChildren([
     nuevaBoletaRoute,
     posRoute,
     reportesRoute,
+    apartadosRoute,
     settingsRoute,
     notFoundRoute,
   ]),
