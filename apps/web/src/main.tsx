@@ -20,6 +20,8 @@ import { Route as posRoute } from './routes/_auth/pos';
 import { Route as reportesRoute } from './routes/_auth/reportes';
 import { Route as settingsRoute } from './routes/_auth/settings';
 import { Route as apartadosRoute } from './routes/_auth/apartados';
+import { Route as facturasRoute } from './routes/_auth/facturas';
+import { Route as nuevaFacturaRoute } from './routes/_auth/nueva-factura';
 import { Route as notFoundRoute } from './routes/_auth/$';
 import { Route as loginRoute } from './routes/login';
 import { Route as setupRoute } from './routes/setup';
@@ -43,6 +45,8 @@ const routeTree = rootRoute.addChildren([
     posRoute,
     reportesRoute,
     apartadosRoute,
+    facturasRoute,
+    nuevaFacturaRoute,
     settingsRoute,
     notFoundRoute,
   ]),

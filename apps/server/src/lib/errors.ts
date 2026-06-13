@@ -98,3 +98,15 @@ export class ApartadoNoActivo extends AppError {
     super('APARTADO_NO_ACTIVO', 'Este apartado no está activo', 400);
   }
 }
+
+export class FacturaNoEncontrada extends AppError {
+  constructor() {
+    super('FACTURA_NO_ENCONTRADA', 'Factura no encontrada', 404);
+  }
+}
+
+export class FacturaYaAnulada extends AppError {
+  constructor() {
+    super('FACTURA_YA_ANULADA', 'Esta factura ya está anulada', 400);
+  }
+}

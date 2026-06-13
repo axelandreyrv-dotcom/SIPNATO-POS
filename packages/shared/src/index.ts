@@ -11,3 +11,4 @@ export * from './schemas/settings.js';
 export * from './schemas/report.js';
 export * from './schemas/dashboard.js';
 export * from './schemas/apartado.js';
+export * from './schemas/factura.js';

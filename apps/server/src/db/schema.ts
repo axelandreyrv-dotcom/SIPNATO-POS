@@ -246,10 +246,56 @@ export const apartadoPayments = sqliteTable(
   }),
 );
 
+// ─── facturas ─────────────────────────────────────────────────────────────────
+export const facturas = sqliteTable(
+  'facturas',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    consecutive: integer('consecutive').notNull(),
+    date: text('date').notNull(),
+    clientName: text('client_name').notNull(),
+    clientCedula: text('client_cedula'),
+    ivaPercent: integer('iva_percent').notNull().default(0),
+    subtotal: integer('subtotal').notNull().default(0),
+    ivaAmount: integer('iva_amount').notNull().default(0),
+    total: integer('total').notNull().default(0),
+    status: text('status', { enum: ['activa', 'anulada'] }).notNull().default('activa'),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => ({
+    consecutiveIdx: index('facturas_consecutive_idx').on(t.consecutive),
+    statusIdx: index('facturas_status_idx').on(t.status),
+  }),
+);
+
+// ─── factura_items ────────────────────────────────────────────────────────────
+export const facturaItems = sqliteTable(
+  'factura_items',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    facturaId: integer('factura_id')
+      .notNull()
+      .references(() => facturas.id),
+    quantity: integer('quantity').notNull().default(1),
+    description: text('description').notNull(),
+    unitPrice: integer('unit_price').notNull().default(0),
+    total: integer('total').notNull().default(0),
+    sortOrder: integer('sort_order').notNull().default(0),
+  },
+  (t) => ({
+    facturaIdx: index('factura_items_factura_idx').on(t.facturaId),
+  }),
+);
+
 // ─── counters ─────────────────────────────────────────────────────────────────
 // Single row per document type — incremented inside a transaction.
 export const counters = sqliteTable('counters', {
-  type: text('type', { enum: ['sale', 'boleta', 'quote', 'apartado'] }).primaryKey(),
+  type: text('type', { enum: ['sale', 'boleta', 'quote', 'apartado', 'factura'] }).primaryKey(),
   currentValue: integer('current_value').notNull().default(0),
 });
 
