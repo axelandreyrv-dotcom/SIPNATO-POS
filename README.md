@@ -32,7 +32,7 @@ Sistema de punto de venta para taller de reparación de celulares y venta de acc
 
 | Paquete | Stack |
 |---|---|
-| `apps/web` | React 19, Vite 6, Tailwind CSS v4, TanStack Router, TanStack Query, Recharts |
+| `apps/web` | React 19, Vite 6, Tailwind CSS v4, TanStack Router, TanStack Query, Recharts, Framer Motion, @paper-design/shaders-react |
 | `apps/server` | Fastify 5, better-sqlite3, Drizzle ORM, argon2id, node-cron |
 | `packages/shared` | Schemas Zod compartidos, formateo de moneda ₡ |
 

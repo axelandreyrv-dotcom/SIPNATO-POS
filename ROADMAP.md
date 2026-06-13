@@ -2,7 +2,7 @@
 
 > Desarrollo por fases pequeñas y lógicas. Cada fase es atómica: una sola responsabilidad, verificable antes de avanzar.
 > Al completar cada fase: marcar `[x]`, anotar la fecha y actualizar `CLAUDE.md`.
-> Última actualización: 2026-06-12 · Todas las fases ✅ + módulo Apartados · impresión migrada a navegador (print-bridge eliminado)
+> Última actualización: 2026-06-13 · Todas las fases ✅ + polish post-lanzamiento (logo, animaciones, personaje login)
 
 ---
 
@@ -26,6 +26,7 @@
 | 12 | Impresión de Tickets (vía navegador) | ✅ COMPLETADA 2026-06-12 — reemplazó al print-bridge WebSocket |
 | 13 | Despliegue (VPS + Docker + Caddy) | ✅ COMPLETADA 2026-06-11 |
 | 14 | Módulo de Apartados (layaway) | ✅ COMPLETADA 2026-06-12 |
+| — | Polish post-lanzamiento (UI/branding) | ✅ 2026-06-13 |
 
 ---
 
@@ -495,6 +496,17 @@ SIPNATO accesible desde internet por subdominio HTTPS. Login funciona. Una venta
 
 ### Criterio de completitud
 Crear un apartado con depósito, registrar abonos sucesivos y ver el estado pasar a "completado" automáticamente al cubrir el total.
+
+---
+
+## Polish post-lanzamiento — 2026-06-13
+
+Mejoras de UI/branding aplicadas tras el go-live inicial, sin tocar lógica de negocio.
+
+- **Logo transparente:** `logo.png` generado desde el JPG original usando conversión luminancia→alpha (PowerShell + System.Drawing). Eliminado `mix-blend-screen`. Favicon simplificado a un único `<link type="image/png">`. `apple-touch-icon` añadido para previews iOS correctos.
+- **Banner eliminado:** "No hay caja abierta" quitado del `AppLayout` permanentemente. El estado de caja es visible en el Dashboard; el banner interrumpía el flujo.
+- **Animación en botón "Ingresar":** letter-swap al hover — las 8 letras de "Ingresar" salen hacia abajo y una copia entra desde arriba, con delay escalonado por caracter (0.20s → 0.76s). Sin animación en estado `disabled`.
+- **Personaje animado en panel de login (desktop):** blob mesh-gradient azul con forma orgánica, dos ojos que siguen el cursor del mouse con spring physics, parpadeo periódico cada ~3 segundos, y flotación vertical suave en loop. Usa `@paper-design/shaders-react` + `framer-motion`. Fix de incompatibilidad React 19 / framer-motion con `resolve.dedupe` + `optimizeDeps.include` en `vite.config.ts`.
 
 ---
 

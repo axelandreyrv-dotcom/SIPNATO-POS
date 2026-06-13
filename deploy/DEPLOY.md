@@ -177,7 +177,7 @@ En el módulo POS, cada fila de venta tiene el ícono de impresora. Al hacer cli
 
 ---
 
-## 11. Recuperación de emergencia (break-glass)
+## 12. Recuperación de emergencia (break-glass)
 
 Si perdiste acceso y no podés ingresar con contraseña ni recovery code:
 
@@ -193,7 +193,7 @@ El script imprime una contraseña temporal y un nuevo recovery code. Cambiar la 
 
 ---
 
-## 11. Checklist de seguridad post-despliegue
+## 13. Checklist de seguridad post-despliegue
 
 - [ ] `NODE_ENV=production` activo (verificar en `/api/health`)
 - [ ] HTTPS forzado — Caddy redirige HTTP → HTTPS automáticamente
