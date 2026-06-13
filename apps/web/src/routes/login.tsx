@@ -195,7 +195,7 @@ function LoginPage() {
         .lb-mother1 { display: flex; overflow: hidden; }
         .lb-mother2 { display: flex; position: absolute; overflow: hidden; }
 
-        .lb-mother2 span { transform: translateY(-1.2em); }
+        .lb-mother2 span { transform: translateY(-3em); }
 
         .login-submit:not(:disabled):hover .lb-mother1 { position: absolute; }
         .login-submit:not(:disabled):hover .lb-mother1 span { transform: translateY(1.2em); }
