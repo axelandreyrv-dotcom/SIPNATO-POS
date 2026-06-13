@@ -138,10 +138,10 @@ function LoginPage() {
             type="submit"
             disabled={loading}
             className={[
-              'flex h-10 w-full items-center justify-center gap-2 rounded-lg',
+              'login-submit',
+              'relative flex h-10 w-full items-center justify-center gap-2 rounded-lg overflow-hidden',
               'bg-brand-blue text-sm font-medium text-white',
-              'transition-all duration-150',
-              'hover:brightness-110 active:scale-[0.98] active:brightness-95',
+              'active:scale-[0.98] active:brightness-95',
               'disabled:cursor-not-allowed disabled:opacity-60',
             ].join(' ')}
           >
@@ -151,7 +151,18 @@ function LoginPage() {
                 Verificando...
               </>
             ) : (
-              'Ingresar'
+              <>
+                <span className="lb-mother1">
+                  {'Ingresar'.split('').map((char, i) => (
+                    <span key={i}>{char}</span>
+                  ))}
+                </span>
+                <span className="lb-mother2" aria-hidden>
+                  {'Ingresar'.split('').map((char, i) => (
+                    <span key={i}>{char}</span>
+                  ))}
+                </span>
+              </>
             )}
           </button>
         </form>
@@ -179,6 +190,25 @@ function LoginPage() {
           from { opacity: 0; transform: translateY(-4px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+
+        /* Letter-swap animation on Ingresar button */
+        .lb-mother1 { display: flex; overflow: hidden; }
+        .lb-mother2 { display: flex; position: absolute; overflow: hidden; }
+
+        .lb-mother2 span { transform: translateY(-1.2em); }
+
+        .login-submit:not(:disabled):hover .lb-mother1 { position: absolute; }
+        .login-submit:not(:disabled):hover .lb-mother1 span { transform: translateY(1.2em); }
+        .login-submit:not(:disabled):hover .lb-mother2 span { transform: translateY(0); }
+
+        .lb-mother1 span:nth-child(1), .lb-mother2 span:nth-child(1) { transition: transform 0.20s; }
+        .lb-mother1 span:nth-child(2), .lb-mother2 span:nth-child(2) { transition: transform 0.28s; }
+        .lb-mother1 span:nth-child(3), .lb-mother2 span:nth-child(3) { transition: transform 0.36s; }
+        .lb-mother1 span:nth-child(4), .lb-mother2 span:nth-child(4) { transition: transform 0.44s; }
+        .lb-mother1 span:nth-child(5), .lb-mother2 span:nth-child(5) { transition: transform 0.52s; }
+        .lb-mother1 span:nth-child(6), .lb-mother2 span:nth-child(6) { transition: transform 0.60s; }
+        .lb-mother1 span:nth-child(7), .lb-mother2 span:nth-child(7) { transition: transform 0.68s; }
+        .lb-mother1 span:nth-child(8), .lb-mother2 span:nth-child(8) { transition: transform 0.76s; }
       `}</style>
     </AuthShell>
   );
