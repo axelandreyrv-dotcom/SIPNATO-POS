@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDown, ChevronUp, Plus, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Printer, Search } from 'lucide-react';
 import type { BoletaWithCustomer } from '@sipnato/shared';
 import { fmtDateTime } from '../../lib/format';
 import { boletasApi } from './api';
+import { useBoletaPrint } from './BoletaPrintView';
 
-function BoletaRow({ boleta }: { boleta: BoletaWithCustomer }) {
+function BoletaRow({ boleta, onPrint }: { boleta: BoletaWithCustomer; onPrint: (b: BoletaWithCustomer) => void }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -62,6 +63,16 @@ function BoletaRow({ boleta }: { boleta: BoletaWithCustomer }) {
               <dd className="whitespace-pre-wrap text-sm text-text-primary">{boleta.description}</dd>
             </div>
           </dl>
+          <div className="mt-4 border-t border-border/60 pt-3">
+            <button
+              type="button"
+              onClick={() => onPrint(boleta)}
+              className="flex items-center gap-1.5 text-sm text-brand-blue hover:text-brand-blue/80"
+            >
+              <Printer size={15} strokeWidth={1.5} aria-hidden />
+              Imprimir boleta
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -71,6 +82,7 @@ function BoletaRow({ boleta }: { boleta: BoletaWithCustomer }) {
 export function BoletasPage() {
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
+  const { printBoleta, printPortal } = useBoletaPrint();
 
   const { data, isLoading } = useQuery({
     queryKey: ['boletas', 'list', search],
@@ -85,6 +97,7 @@ export function BoletasPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
+      {printPortal}
       {/* Header */}
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
@@ -159,7 +172,7 @@ export function BoletasPage() {
           )}
           <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
             {data.boletas.map((b) => (
-              <BoletaRow key={b.id} boleta={b} />
+              <BoletaRow key={b.id} boleta={b} onPrint={printBoleta} />
             ))}
           </div>
         </div>

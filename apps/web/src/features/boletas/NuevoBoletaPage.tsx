@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { AlertCircle, CheckCircle, ChevronLeft, Loader2 } from 'lucide-react';
+import { AlertCircle, CheckCircle, ChevronLeft, Loader2, Printer } from 'lucide-react';
 import { validateImei } from '@sipnato/shared';
 import { customersApi } from '../customers/api';
 import { boletasApi } from './api';
+import { useBoletaPrint } from './BoletaPrintView';
 
 function Field({
   id,
@@ -50,6 +51,8 @@ function Input({
 
 export function NuevoBoletaPage() {
   const navigate = useNavigate();
+  const { printBoleta, printPortal } = useBoletaPrint();
+  const [savedConsecutive, setSavedConsecutive] = useState<number | null>(null);
 
   // Customer fields
   const [phone, setPhone] = useState('');
@@ -112,31 +115,46 @@ export function NuevoBoletaPage() {
     !imeiError &&
     !phoneError;
 
-  const createMutation = useMutation({
-    mutationFn: boletasApi.create,
-    onSuccess: () => {
-      void navigate({ to: '/boletas' });
-    },
-  });
+  const createMutation = useMutation({ mutationFn: boletasApi.create });
 
-  function handleSubmit(e: React.FormEvent) {
+  function resetForm() {
+    setPhone(''); setName(''); setEmail(''); setIdNumber('');
+    setDeviceModel(''); setImei(''); setUnlockPassword(''); setDescription('');
+    setImeiError(''); setPhoneError('');
+  }
+
+  function handleSubmit(e: React.FormEvent, andPrint: boolean) {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || createMutation.isPending) return;
 
-    createMutation.mutate({
-      customerPhone: phone,
-      customerName: name.trim(),
-      customerEmail: email.trim() || undefined,
-      customerIdNumber: idNumber.trim() || undefined,
-      deviceModel: deviceModel.trim(),
-      imei: imei.trim() || undefined,
-      unlockPassword: unlockPassword.trim() || undefined,
-      description: description.trim(),
-    });
+    createMutation.mutate(
+      {
+        customerPhone: phone,
+        customerName: name.trim(),
+        customerEmail: email.trim() || undefined,
+        customerIdNumber: idNumber.trim() || undefined,
+        deviceModel: deviceModel.trim(),
+        imei: imei.trim() || undefined,
+        unlockPassword: unlockPassword.trim() || undefined,
+        description: description.trim(),
+      },
+      {
+        onSuccess: (boleta) => {
+          if (andPrint) {
+            printBoleta(boleta);
+            setSavedConsecutive(boleta.consecutive);
+            resetForm();
+          } else {
+            void navigate({ to: '/boletas' });
+          }
+        },
+      },
+    );
   }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-8">
+      {printPortal}
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
         <button
@@ -153,7 +171,22 @@ export function NuevoBoletaPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      {savedConsecutive !== null && (
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-brand-success/30 bg-brand-success/10 px-4 py-3 text-sm">
+          <span className="text-brand-success">
+            Boleta #{savedConsecutive} guardada e impresa. Formulario listo para la siguiente.
+          </span>
+          <button
+            type="button"
+            onClick={() => void navigate({ to: '/boletas' })}
+            className="ml-3 shrink-0 text-brand-blue hover:underline"
+          >
+            Ver boletas →
+          </button>
+        </div>
+      )}
+
+      <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-8">
         {/* Customer section */}
         <section>
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-text-muted">
@@ -318,13 +351,22 @@ export function NuevoBoletaPage() {
           <button
             type="submit"
             disabled={!canSubmit || createMutation.isPending}
-            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-blue text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-success text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createMutation.isPending ? (
               <><Loader2 size={15} strokeWidth={1.5} className="animate-spin" aria-hidden /> Guardando...</>
             ) : (
-              'Crear boleta'
+              'Solo guardar'
             )}
+          </button>
+          <button
+            type="button"
+            disabled={!canSubmit || createMutation.isPending}
+            onClick={(e) => handleSubmit(e as unknown as React.FormEvent, true)}
+            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-blue text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Printer size={15} strokeWidth={1.5} aria-hidden />
+            Guardar e imprimir
           </button>
         </div>
 
