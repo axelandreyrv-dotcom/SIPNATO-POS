@@ -27,6 +27,7 @@
 | 13 | Despliegue (VPS + Docker + Caddy) | ✅ COMPLETADA 2026-06-11 |
 | 14 | Módulo de Apartados (layaway) | ✅ COMPLETADA 2026-06-12 |
 | — | Polish post-lanzamiento (UI/branding) | ✅ 2026-06-13 |
+| 15 | Módulo de Ventas a Crédito | ✅ COMPLETADA 2026-06-15 |
 
 ---
 

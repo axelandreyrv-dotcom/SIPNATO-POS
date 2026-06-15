@@ -225,7 +225,7 @@ export function cancelCreditoRow(
   const now = new Date().toISOString();
   db.transaction((tx) => {
     tx.update(creditos)
-      .set({ status: 'cancelado', deletedAt: now, updatedAt: now })
+      .set({ status: 'cancelado', updatedAt: now })
       .where(eq(creditos.id, id))
       .run();
 

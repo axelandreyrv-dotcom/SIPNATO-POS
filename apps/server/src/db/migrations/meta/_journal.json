@@ -43,6 +43,13 @@
       "when": 1781374140053,
       "tag": "0005_loud_bruce_banner",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1781633340053,
+      "tag": "0006_creditos",
+      "breakpoints": true
     }
   ]
 }
