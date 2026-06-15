@@ -2,7 +2,8 @@
 // Este es el ÚNICO archivo que formatea montos en ₡.
 
 export function formatColones(amount: number): string {
-  return '₡' + Math.floor(amount).toLocaleString('es-CR');
+  const n = Math.floor(amount);
+  return '₡' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 export function parseColones(raw: string): number {
