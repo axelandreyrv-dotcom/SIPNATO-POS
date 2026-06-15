@@ -5,6 +5,7 @@ export function getSettings(): Settings {
   const raw = getAllSettings();
   return {
     shop_name: raw.shop_name,
+    shop_address: raw.shop_address,
     shop_phone: raw.shop_phone,
     shop_mobile: raw.shop_mobile,
     shop_id_number: raw.shop_id_number,
@@ -22,6 +23,7 @@ export function updateSettings(
 ): Settings {
   const entries: [SettingKey, string][] = [
     ['shop_name', data.shop_name],
+    ['shop_address', data.shop_address],
     ['shop_phone', data.shop_phone],
     ['shop_mobile', data.shop_mobile],
     ['shop_id_number', data.shop_id_number],

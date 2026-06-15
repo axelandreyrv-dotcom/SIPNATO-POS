@@ -66,7 +66,10 @@ function PrintSection({ settings }: { settings: Settings | null }) {
   }, [testPrint]);
 
   const shopName = settings?.shop_name?.trim() || 'Dosuxsoft';
+  const shopAddress = settings?.shop_address?.trim();
   const shopPhone = settings?.shop_phone?.trim();
+  const shopMobile = settings?.shop_mobile?.trim();
+  const shopId = settings?.shop_id_number?.trim();
   const footer = settings?.receipt_footer?.trim();
   const now = new Date();
   const date = now.toLocaleDateString('es-CR', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'America/Costa_Rica' });
@@ -97,28 +100,31 @@ function PrintSection({ settings }: { settings: Settings | null }) {
 
       {testPrint && createPortal(
         <div className="sale-print-overlay" style={{ fontFamily: '"Courier New", Courier, monospace', color: '#000' }}>
-          <div style={{ width: '100%', maxWidth: 270, margin: '0 auto', padding: '6px 2px', fontSize: 11, lineHeight: 1.45 }}>
+          <div style={{ width: '100%', maxWidth: 290, margin: '0 auto', padding: '4px 0', fontSize: 15, lineHeight: 1.55 }}>
+            <div style={{ textAlign: 'center', marginBottom: 8 }}>
+              <div style={{ fontSize: 20, fontWeight: 700 }}>{shopName}</div>
+              {shopId && <div style={{ fontSize: 13 }}>Cédula: {shopId}</div>}
+              {shopAddress && <div style={{ fontSize: 13 }}>{shopAddress}</div>}
+              {shopPhone && <div style={{ fontSize: 13 }}>Tel: {shopPhone}</div>}
+              {shopMobile && <div style={{ fontSize: 13 }}>Cel: {shopMobile}</div>}
+            </div>
+            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
             <div style={{ textAlign: 'center', marginBottom: 6 }}>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>{shopName}</div>
-              {shopPhone && <div style={{ fontSize: 10 }}>Tel: {shopPhone}</div>}
+              <div style={{ fontSize: 15, fontWeight: 600 }}>*** TICKET DE PRUEBA ***</div>
+              <div style={{ fontSize: 14 }}>{date} — {time}</div>
             </div>
-            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
-            <div style={{ textAlign: 'center', marginBottom: 5 }}>
-              <div style={{ fontSize: 11, fontWeight: 600 }}>*** TICKET DE PRUEBA ***</div>
-              <div style={{ fontSize: 10 }}>{date} — {time}</div>
-            </div>
-            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
-            <div style={{ fontSize: 10, marginBottom: 5 }}>Reparación de pantalla Samsung</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 1 }}>
+            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
+            <div style={{ fontSize: 14, marginBottom: 5 }}>Reparación de pantalla Samsung</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 1 }}>
               <span>Método:</span><span>Efectivo</span>
             </div>
-            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
+            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <span style={{ fontSize: 11, fontWeight: 700 }}>TOTAL</span>
-              <span style={{ fontSize: 17, fontWeight: 700 }}>₡25 000</span>
+              <span style={{ fontSize: 17, fontWeight: 700 }}>TOTAL</span>
+              <span style={{ fontSize: 26, fontWeight: 700 }}>₡25 000</span>
             </div>
-            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
-            <div style={{ textAlign: 'center', fontSize: 10 }}>
+            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
+            <div style={{ textAlign: 'center', fontSize: 13 }}>
               {footer
                 ? <span style={{ whiteSpace: 'pre-wrap' }}>{footer}</span>
                 : <span>Gracias por su compra</span>
@@ -241,6 +247,18 @@ export function SettingsPage() {
                 onChange={(e) => patch({ shop_name: e.target.value })}
                 className={inputClass}
                 placeholder="Taller de Reparación Dosuxsoft"
+              />
+            </div>
+            <div>
+              <FieldLabel htmlFor="shop_address">Dirección</FieldLabel>
+              <input
+                id="shop_address"
+                type="text"
+                maxLength={200}
+                value={current.shop_address}
+                onChange={(e) => patch({ shop_address: e.target.value })}
+                className={inputClass}
+                placeholder="San José, Costa Rica"
               />
             </div>
             <div>

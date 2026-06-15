@@ -13,33 +13,37 @@ function BoletaPrintView({
   settings: Settings | undefined;
 }) {
   const shopName = settings?.shop_name?.trim() || 'Dosuxsoft';
+  const shopAddress = settings?.shop_address?.trim();
   const shopPhone = settings?.shop_phone?.trim();
+  const shopMobile = settings?.shop_mobile?.trim();
   const shopId = settings?.shop_id_number?.trim();
-  const footer = settings?.receipt_footer?.trim();
+  const footer = settings?.boleta_footer?.trim() || settings?.receipt_footer?.trim();
 
   return (
     <div className="sale-print-overlay" style={{ fontFamily: '"Courier New", Courier, monospace', color: '#000' }}>
-      <div style={{ width: '100%', maxWidth: 280, margin: '0 auto', padding: '4px 0', fontSize: 13, lineHeight: 1.5 }}>
+      <div style={{ width: '100%', maxWidth: 290, margin: '0 auto', padding: '4px 0', fontSize: 15, lineHeight: 1.55 }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 8 }}>
-          <div style={{ fontSize: 17, fontWeight: 700 }}>{shopName}</div>
-          {shopId && <div style={{ fontSize: 12 }}>Cédula: {shopId}</div>}
-          {shopPhone && <div style={{ fontSize: 12 }}>Tel: {shopPhone}</div>}
+          <div style={{ fontSize: 20, fontWeight: 700 }}>{shopName}</div>
+          {shopId && <div style={{ fontSize: 13 }}>Cédula: {shopId}</div>}
+          {shopAddress && <div style={{ fontSize: 13 }}>{shopAddress}</div>}
+          {shopPhone && <div style={{ fontSize: 13 }}>Tel: {shopPhone}</div>}
+          {shopMobile && <div style={{ fontSize: 13 }}>Cel: {shopMobile}</div>}
         </div>
 
         <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
 
         {/* Title */}
         <div style={{ textAlign: 'center', marginBottom: 6 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '0.06em' }}>BOLETA DE INGRESO</div>
-          <div style={{ fontSize: 13 }}>#{String(boleta.consecutive).padStart(4, '0')}</div>
-          <div style={{ fontSize: 12 }}>{fmtDateTime(boleta.createdAt)}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '0.06em' }}>BOLETA DE INGRESO</div>
+          <div style={{ fontSize: 15 }}>#{String(boleta.consecutive).padStart(4, '0')}</div>
+          <div style={{ fontSize: 14 }}>{fmtDateTime(boleta.createdAt)}</div>
         </div>
 
         <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
 
         {/* Customer */}
-        <div style={{ fontSize: 12, marginBottom: 6 }}>
+        <div style={{ fontSize: 14, marginBottom: 6 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
             <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>Cliente:</span>
             <span style={{ textAlign: 'right', wordBreak: 'break-word' }}>{boleta.customerName}</span>
@@ -53,7 +57,7 @@ function BoletaPrintView({
         <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
 
         {/* Device */}
-        <div style={{ fontSize: 12, marginBottom: 6 }}>
+        <div style={{ fontSize: 14, marginBottom: 6 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
             <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>Equipo:</span>
             <span style={{ textAlign: 'right', wordBreak: 'break-word' }}>{boleta.deviceModel}</span>
@@ -61,7 +65,7 @@ function BoletaPrintView({
           {boleta.imei && (
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
               <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>IMEI:</span>
-              <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{boleta.imei}</span>
+              <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{boleta.imei}</span>
             </div>
           )}
           {boleta.unlockPassword && (
@@ -75,7 +79,7 @@ function BoletaPrintView({
         <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
 
         {/* Description */}
-        <div style={{ fontSize: 12, marginBottom: 6 }}>
+        <div style={{ fontSize: 14, marginBottom: 6 }}>
           <div style={{ fontWeight: 600, marginBottom: 3 }}>DESCRIPCIÓN:</div>
           <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{boleta.description}</div>
         </div>
@@ -83,15 +87,15 @@ function BoletaPrintView({
         <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
 
         {/* Signature */}
-        <div style={{ fontSize: 11, marginBottom: 8 }}>
-          <div style={{ marginBottom: 16 }}>Firma del cliente: _________________</div>
+        <div style={{ fontSize: 13, marginBottom: 8 }}>
+          <div style={{ marginBottom: 18 }}>Firma del cliente: _________________</div>
           <div>Fecha de entrega: _____ /_____ /_____</div>
         </div>
 
         <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', fontSize: 12 }}>
+        <div style={{ textAlign: 'center', fontSize: 13 }}>
           {footer
             ? <span style={{ whiteSpace: 'pre-wrap' }}>{footer}</span>
             : <span>Gracias por su preferencia</span>}
