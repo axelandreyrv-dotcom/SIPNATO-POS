@@ -292,10 +292,58 @@ export const facturaItems = sqliteTable(
   }),
 );
 
+// ─── creditos ─────────────────────────────────────────────────────────────────
+export const creditos = sqliteTable(
+  'creditos',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    consecutive: integer('consecutive').notNull(),
+    debtorName: text('debtor_name').notNull(),
+    debtorPhone: text('debtor_phone').notNull(),
+    description: text('description').notNull(),
+    totalAmount: integer('total_amount').notNull(),
+    dueDate: text('due_date').notNull(),
+    status: text('status', { enum: ['activo', 'pagado', 'cancelado'] })
+      .notNull()
+      .default('activo'),
+    deletedAt: text('deleted_at'),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => ({
+    phoneIdx: index('creditos_phone_idx').on(t.debtorPhone),
+    statusIdx: index('creditos_status_idx').on(t.status),
+    dueDateIdx: index('creditos_due_date_idx').on(t.dueDate),
+  }),
+);
+
+// ─── credito_payments ─────────────────────────────────────────────────────────
+export const creditoPayments = sqliteTable(
+  'credito_payments',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    creditoId: integer('credito_id')
+      .notNull()
+      .references(() => creditos.id),
+    amount: integer('amount').notNull(),
+    note: text('note'),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => ({
+    creditoIdx: index('credito_payments_credito_idx').on(t.creditoId),
+  }),
+);
+
 // ─── counters ─────────────────────────────────────────────────────────────────
 // Single row per document type — incremented inside a transaction.
 export const counters = sqliteTable('counters', {
-  type: text('type', { enum: ['sale', 'boleta', 'quote', 'apartado', 'factura'] }).primaryKey(),
+  type: text('type', { enum: ['sale', 'boleta', 'quote', 'apartado', 'factura', 'credito'] }).primaryKey(),
   currentValue: integer('current_value').notNull().default(0),
 });
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import {
   BarChart3,
+  CreditCard,
   FileOutput,
   FileText,
   Receipt,
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
   { to: '/cotizaciones', label: 'Cotizaciones', icon: FileOutput, exact: false },
   { to: '/facturas', label: 'Facturas', icon: Receipt, exact: false },
   { to: '/apartados', label: 'Apartados', icon: Package, exact: false },
+  { to: '/creditos', label: 'Créditos', icon: CreditCard, exact: false },
   { to: '/notas', label: 'Notas', icon: NotebookPen, exact: false },
   { to: '/reportes', label: 'Reportes', icon: BarChart3, exact: false },
   { to: '/settings', label: 'Configuración', icon: Settings, exact: false },

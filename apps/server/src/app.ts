@@ -22,6 +22,7 @@ import reportsRoutes from './modules/reports/routes.js';
 import dashboardRoutes from './modules/dashboard/routes.js';
 import apartadosRoutes from './modules/apartados/routes.js';
 import facturasRoutes from './modules/facturas/routes.js';
+import creditosRoutes from './modules/creditos/routes.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -77,6 +78,7 @@ export async function buildApp() {
   await app.register(dashboardRoutes, { prefix: '/api/dashboard' });
   await app.register(apartadosRoutes, { prefix: '/api/apartados' });
   await app.register(facturasRoutes, { prefix: '/api/facturas' });
+  await app.register(creditosRoutes, { prefix: '/api/creditos' });
 
   // Health check — no auth, no rate limit (excluded via global 200/min default)
   app.get('/health', async () => {

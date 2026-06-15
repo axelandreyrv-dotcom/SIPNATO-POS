@@ -110,3 +110,21 @@ export class FacturaYaAnulada extends AppError {
     super('FACTURA_YA_ANULADA', 'Esta factura ya está anulada', 400);
   }
 }
+
+export class CreditoNoEncontrado extends AppError {
+  constructor() {
+    super('CREDITO_NO_ENCONTRADO', 'Crédito no encontrado', 404);
+  }
+}
+
+export class CreditoNoActivo extends AppError {
+  constructor() {
+    super('CREDITO_NO_ACTIVO', 'Este crédito no está activo', 400);
+  }
+}
+
+export class AbonoPagoExcede extends AppError {
+  constructor() {
+    super('ABONO_EXCEDE_TOTAL', 'El abono excede el saldo pendiente', 400);
+  }
+}

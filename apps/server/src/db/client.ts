@@ -33,6 +33,7 @@ export async function bootstrapDb(): Promise<void> {
     { type: 'quote', currentValue: 0 },
     { type: 'apartado', currentValue: 0 },
     { type: 'factura', currentValue: 0 },
+    { type: 'credito', currentValue: 0 },
   ]).onConflictDoNothing();
 
   await db.insert(settings).values([
