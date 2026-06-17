@@ -79,7 +79,7 @@ export function insertCreditoRow(
 
 export function listCreditoRows(status?: string, search?: string): Credito[] {
   const paidSubquery = db
-    .select({ creditoId: creditoPayments.creditoId, paidAmount: sql<number>`COALESCE(SUM(${creditoPayments.amount}), 0)` })
+    .select({ creditoId: creditoPayments.creditoId, paidAmount: sql<number>`COALESCE(SUM(${creditoPayments.amount}), 0)`.as('paidAmount') })
     .from(creditoPayments)
     .groupBy(creditoPayments.creditoId)
     .as('paid');
@@ -123,7 +123,7 @@ export function listCreditoRows(status?: string, search?: string): Credito[] {
 
 export function getCreditoWithPaymentsRow(id: number): CreditoWithPayments | null {
   const paidSubquery = db
-    .select({ creditoId: creditoPayments.creditoId, paidAmount: sql<number>`COALESCE(SUM(${creditoPayments.amount}), 0)` })
+    .select({ creditoId: creditoPayments.creditoId, paidAmount: sql<number>`COALESCE(SUM(${creditoPayments.amount}), 0)`.as('paidAmount') })
     .from(creditoPayments)
     .groupBy(creditoPayments.creditoId)
     .as('paid');
