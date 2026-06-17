@@ -184,7 +184,7 @@ function PinSection({
   return (
     <Section
       title="PIN de borrado"
-      description="Protege la eliminación de ventas con un PIN de 4 dígitos. Solo el dueño del local lo sabrá."
+      description="Protege la eliminación de ventas con un PIN de 4 dígitos."
     >
       <div className="flex items-center gap-2.5">
         <div
