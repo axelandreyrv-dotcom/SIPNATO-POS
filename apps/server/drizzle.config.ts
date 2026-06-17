@@ -5,6 +5,6 @@ export default defineConfig({
   schema: './src/db/schema.ts',
   out: './src/db/migrations',
   dbCredentials: {
-    url: process.env['DATABASE_PATH'] ?? './data/sipnato.db',
+    url: process.env['DATABASE_PATH'] ?? './data/dosuxsoft.db',
   },
 });
