@@ -49,8 +49,11 @@ docker compose -f deploy/docker-compose.yml logs server --tail=80
 **Diagnóstico de base de datos (migraciones aplicadas + tablas existentes):**
 
 ```bash
-docker compose -f deploy/docker-compose.yml exec server node -e "const D=require('better-sqlite3');const db=new D('/app/data/dosuxsoft.db',{readonly:true});const m=db.prepare('SELECT count(*) c, max(created_at) mx FROM __drizzle_migrations').get();console.log('migraciones:',m.c,'| maxCreatedAt:',m.mx);console.log('tablas:',db.prepare(\"SELECT name FROM sqlite_master WHERE type='table' ORDER BY name\").all().map(x=>x.name).join(', '))"
+docker compose -f deploy/docker-compose.yml exec server sh -c "cd /app/apps/server && node -e \"const D=require('better-sqlite3');const db=new D('/app/data/dosuxsoft.db',{readonly:true});const m=db.prepare('SELECT count(*) c,max(created_at) mx FROM __drizzle_migrations').get();console.log('migraciones:',m.c,'| maxCreatedAt:',m.mx);console.log('tablas:',db.prepare(\\\"SELECT name FROM sqlite_master WHERE type='table' ORDER BY name\\\").all().map(r=>r.name).join(', '))\""
 ```
+
+> **Nota:** el `cd /app/apps/server` es obligatorio — pnpm workspace instala `better-sqlite3` en
+> `/app/apps/server/node_modules`, no en `/app/node_modules`. Sin el `cd`, `require` fallará.
 
 ---
 

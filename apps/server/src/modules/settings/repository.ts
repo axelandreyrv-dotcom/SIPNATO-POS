@@ -83,3 +83,25 @@ export function getSetting(key: SettingKey): string | null {
   const row = db.select().from(settings).where(eq(settings.key, key)).limit(1).get();
   return row?.value ?? null;
 }
+
+const SALES_PIN_KEY = 'sales_delete_pin_hash';
+
+export function getSalesPinHash(): string | null {
+  const row = db.select().from(settings).where(eq(settings.key, SALES_PIN_KEY)).limit(1).get();
+  return row?.value ?? null;
+}
+
+export function setSalesPinHash(hash: string | null): void {
+  if (hash === null) {
+    db.delete(settings).where(eq(settings.key, SALES_PIN_KEY)).run();
+  } else {
+    db
+      .insert(settings)
+      .values({ key: SALES_PIN_KEY, value: hash })
+      .onConflictDoUpdate({
+        target: settings.key,
+        set: { value: hash, updatedAt: new Date().toISOString() },
+      })
+      .run();
+  }
+}

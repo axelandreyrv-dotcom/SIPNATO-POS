@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   CheckCircle,
+  KeyRound,
   Loader2,
   Printer,
   Trash2,
@@ -190,6 +191,108 @@ function ChangeCalcModal({
   );
 }
 
+// ── PIN delete modal ──────────────────────────────────────────────────────────
+function PinDeleteModal({
+  onConfirm,
+  onClose,
+  isLoading,
+  error,
+}: {
+  onConfirm: (pin: string) => void;
+  onClose: () => void;
+  isLoading: boolean;
+  error: string | null;
+}) {
+  const [pin, setPin] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' && pin.length === 4) onConfirm(pin);
+    if (e.key === 'Escape') onClose();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/40" aria-hidden />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pin-modal-title"
+        className="relative w-full sm:max-w-xs rounded-t-2xl sm:rounded-xl border border-border bg-surface-card p-6 shadow-[0_8px_32px_-4px_oklch(0%_0_0/0.18)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <KeyRound size={16} strokeWidth={1.5} className="text-brand-error" aria-hidden />
+            <h2 id="pin-modal-title" className="text-base font-semibold text-text-primary">
+              Confirmar eliminación
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
+            aria-label="Cerrar"
+          >
+            <X size={16} strokeWidth={1.5} aria-hidden />
+          </button>
+        </div>
+
+        <p className="mb-4 text-sm text-text-muted">
+          Ingresa el PIN para eliminar esta venta.
+        </p>
+
+        <div className="mb-5">
+          <label htmlFor="delete-pin" className="mb-1.5 block text-sm font-medium text-text-secondary">
+            PIN de borrado
+          </label>
+          <input
+            id="delete-pin"
+            ref={inputRef}
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            onKeyDown={handleKeyDown}
+            placeholder="••••"
+            className="h-11 w-full rounded-lg border border-border bg-surface-input px-3 text-center text-xl tracking-[0.5em] text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:tracking-normal placeholder:text-base"
+          />
+          {error && (
+            <p className="mt-1.5 text-xs text-brand-error" role="alert">{error}</p>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex flex-1 h-9 items-center justify-center rounded-lg border border-border text-sm text-text-secondary transition-colors hover:bg-surface-bg"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={pin.length !== 4 || isLoading}
+            onClick={() => onConfirm(pin)}
+            className="flex flex-1 h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-error text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isLoading && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Sale row ──────────────────────────────────────────────────────────────────
 function SaleRow({
   sale,
@@ -353,6 +456,8 @@ export function POSPage() {
   const [amountStr, setAmountStr] = useState('');
   const [method, setMethod] = useState<PaymentMethod>('efectivo');
   const [showChangeCalc, setShowChangeCalc] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [pinError, setPinError] = useState<string | null>(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
 
   const amount = Math.max(0, Math.floor(Number(amountStr) || 0));
@@ -395,10 +500,17 @@ export function POSPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => salesApi.delete(id),
+    mutationFn: ({ id, pin }: { id: number; pin?: string }) => salesApi.delete(id, pin),
     onSuccess: () => {
+      setPendingDeleteId(null);
+      setPinError(null);
       queryClient.invalidateQueries({ queryKey: ['sales', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['cash-register', 'current'] });
+    },
+    onError: (err: unknown) => {
+      if (err && typeof err === 'object' && 'code' in err && err.code === 'PIN_INVALIDO') {
+        setPinError('PIN incorrecto. Intenta de nuevo.');
+      }
     },
   });
 
@@ -430,6 +542,20 @@ export function POSPage() {
 
   function handlePrint(sale: Sale) {
     setSalePrintData(sale);
+  }
+
+  function handleDeleteRequest(id: number) {
+    if (settings?.salesDeletePinSet) {
+      setPinError(null);
+      setPendingDeleteId(id);
+    } else {
+      deleteMutation.mutate({ id });
+    }
+  }
+
+  function handlePinConfirm(pin: string) {
+    if (pendingDeleteId === null) return;
+    deleteMutation.mutate({ id: pendingDeleteId, pin });
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -617,14 +743,24 @@ export function POSPage() {
               <SaleRow
                 key={sale.id}
                 sale={sale}
-                onDelete={(id) => deleteMutation.mutate(id)}
-                isDeleting={deleteMutation.isPending && deleteMutation.variables === sale.id}
+                onDelete={handleDeleteRequest}
+                isDeleting={deleteMutation.isPending && (deleteMutation.variables as { id: number } | undefined)?.id === sale.id}
                 onPrint={handlePrint}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* PIN delete modal */}
+      {pendingDeleteId !== null && (
+        <PinDeleteModal
+          onConfirm={handlePinConfirm}
+          onClose={() => { setPendingDeleteId(null); setPinError(null); }}
+          isLoading={deleteMutation.isPending}
+          error={pinError}
+        />
+      )}
 
       {/* Change calculator modal */}
       {showChangeCalc && register && (

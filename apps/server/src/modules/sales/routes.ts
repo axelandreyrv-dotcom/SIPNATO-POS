@@ -1,7 +1,9 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { createSaleSchema } from '@sipnato/shared';
-import { AppError } from '../../lib/errors.js';
+import { AppError, PinInvalido, PinRequerido } from '../../lib/errors.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { getSalesPinSet, verifySalesPin } from '../settings/service.js';
 import { createSale, deleteSale, listSales } from './service.js';
 
 export default async function salesRoutes(app: FastifyInstance) {
@@ -32,6 +34,19 @@ export default async function salesRoutes(app: FastifyInstance) {
     const parsed = parseInt(id, 10);
     if (isNaN(parsed)) {
       return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
+    }
+
+    if (getSalesPinSet()) {
+      const bodyParsed = z.object({ pin: z.string().min(1) }).safeParse(request.body);
+      if (!bodyParsed.success) {
+        const err = new PinRequerido();
+        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+      }
+      const valid = await verifySalesPin(bodyParsed.data.pin);
+      if (!valid) {
+        const err = new PinInvalido();
+        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+      }
     }
 
     try {

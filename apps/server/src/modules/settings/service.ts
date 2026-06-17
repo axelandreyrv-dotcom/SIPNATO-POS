@@ -1,5 +1,6 @@
+import argon2 from 'argon2';
 import type { Settings } from '@sipnato/shared';
-import { getAllSettings, setAllSettings, type SettingKey } from './repository.js';
+import { getAllSettings, setAllSettings, getSalesPinHash, setSalesPinHash, type SettingKey } from './repository.js';
 
 export function getSettings(): Settings {
   const raw = getAllSettings();
@@ -41,4 +42,24 @@ export function updateSettings(
   });
 
   return data;
+}
+
+export function getSalesPinSet(): boolean {
+  return getSalesPinHash() !== null;
+}
+
+export async function setSalesPin(
+  pin: string | null,
+  meta: { ip: string | null; userAgent: string | null },
+): Promise<void> {
+  const hash = pin
+    ? await argon2.hash(pin, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 })
+    : null;
+  setSalesPinHash(hash);
+}
+
+export async function verifySalesPin(pin: string): Promise<boolean> {
+  const hash = getSalesPinHash();
+  if (hash === null) return true; // no PIN configured → always allow
+  return argon2.verify(hash, pin);
 }

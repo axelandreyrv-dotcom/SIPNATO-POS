@@ -9,9 +9,10 @@ export const salesApi = {
     });
   },
 
-  delete(id: number): Promise<{ ok: boolean }> {
+  delete(id: number, pin?: string): Promise<{ ok: boolean }> {
     return apiFetch<{ ok: boolean }>(`/api/sales/${id}`, {
       method: 'DELETE',
+      ...(pin !== undefined ? { body: JSON.stringify({ pin }) } : {}),
     });
   },
 

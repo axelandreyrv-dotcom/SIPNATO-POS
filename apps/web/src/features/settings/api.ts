@@ -8,4 +8,9 @@ export const settingsApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+  setSalesPin: (pin: string | null) =>
+    apiFetch<{ ok: boolean; pinSet: boolean }>('/api/settings/sales-pin', {
+      method: 'POST',
+      body: JSON.stringify({ pin }),
+    }),
 };

@@ -13,4 +13,16 @@ export const settingsSchema = z.object({
   auto_close_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Formato HH:MM requerido (00:00–23:59)'),
 });
 
-export type Settings = z.infer<typeof settingsSchema>;
+export type Settings = z.infer<typeof settingsSchema> & {
+  salesDeletePinSet?: boolean;
+};
+
+export const setSalesPinSchema = z.object({
+  pin: z
+    .string()
+    .length(4, 'El PIN debe tener exactamente 4 dígitos')
+    .regex(/^\d{4}$/, 'El PIN debe ser numérico')
+    .nullable(),
+});
+
+export type SetSalesPin = z.infer<typeof setSalesPinSchema>;

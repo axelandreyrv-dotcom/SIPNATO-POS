@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, Loader2, Printer } from 'lucide-react';
+import { CheckCircle, KeyRound, Loader2, Printer } from 'lucide-react';
 import type { Settings } from '@sipnato/shared';
 import { settingsApi } from './api';
 
@@ -133,6 +133,160 @@ function PrintSection({ settings }: { settings: Settings | null }) {
           </div>
         </div>,
         document.body,
+      )}
+    </Section>
+  );
+}
+
+function PinSection({
+  pinSet,
+  onSuccess,
+}: {
+  pinSet: boolean;
+  onSuccess: () => void;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: (p: string | null) => settingsApi.setSalesPin(p),
+    onSuccess: () => {
+      setShowForm(false);
+      setPin('');
+      setConfirmPin('');
+      setFormError(null);
+      onSuccess();
+    },
+    onError: () => {
+      setFormError('No se pudo guardar el PIN. Intenta de nuevo.');
+    },
+  });
+
+  function handleSave() {
+    if (pin.length !== 4) { setFormError('El PIN debe tener 4 dígitos.'); return; }
+    if (pin !== confirmPin) { setFormError('Los PINes no coinciden.'); return; }
+    mutation.mutate(pin);
+  }
+
+  function handleClear() {
+    mutation.mutate(null);
+  }
+
+  const pinInputClass = [
+    'h-11 w-full rounded-lg border px-3 text-center text-xl tracking-[0.5em]',
+    'bg-surface-input text-text-primary outline-none transition-all duration-150',
+    'border-border focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20',
+    'placeholder:tracking-normal placeholder:text-sm placeholder:text-text-muted',
+  ].join(' ');
+
+  return (
+    <Section
+      title="PIN de borrado"
+      description="Protege la eliminación de ventas con un PIN de 4 dígitos. Solo el dueño del local lo sabrá."
+    >
+      <div className="flex items-center gap-2.5">
+        <div
+          className={['h-2 w-2 shrink-0 rounded-full', pinSet ? 'bg-brand-success' : 'bg-border'].join(' ')}
+          aria-hidden
+        />
+        <span className="text-sm text-text-primary">
+          {pinSet
+            ? 'PIN activo — se solicita al eliminar ventas'
+            : 'Sin PIN — cualquiera puede eliminar ventas'}
+        </span>
+      </div>
+
+      {!showForm && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => { setShowForm(true); setFormError(null); }}
+            className="flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-sm text-text-secondary transition-colors hover:bg-surface-bg hover:text-text-primary"
+          >
+            <KeyRound size={14} strokeWidth={1.5} aria-hidden />
+            {pinSet ? 'Cambiar PIN' : 'Configurar PIN'}
+          </button>
+          {pinSet && (
+            <button
+              type="button"
+              disabled={mutation.isPending}
+              onClick={handleClear}
+              className="flex h-9 items-center gap-2 rounded-lg border border-brand-error/30 px-3 text-sm text-brand-error transition-colors hover:bg-brand-error/[0.07] disabled:opacity-50"
+            >
+              {mutation.isPending
+                ? <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
+                : null}
+              Quitar PIN
+            </button>
+          )}
+        </div>
+      )}
+
+      {showForm && (
+        <div className="space-y-3 rounded-xl border border-border bg-surface-bg p-4">
+          <div>
+            <FieldLabel htmlFor="new-pin">Nuevo PIN (4 dígitos)</FieldLabel>
+            <input
+              id="new-pin"
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={pin}
+              onChange={(e) => {
+                setPin(e.target.value.replace(/\D/g, '').slice(0, 4));
+                setFormError(null);
+              }}
+              placeholder="••••"
+              className={pinInputClass}
+            />
+          </div>
+          <div>
+            <FieldLabel htmlFor="confirm-pin">Confirmar PIN</FieldLabel>
+            <input
+              id="confirm-pin"
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={confirmPin}
+              onChange={(e) => {
+                setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4));
+                setFormError(null);
+              }}
+              placeholder="••••"
+              className={pinInputClass}
+            />
+          </div>
+          {formError && (
+            <p className="text-xs text-brand-error" role="alert">{formError}</p>
+          )}
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(false);
+                setPin('');
+                setConfirmPin('');
+                setFormError(null);
+              }}
+              className="flex h-9 items-center px-3 rounded-lg border border-border text-sm text-text-secondary transition-colors hover:bg-surface-card"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={mutation.isPending || pin.length !== 4 || confirmPin.length !== 4}
+              onClick={handleSave}
+              className="flex h-9 items-center gap-2 px-4 rounded-lg bg-brand-blue text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {mutation.isPending
+                ? <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
+                : null}
+              Guardar PIN
+            </button>
+          </div>
+        </div>
       )}
     </Section>
   );
@@ -341,6 +495,12 @@ export function SettingsPage() {
               />
             </div>
           </Section>
+
+          {/* ── PIN de borrado ──────────────────────────────────────────── */}
+          <PinSection
+            pinSet={data?.salesDeletePinSet ?? false}
+            onSuccess={() => queryClient.invalidateQueries({ queryKey: ['settings'] })}
+          />
 
           {/* ── Impresora de tickets ────────────────────────────────────── */}
           <PrintSection settings={current} />

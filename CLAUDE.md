@@ -1,7 +1,7 @@
 # CLAUDE.md — Biblia del Proyecto SIPNATO POS
 
 > Este archivo es la fuente de verdad del proyecto. Se actualiza al finalizar cada fase.
-> Última actualización: 2026-06-12 · Estado: **COMPLETO** + módulo Apartados · impresión migrada a navegador (print-bridge eliminado) ✅
+> Última actualización: 2026-06-17 · Estado: **COMPLETO** + módulo Créditos · Apartados desactivado del sidebar · bug de subquery Drizzle corregido ✅
 
 ---
 
@@ -297,6 +297,18 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 - SQLite no soporta índices parciales (`WHERE`) via Drizzle ORM — no es posible un `UNIQUE INDEX ... WHERE closed_at IS NULL`.
 - La invariante "solo una caja abierta" se garantiza en el **service layer** de Fase 4: `POST /api/cash-registers/open` consulta si existe una fila con `closed_at IS NULL` dentro de una transacción antes de insertar. SQLite es single-writer — no hay race condition real en este modelo.
 
+### Regla de alias en subqueries Drizzle ORM
+- Los campos `sql<T>\`...\`` dentro de un subquery nombrado (`.as('subqueryName')`) **deben** tener su propio `.as('fieldAlias')` o Drizzle v0.36+ lanza en runtime:
+  `"You tried to reference 'field' from a subquery, which is a raw SQL field, but it doesn't have an alias declared."`
+- **Correcto:**
+  ```typescript
+  const sub = db.select({
+    id: table.id,
+    total: sql<number>`COALESCE(SUM(${table.amount}), 0)`.as('total'), // ← alias obligatorio
+  }).from(table).groupBy(table.id).as('sub');
+  ```
+- El error ocurre en tiempo de ejecución (no en `tsc`), por lo que solo se manifiesta al hacer la primera query en producción.
+
 ---
 
 ## 8. Variables de Entorno
@@ -306,7 +318,7 @@ Definidas en `.env` (nunca en el repositorio). Ver `.env.example` para estructur
 | Variable | Descripción |
 |---|---|
 | `SESSION_SECRET` | Secret para firmar cookies de sesión (min 64 chars, random) |
-| `DATABASE_PATH` | Ruta absoluta al archivo SQLite (default: `/app/data/sipnato.db`) |
+| `DATABASE_PATH` | Ruta absoluta al archivo SQLite (default: `/app/data/dosuxsoft.db`) |
 | `BACKUP_PATH` | Ruta absoluta al directorio de backups (default: `/app/data/backups/`) |
 | `LOG_PATH` | Ruta absoluta al directorio de logs (default: `/app/logs/`) |
 | `PORT` | Puerto del servidor Fastify (default: `3000`) |
@@ -375,3 +387,7 @@ La estructura está fijada y aprobada — no modificar sin actualizar este archi
 | 2026-06-13 | Fase 11 (rediseño) + grill-me | `/grill-me` ejecutado sobre backend de dashboard rediseñado. 4 hallazgos: (1) `activeCount` contaba todos los `status='activo'` incluyendo saldo=0 — corregido a `.filter(a => a.totalAmount - a.paidAmount > 0).length`. (2) `yesterdayTotalSales` expuesto en respuesta JSON sin uso en frontend — eliminado del tipo `DashboardData` y del repository. (3) N subqueries correlacionadas para `paidAmount` — tradeoff aceptado (volumen real negligible). (4) Sort de `recentMovements` inestable en colisiones de timestamp — corregido con desempate por `id` y `type`. tsc --noEmit limpio en los 3 workspaces. |
 | 2026-06-15 | Fase 15 | **Módulo Ventas a Crédito completo.** Shared: `schemas/credito.ts` (createCreditoSchema, addCreditoPaymentSchema, Credito/CreditoWithPayments/CreditoList/CreditoPayment, CreateCredito, AddCreditoPayment). DB: tablas `creditos` + `credito_payments` (migración `0006_creditos.sql`), contador `credito` en `bootstrapDb`. Backend: `modules/creditos/` — repository (consecutivo transaccional, paidAmount vía subquery SUM, auto-completado al alcanzar total, audit_log en crear/abonar/cancelar, soft-delete ausente en cancelación para que pestaña Cancelados funcione), service (valida estado activo, abono no excede pendiente), 5 rutas REST en `/api/creditos`. Errores `CreditoNoEncontrado`, `CreditoNoActivo`, `AbonoPagoExcede`. Frontend: `CreditosPage.tsx` (tabs por estado, búsqueda, barra de progreso, badge vencido, CreateModal, PaymentModal, CreditoRow expandible con detalle on-demand), ruta `/creditos`, ítem sidebar (`CreditCard`). **Corrección crítica de despliegue:** migración `0006_creditos` registrada en `meta/_journal.json` (sin esto las tablas nunca se crearían en el VPS). **Corrección funcional:** `cancelCreditoRow` dejó de setear `deletedAt` (ahora solo `status='cancelado'`), de lo contrario la pestaña Cancelados nunca mostraba nada — patrón alineado con `cancelApartadoRow`. Formato de montos: `formatColones()` en `money.ts` reemplazado por regex de comas (₡25,000 en vez de ₡25000). Campo `shop_address` añadido a Settings (schema, backend, frontend). Fuentes de impresión aumentadas en `BoletaPrintView.tsx` y `PrintSection` de `SettingsPage.tsx` (base 15px, encabezado 20px). tsc --noEmit limpio en los 3 workspaces. |
 | 2026-06-13 | Fase 11 (rediseño) | **Dashboard financiero completo** — reemplaza la grilla de módulos Odoo (redundante con sidebar). Shared: `schemas/dashboard.ts` expandido con `DashboardWeeklyEntry`, `DashboardMovement`, `DashboardApartado`; `DashboardData` añade `today.yesterdayTotalSales`, `today.salesDeltaPct: number \| null`, `weekly` (7 entradas), `recentMovements` (hasta 8), `apartados` (activeCount + totalOwed + top 3). Backend `repository.ts` reescrito: delta vs ayer (`salesDeltaPct = null` cuando ayer = 0), serie semanal 7 días con relleno de ceros en JS para fechas sin ventas, movimientos recientes como union JS (top-8 ventas + top-8 gastos, merge + sort + slice), apartados activos con subquery `paidAmount`, `totalOwed` sumado en JS, `topApartados` ordenados por saldo descendente. Frontend `dashboard.tsx` reescrito — 5 secciones: `KpiStrip` (grid 2/4 cols, 4 celdas), `DeltaBadge` (null→"sin ventas ayer", 0→"igual que ayer", ±% con flecha semántica), `WeeklyChart` (Recharts BarChart + Cell por barra, hoy con `fillOpacity=1` resto `0.32`, empty state), `PaymentMethods` (barras de progreso animadas `transition-[width] duration-500`), `RecentMovements` (tabs Todo/Ventas/Gastos + link a /reportes), `ApartadosCard` (top 3 con barra de progreso verde + link a /apartados), `DashboardSkeleton` animate-pulse. Auto-refresco 60s. tsc --noEmit limpio en los 3 workspaces. Verificado en browser: todas las secciones renderizan correctamente con DB vacía. |
+| 2026-06-17 | Post-launch bugfix | **Apartados eliminado del sidebar** — ítem `/apartados` removido de `NAV_ITEMS` en `AppLayout.tsx` (commit `2cee7ed`). El módulo backend y la página siguen existiendo pero no son accesibles desde la navegación; decisión tomada por el usuario. |
+| 2026-06-17 | Post-launch bugfix | **`drizzle.config.ts` apuntaba a DB incorrecta** — `sipnato.db` → `dosuxsoft.db` (commit `26832fa`). La BD de producción siempre se llamó `dosuxsoft.db` (volumen Docker `dosuxsoft-data`); el config de desarrollo nunca era crítico pero era engañoso. |
+| 2026-06-17 | Post-launch bugfix | **Bug crítico de Drizzle en módulo Créditos** — `listCreditoRows` y `getCreditoWithPaymentsRow` en `modules/creditos/repository.ts` producían 500 en producción: `"You tried to reference 'paidAmount' field from a subquery, which is a raw SQL field, but it doesn't have an alias declared."`. Causa: Drizzle v0.36.4 exige `.as('fieldAlias')` en campos `sql<T>\`...\`` dentro de subqueries nombrados. Fix: añadido `.as('paidAmount')` en ambas funciones (commit `e9cbe24`). El error solo se manifestó en producción porque `tsc` no lo detecta — ver regla de alias en Sección 7. |
+| 2026-06-17 | Docs | **`DATABASE_PATH` default en CLAUDE.md corregido** — `sipnato.db` → `dosuxsoft.db`. Regla de alias en subqueries Drizzle añadida a Sección 7. Diagnóstico de BD en `deploy/ACTUALIZAR-VPS.md` corregido: el comando `node -e` debe ejecutarse desde `/app/apps/server` (pnpm workspace instala `better-sqlite3` allí, no en `/app`). |

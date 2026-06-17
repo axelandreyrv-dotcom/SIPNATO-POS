@@ -1,16 +1,29 @@
 import { createReadStream, existsSync } from 'fs';
 import { join } from 'path';
 import type { FastifyInstance } from 'fastify';
-import { settingsSchema } from '@sipnato/shared';
+import { settingsSchema, setSalesPinSchema } from '@sipnato/shared';
 import { AppError } from '../../lib/errors.js';
 import { config } from '../../config.js';
 import { requireAuth } from '../../middleware/auth.js';
-import { getSettings, updateSettings } from './service.js';
+import { getSettings, updateSettings, getSalesPinSet, setSalesPin } from './service.js';
 
 export default async function settingsRoutes(app: FastifyInstance) {
   // ── GET /api/settings ────────────────────────────────────────────────────
   app.get('/', { preHandler: [requireAuth] }, async () => {
-    return getSettings();
+    return { ...getSettings(), salesDeletePinSet: getSalesPinSet() };
+  });
+
+  // ── POST /api/settings/sales-pin ─────────────────────────────────────────
+  app.post('/sales-pin', { preHandler: [requireAuth] }, async (request, reply) => {
+    const body = setSalesPinSchema.safeParse(request.body);
+    if (!body.success) {
+      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'PIN inválido — debe ser exactamente 4 dígitos numéricos' } });
+    }
+    await setSalesPin(body.data.pin, {
+      ip: request.ip ?? null,
+      userAgent: request.headers['user-agent'] ?? null,
+    });
+    return reply.send({ ok: true, pinSet: body.data.pin !== null });
   });
 
   // ── GET /api/settings/backup/download ───────────────────────────────────

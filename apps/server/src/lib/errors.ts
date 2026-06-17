@@ -128,3 +128,15 @@ export class AbonoPagoExcede extends AppError {
     super('ABONO_EXCEDE_TOTAL', 'El abono excede el saldo pendiente', 400);
   }
 }
+
+export class PinInvalido extends AppError {
+  constructor() {
+    super('PIN_INVALIDO', 'PIN incorrecto', 403);
+  }
+}
+
+export class PinRequerido extends AppError {
+  constructor() {
+    super('PIN_REQUERIDO', 'Se requiere PIN para eliminar ventas', 403);
+  }
+}
