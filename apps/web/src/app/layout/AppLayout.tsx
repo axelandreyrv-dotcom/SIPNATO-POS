@@ -12,7 +12,7 @@ import {
   Menu,
   Moon,
   NotebookPen,
-  Package,
+
   Settings,
   ShoppingCart,
   Sun,
@@ -33,7 +33,7 @@ const NAV_ITEMS = [
   { to: '/gastos', label: 'Gastos', icon: TrendingDown, exact: false },
   { to: '/cotizaciones', label: 'Cotizaciones', icon: FileOutput, exact: false },
   { to: '/facturas', label: 'Facturas', icon: Receipt, exact: false },
-  { to: '/apartados', label: 'Apartados', icon: Package, exact: false },
+
   { to: '/creditos', label: 'Créditos', icon: CreditCard, exact: false },
   { to: '/notas', label: 'Notas', icon: NotebookPen, exact: false },
   { to: '/reportes', label: 'Reportes', icon: BarChart3, exact: false },
