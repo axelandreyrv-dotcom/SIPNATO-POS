@@ -157,8 +157,10 @@ describe('migración 0009 con boletas del formato anterior', () => {
       const before = join(dir, 'migrations-0008');
       cpSync(MIGRATIONS, before, { recursive: true });
       const journalPath = join(before, 'meta', '_journal.json');
-      const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as { entries: { tag: string }[] };
-      journal.entries = journal.entries.filter((e) => e.tag !== '0009_perfil_negocio');
+      const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as { entries: { idx: number }[] };
+      // Hasta la 0008 inclusive: Drizzle salta migraciones más viejas que la última aplicada,
+      // así que dejar alguna posterior impediría que la 0009 corra después.
+      journal.entries = journal.entries.filter((e) => e.idx <= 8);
       writeFileSync(journalPath, JSON.stringify(journal));
 
       const sqlite = new Database(join(dir, 'legacy.db'));

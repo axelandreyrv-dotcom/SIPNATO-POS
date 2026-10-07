@@ -35,7 +35,7 @@ export function getDashboardData(): DashboardData {
     .groupBy(sales.paymentMethod)
     .all();
 
-  const byPaymentMethod = { efectivo: 0, tarjeta: 0, transferencia: 0, sinpe: 0 };
+  const byPaymentMethod = { efectivo: 0, tarjeta: 0, transferencia: 0, sinpe: 0, dolares: 0 };
   let totalSales = 0;
   let salesCount = 0;
   for (const row of aggRows) {

@@ -27,6 +27,8 @@ import creditosRoutes from './modules/creditos/routes.js';
 import usersRoutes from './modules/users/routes.js';
 import productsRoutes from './modules/products/routes.js';
 import businessRoutes from './modules/business/routes.js';
+import notificationsRoutes, { exchangeRateRoutes } from './modules/notifications/routes.js';
+import { startExchangeRateCron } from './jobs/exchange-rate.js';
 import { registerModuleRoutes } from './middleware/module.js';
 
 export async function buildApp(opts: { startJobs?: boolean } = {}) {
@@ -74,6 +76,7 @@ export async function buildApp(opts: { startJobs?: boolean } = {}) {
     startCleanupJobs(app.log);
     startAutoCloseCron(app.log);
     startBackupCron(app.log);
+    startExchangeRateCron(app.log);
   }
 
   // ── Routes ─────────────────────────────────────────────────────────────────
@@ -88,6 +91,8 @@ export async function buildApp(opts: { startJobs?: boolean } = {}) {
   await app.register(dashboardRoutes, { prefix: '/api/dashboard' });
   await app.register(usersRoutes, { prefix: '/api/users' });
   await app.register(businessRoutes, { prefix: '/api/business' });
+  await app.register(exchangeRateRoutes, { prefix: '/api/exchange-rate' });
+  await app.register(notificationsRoutes, { prefix: '/api/notifications' });
 
   // Módulos que cada negocio activa o desactiva (perfil del negocio).
   await registerModuleRoutes(app, 'ordenes', boletasRoutes, '/api/boletas');

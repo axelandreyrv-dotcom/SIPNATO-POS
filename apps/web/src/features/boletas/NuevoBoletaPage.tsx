@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { AlertCircle, CheckCircle, ChevronLeft, Loader2, Printer } from 'lucide-react';
-import { validateOrderFields, type OrderField } from '@sipnato/shared';
+import { validateOrderFields, type BoletaWithCustomer, type OrderField } from '@sipnato/shared';
+import { WhatsAppNotify } from '../../components/WhatsAppNotify';
 import { customersApi } from '../customers/api';
 import { useBusiness } from '../auth/useCurrentUser';
 import { boletasApi } from './api';
@@ -107,7 +108,7 @@ function OrderFieldInput({
 export function NuevoBoletaPage() {
   const navigate = useNavigate();
   const { printBoleta, printPortal } = useBoletaPrint();
-  const [savedConsecutive, setSavedConsecutive] = useState<number | null>(null);
+  const [saved, setSaved] = useState<BoletaWithCustomer | null>(null);
 
   // Customer fields
   const [phone, setPhone] = useState('');
@@ -195,7 +196,7 @@ export function NuevoBoletaPage() {
         onSuccess: (boleta) => {
           if (andPrint) {
             printBoleta(boleta);
-            setSavedConsecutive(boleta.consecutive);
+            setSaved(boleta);
             resetForm();
           } else {
             void navigate({ to: '/boletas' });
@@ -223,15 +224,23 @@ export function NuevoBoletaPage() {
         </div>
       </div>
 
-      {savedConsecutive !== null && (
-        <div className="mb-4 flex items-center justify-between rounded-lg border border-brand-success/30 bg-brand-success/10 px-4 py-3 text-sm">
-          <span className="text-brand-success">
-            #{savedConsecutive} guardado e impreso. Formulario listo para el siguiente.
+      {saved !== null && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-brand-success/30 bg-brand-success/10 px-4 py-3 text-sm">
+          <span className="mr-auto text-brand-success">
+            #{saved.consecutive} guardado e impreso. Formulario listo para el siguiente.
           </span>
+          <WhatsAppNotify
+            event="orden_recibida"
+            entityType="boleta"
+            entityId={saved.id}
+            phone={saved.customerPhone}
+            vars={{ cliente: saved.customerName, articulo: saved.deviceModel, numero: String(saved.consecutive) }}
+            label="Enviar comprobante"
+          />
           <button
             type="button"
             onClick={() => void navigate({ to: '/boletas' })}
-            className="ml-3 shrink-0 text-brand-blue hover:underline"
+            className="shrink-0 text-brand-blue hover:underline"
           >
             Ver todos →
           </button>

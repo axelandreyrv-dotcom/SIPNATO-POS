@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PAYMENT_METHODS } from './sale.js';
 
 const isoDate = z
   .string()
@@ -23,7 +24,7 @@ export const reportExportFilterSchema = z
   .object({
     from: isoDate,
     to: isoDate,
-    paymentMethod: z.enum(['efectivo', 'tarjeta', 'transferencia', 'sinpe']).optional(),
+    paymentMethod: z.enum(PAYMENT_METHODS).optional(),
     q: z.string().max(200).optional(),
   })
   .refine(dateRangeMax1Year, { message: 'Rango inválido: desde ≤ hasta, máximo 1 año' });
@@ -32,7 +33,7 @@ export const reportSalesFilterSchema = z
   .object({
     from: isoDate,
     to: isoDate,
-    paymentMethod: z.enum(['efectivo', 'tarjeta', 'transferencia', 'sinpe']).optional(),
+    paymentMethod: z.enum(PAYMENT_METHODS).optional(),
     q: z.string().max(200).optional(),
     page: z.coerce.number().int().min(1).default(1),
   })
@@ -47,6 +48,7 @@ export type PaymentMethodTotals = {
   tarjeta: number;
   transferencia: number;
   sinpe: number;
+  dolares: number;
 };
 
 export type ReportSummary = {

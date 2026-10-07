@@ -116,6 +116,7 @@ export function getReportSummary(from: string, to: string): ReportSummary {
     tarjeta: 0,
     transferencia: 0,
     sinpe: 0,
+    dolares: 0,
   };
 
   let totalSales = 0;

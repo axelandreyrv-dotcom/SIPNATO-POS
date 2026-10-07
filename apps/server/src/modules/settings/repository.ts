@@ -13,6 +13,12 @@ const SETTING_KEYS = [
   'quote_footer',
   'auto_close_enabled',
   'auto_close_time',
+  'usd_manual_rate',
+  'msg_orden_recibida',
+  'msg_orden_lista',
+  'msg_cobro_credito',
+  'msg_abono',
+  'msg_cotizacion',
 ] as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[number];
@@ -38,6 +44,12 @@ export function getAllSettings(): RawSettings {
     quote_footer: map.quote_footer ?? '',
     auto_close_enabled: map.auto_close_enabled ?? 'false',
     auto_close_time: map.auto_close_time ?? '00:00',
+    usd_manual_rate: map.usd_manual_rate ?? '',
+    msg_orden_recibida: map.msg_orden_recibida ?? '',
+    msg_orden_lista: map.msg_orden_lista ?? '',
+    msg_cobro_credito: map.msg_cobro_credito ?? '',
+    msg_abono: map.msg_abono ?? '',
+    msg_cotizacion: map.msg_cotizacion ?? '',
   };
 }
 

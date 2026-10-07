@@ -62,9 +62,10 @@ const PM_LABEL: Record<PaymentMethod, string> = {
   sinpe: 'SINPE',
   tarjeta: 'Tarjeta',
   transferencia: 'Transferencia',
+  dolares: 'Dólares',
 };
 
-const PM_ORDER: PaymentMethod[] = ['efectivo', 'sinpe', 'tarjeta', 'transferencia'];
+const PM_ORDER: PaymentMethod[] = ['efectivo', 'sinpe', 'tarjeta', 'transferencia', 'dolares'];
 
 // ── Header: title + caja status ──────────────────────────────────────────────
 

@@ -8,6 +8,7 @@ import type { Quote, QuoteWithItems, Settings } from '@sipnato/shared';
 import { fmtDate } from '../../lib/format';
 import { settingsApi } from '../settings/api';
 import { quotesApi } from './api';
+import { WhatsAppNotify } from '../../components/WhatsAppNotify';
 
 // ── Print view (portal, only visible on print) ───────────────────────────────
 function QuotePrintView({ quote, settings }: { quote: QuoteWithItems; settings: Settings | undefined }) {
@@ -126,18 +127,35 @@ function QuoteDetail({ id }: { id: number }) {
   }
 
   return (
-    <table className="w-full text-xs">
-      <tbody className="divide-y divide-border/50">
-        {data.items.map((item) => (
-          <tr key={item.id}>
-            <td className="py-1.5 pr-4 text-text-secondary">{item.description}</td>
-            <td className="py-1.5 text-right tabular-nums font-medium text-text-primary whitespace-nowrap">
-              {formatColones(item.amount)}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <>
+      <table className="w-full text-xs">
+        <tbody className="divide-y divide-border/50">
+          {data.items.map((item) => (
+            <tr key={item.id}>
+              <td className="py-1.5 pr-4 text-text-secondary">{item.description}</td>
+              <td className="py-1.5 text-right tabular-nums font-medium text-text-primary whitespace-nowrap">
+                {formatColones(item.amount)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {/* La cotización no guarda teléfono: WhatsApp pide elegir el contacto. */}
+      <div className="mt-3 flex justify-end">
+        <WhatsAppNotify
+          event="cotizacion"
+          entityType="quote"
+          entityId={data.id}
+          phone={null}
+          vars={{
+            numero: String(data.consecutive),
+            detalle: data.items.map((i) => `• ${i.description}: ${formatColones(i.amount)}`).join('\n'),
+            total: formatColones(data.total),
+          }}
+          label="Enviar por WhatsApp"
+        />
+      </div>
+    </>
   );
 }
 

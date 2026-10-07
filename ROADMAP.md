@@ -37,10 +37,34 @@
 | B | Multiusuario y roles (dueño / administrador / cajero, PIN por cajero) | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
 | C | Inventario / catálogo integrado al POS (manteniendo venta libre) | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
 | D | Plantillas por tipo de negocio + órdenes de servicio configurables | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
-| E | Colones + dólares · notificaciones a clientes | ⬜ Pendiente |
+| E | Colones + dólares · notificaciones a clientes | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
 | F | Registro de negocios, cobro de suscripción y panel de superadministrador | ⬜ Pendiente |
 
 > IVA y facturación electrónica de Hacienda: **descartados** (decisión del usuario, 2026-10-07).
+
+---
+
+## Fase E — Dólares y avisos a clientes ✅ COMPLETADA 2026-10-07
+
+**Objetivo:** recibir dólares en caja sin cambiar la contabilidad en colones, y avisar a los clientes por WhatsApp.
+
+### Tareas Backend
+- [x] Tipo de cambio del BCCR (API SDDE, compra/venta) consultado cada hora; respaldo manual por negocio
+- [x] Método de pago "Dólares": conversión y vuelto en colones calculados en el servidor
+- [x] Caja: dólares recibidos y vueltos en el cierre; reportes y dashboard con dólares
+- [x] Plantillas de mensajes editables y registro de avisos enviados (migración 0010)
+
+### Tareas Frontend
+- [x] POS: cobro en dólares con equivalente y vuelto
+- [x] Caja: dólares en caja para el arqueo
+- [x] Configuración: tipo de cambio y mensajes a clientes
+- [x] Botones de WhatsApp: orden recibida / lista, recordar cobro, abono, cotización; historial de avisos
+
+### Criterio de completitud
+Cobrar ₡8,000 con $20 da vuelto en colones con el tipo vigente, la caja muestra los $20, y el aviso de "listo para retirar" abre WhatsApp con el mensaje y el número del cliente. ✅ Verificado con tests y en navegador.
+
+### Pendiente fuera del código
+- Registrar el token del BCCR (`BCCR_API_TOKEN`). Sin él rige el tipo de respaldo manual.
 
 ---
 

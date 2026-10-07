@@ -1,14 +1,23 @@
 import type { Actor } from '../../db/client.js';
 import {
   CajaNoAbierta,
+  MontoUsdInsuficiente,
   ProductoInactivo,
   ProductoNoEncontrado,
+  TipoCambioNoDisponible,
   VentaNoEnCajaActiva,
   VentaNoEncontrada,
 } from '../../lib/errors.js';
+import { getExchangeRateInfo } from '../../lib/exchange-rate.js';
 import { findOpenRegister } from '../cash-registers/repository.js';
 import { findProductById } from '../products/repository.js';
-import type { CreateSaleInput, CreateSaleResult, SaleItemInput, SaleList } from '@sipnato/shared';
+import {
+  usdCentsToColones,
+  type CreateSaleInput,
+  type CreateSaleResult,
+  type SaleItemInput,
+  type SaleList,
+} from '@sipnato/shared';
 import {
   createSaleRow,
   findSaleById,
@@ -56,31 +65,27 @@ function summarize(items: ResolvedSaleItem[]): string {
   return text.length > 500 ? `${text.slice(0, 497)}...` : text;
 }
 
+// Pago en dólares: el tipo de cambio lo decide el servidor en el momento de la venta,
+// nunca el cliente. Los USD recibidos deben cubrir el total; el vuelto sale en colones.
+function resolveUsdPayment(amount: number, usdReceivedCents: number) {
+  const { rate } = getExchangeRateInfo();
+  if (rate === null) throw new TipoCambioNoDisponible();
+  const received = usdCentsToColones(usdReceivedCents, rate);
+  if (received < amount) throw new MontoUsdInsuficiente(amount, rate);
+  return { receivedCents: usdReceivedCents, rate, changeColones: received - amount };
+}
+
 export function createSale(input: CreateSaleInput, meta: Meta): CreateSaleResult {
   const register = findOpenRegister();
   if (!register) throw new CajaNoAbierta();
 
-  if (input.items) {
-    const items = input.items.map(resolveItem);
-    return createSaleRow(
-      {
-        description: input.description?.trim() || summarize(items),
-        amount: items.reduce((sum, i) => sum + i.total, 0),
-        paymentMethod: input.paymentMethod,
-        items,
-      },
-      register.id,
-      meta,
-    );
-  }
+  const items = input.items?.map(resolveItem) ?? [];
+  const amount = input.items ? items.reduce((sum, i) => sum + i.total, 0) : input.amount!;
+  const description = input.items ? input.description?.trim() || summarize(items) : input.description ?? null;
+  const usd = input.paymentMethod === 'dolares' ? resolveUsdPayment(amount, input.usdReceivedCents!) : null;
 
   return createSaleRow(
-    {
-      description: input.description ?? null,
-      amount: input.amount!,
-      paymentMethod: input.paymentMethod,
-      items: [],
-    },
+    { description, amount, paymentMethod: input.paymentMethod, items, usd },
     register.id,
     meta,
   );

@@ -7,10 +7,16 @@ import { fmtDateTime } from '../../lib/format';
 import { boletasApi } from './api';
 import { useBoletaPrint } from './BoletaPrintView';
 import { useBusiness } from '../auth/useCurrentUser';
+import { NotificationHistory, WhatsAppNotify } from '../../components/WhatsAppNotify';
 
 function BoletaRow({ boleta, onPrint }: { boleta: BoletaWithCustomer; onPrint: (b: BoletaWithCustomer) => void }) {
   const [expanded, setExpanded] = useState(false);
   const { itemLabel } = useBusiness();
+  const orderVars = {
+    cliente: boleta.customerName,
+    articulo: boleta.deviceModel,
+    numero: String(boleta.consecutive),
+  };
 
   return (
     <div className="border-b border-border last:border-0">
@@ -60,16 +66,33 @@ function BoletaRow({ boleta, onPrint }: { boleta: BoletaWithCustomer; onPrint: (
               <dd className="whitespace-pre-wrap text-sm text-text-primary">{boleta.description}</dd>
             </div>
           </dl>
-          <div className="mt-4 border-t border-border/60 pt-3">
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
             <button
               type="button"
               onClick={() => onPrint(boleta)}
-              className="flex items-center gap-1.5 text-sm text-brand-blue hover:text-brand-blue/80"
+              className="mr-auto flex h-9 items-center gap-1.5 text-sm text-brand-blue hover:text-brand-blue/80"
             >
               <Printer size={15} strokeWidth={1.5} aria-hidden />
-              Imprimir boleta
+              Imprimir
             </button>
+            <WhatsAppNotify
+              event="orden_recibida"
+              entityType="boleta"
+              entityId={boleta.id}
+              phone={boleta.customerPhone}
+              vars={orderVars}
+              label="Comprobante"
+            />
+            <WhatsAppNotify
+              event="orden_lista"
+              entityType="boleta"
+              entityId={boleta.id}
+              phone={boleta.customerPhone}
+              vars={orderVars}
+              label="Avisar que está listo"
+            />
           </div>
+          <NotificationHistory entityType="boleta" entityId={boleta.id} />
         </div>
       )}
     </div>

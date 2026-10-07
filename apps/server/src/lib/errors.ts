@@ -129,6 +129,25 @@ export class AbonoPagoExcede extends AppError {
   }
 }
 
+// ─── Dólares (Fase E) ─────────────────────────────────────────────────────────
+
+export class TipoCambioNoDisponible extends AppError {
+  constructor() {
+    super('TIPO_CAMBIO_NO_DISPONIBLE', 'No hay tipo de cambio disponible. El dueño debe configurar uno de respaldo en Configuración.', 400);
+  }
+}
+
+export class MontoUsdInsuficiente extends AppError {
+  constructor(amount: number, rateHundredths: number) {
+    const minCents = Math.ceil((amount * 10_000) / rateHundredths);
+    super(
+      'MONTO_USD_INSUFICIENTE',
+      `Los dólares recibidos no cubren el total. Mínimo: $${Math.floor(minCents / 100)}.${String(minCents % 100).padStart(2, '0')}`,
+      400,
+    );
+  }
+}
+
 // ─── Inventario (Fase C) ──────────────────────────────────────────────────────
 
 export class ProductoNoEncontrado extends AppError {

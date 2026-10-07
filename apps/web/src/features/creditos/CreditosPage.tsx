@@ -14,13 +14,18 @@ import { formatColones } from '@sipnato/shared';
 import type { Credito, CreditoWithPayments } from '@sipnato/shared';
 import { creditosApi } from './api';
 import { useCan } from '../auth/useCurrentUser';
+import { NotificationHistory, WhatsAppNotify } from '../../components/WhatsAppNotify';
 import { fmtDate, fmtDateTime } from '../../lib/format';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+// Vencido = la fecha de vencimiento ya pasó en Costa Rica (el mismo día aún no vence).
+// Se comparan textos YYYY-MM-DD: `new Date('2026-10-20')` sería medianoche UTC, el 19 en CR.
+const todayCR = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(new Date());
+
 function isOverdue(credito: Credito): boolean {
   if (credito.status !== 'activo') return false;
-  return new Date(credito.dueDate) < new Date(new Date().toDateString());
+  return credito.dueDate < todayCR();
 }
 
 function statusLabel(credito: Credito): { text: string; cls: string } {
@@ -150,10 +155,38 @@ function PaymentModal({ credito, onClose }: { credito: Credito; onClose: () => v
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['creditos'] });
-      onClose();
+      // Se queda abierto para ofrecer el comprobante por WhatsApp.
+      setPaid(Math.round(Number(amount)));
     },
     onError: (e: Error) => setError(e.message),
   });
+  const [paid, setPaid] = useState<number | null>(null);
+
+  if (paid !== null) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="w-full max-w-sm rounded-2xl border border-border bg-surface-card p-5 shadow-xl" role="dialog" aria-modal="true">
+          <p className="text-sm font-semibold text-text-primary">Abono de {formatColones(paid)} registrado</p>
+          <p className="mt-1 text-sm text-text-muted">
+            {credito.debtorName} · saldo pendiente {formatColones(pending - paid)}
+          </p>
+          <div className="mt-5 flex flex-wrap justify-end gap-2">
+            <WhatsAppNotify
+              event="abono"
+              entityType="credito"
+              entityId={credito.id}
+              phone={credito.debtorPhone}
+              vars={{ cliente: credito.debtorName, abono: formatColones(paid), saldo: formatColones(pending - paid) }}
+              label="Enviar comprobante"
+            />
+            <button type="button" onClick={onClose} autoFocus className="h-9 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white hover:brightness-110">
+              Listo
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const inputClass =
     'h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted';
@@ -343,6 +376,26 @@ function CreditoRow({
           )}
           {detail && detail.payments.length === 0 && (
             <p className="text-xs text-text-muted">Sin abonos registrados</p>
+          )}
+
+          {/* Recordatorio de cobro por WhatsApp */}
+          {credito.status === 'activo' && (
+            <div>
+              <WhatsAppNotify
+                event="cobro_credito"
+                entityType="credito"
+                entityId={credito.id}
+                phone={credito.debtorPhone}
+                vars={{
+                  cliente: credito.debtorName,
+                  saldo: formatColones(pending),
+                  numero: String(credito.consecutive),
+                  vencimiento: fmtDate(credito.dueDate),
+                }}
+                label="Recordar cobro"
+              />
+              <NotificationHistory entityType="credito" entityId={credito.id} />
+            </div>
           )}
 
           {/* Actions */}

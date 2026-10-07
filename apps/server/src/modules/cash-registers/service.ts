@@ -52,7 +52,10 @@ export function openCashRegister(
     id,
     openedAt,
     openingAmount,
-    totals: { salesEfectivo: 0, salesTarjeta: 0, salesTransferencia: 0, salesSinpe: 0, totalSales: 0, totalExpenses: 0, netBalance: 0 },
+    totals: {
+      salesEfectivo: 0, salesTarjeta: 0, salesTransferencia: 0, salesSinpe: 0, salesDolares: 0,
+      totalSales: 0, totalExpenses: 0, netBalance: 0, usdReceivedCents: 0, usdChangeColones: 0,
+    },
   };
 }
 
@@ -78,6 +81,9 @@ export function closeCashRegister(
         totalSalesCard: totals.salesTarjeta,
         totalSalesTransfer: totals.salesTransferencia,
         totalSalesSinpe: totals.salesSinpe,
+        totalSalesDolares: totals.salesDolares,
+        totalUsdCents: totals.usdReceivedCents,
+        totalUsdChange: totals.usdChangeColones,
         totalExpenses: totals.totalExpenses,
         netBalance: totals.netBalance,
       })

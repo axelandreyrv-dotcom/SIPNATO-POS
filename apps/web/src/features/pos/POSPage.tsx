@@ -16,6 +16,8 @@ import { fmtTime } from '../../lib/format';
 import { cashRegisterApi } from '../cash-register/api';
 import { salesApi } from './api';
 import { CartLines, ProductSearch, cartTotal, type CartLine } from './ProductCart';
+import { UsdPaymentModal } from './UsdPaymentModal';
+import { exchangeRateApi } from './exchange-rate-api';
 import { settingsApi } from '../settings/api';
 import { useCan, useModuleEnabled } from '../auth/useCurrentUser';
 import { SupervisorAuthDialog, supervisorAuthErrorMessage } from '../../components/SupervisorAuthDialog';
@@ -25,6 +27,7 @@ const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'tarjeta', label: 'Tarjeta' },
   { value: 'sinpe', label: 'SINPE' },
   { value: 'transferencia', label: 'Trans.' },
+  { value: 'dolares', label: 'Dólares' },
 ];
 
 const METHOD_LABELS: Record<PaymentMethod, string> = {
@@ -32,6 +35,7 @@ const METHOD_LABELS: Record<PaymentMethod, string> = {
   tarjeta: 'Tarjeta',
   sinpe: 'SINPE',
   transferencia: 'Trans.',
+  dolares: 'Dólares',
 };
 
 const METHOD_COLORS: Record<PaymentMethod, string> = {
@@ -39,6 +43,7 @@ const METHOD_COLORS: Record<PaymentMethod, string> = {
   tarjeta: 'bg-brand-blue/10 text-brand-blue',
   sinpe: 'bg-brand-warning/10 text-brand-warning',
   transferencia: 'bg-surface-bg text-text-muted border border-border',
+  dolares: 'bg-brand-success/10 text-brand-success border border-brand-success/30',
 };
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
@@ -390,18 +395,29 @@ export function POSPage() {
     });
   }
 
-  function buildSale(): CreateSaleInput {
+  function buildSale(usdReceivedCents?: number): CreateSaleInput {
+    const usd = usdReceivedCents !== undefined ? { usdReceivedCents } : {};
     if (cart.length === 0) {
-      return { description: description || undefined, amount, paymentMethod: method };
+      return { description: description || undefined, amount, paymentMethod: method, ...usd };
     }
     return {
       paymentMethod: method,
+      ...usd,
       items: [
         ...cart.map((l) => ({ productId: l.product.id, quantity: l.quantity })),
         ...(amount >= 1 ? [{ description: description.trim() || 'Monto libre', quantity: 1, unitPrice: amount }] : []),
       ],
     };
   }
+
+  // Tipo de cambio vigente: solo se consulta al elegir "Dólares".
+  const [showUsdModal, setShowUsdModal] = useState(false);
+  const { data: rateInfo } = useQuery({
+    queryKey: ['exchange-rate'],
+    queryFn: exchangeRateApi.get,
+    enabled: method === 'dolares',
+    staleTime: 5 * 60_000,
+  });
 
   const { data: register } = useQuery({
     queryKey: ['cash-register', 'current'],
@@ -435,12 +451,17 @@ export function POSPage() {
       queryClient.invalidateQueries({ queryKey: ['sales', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['cash-register', 'current'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      addToast(`Venta #${sale.consecutive} cobrada — ${formatColones(sale.amount)}`);
+      addToast(
+        sale.changeColones !== null
+          ? `Venta #${sale.consecutive} cobrada en dólares — vuelto ${formatColones(sale.changeColones)}`
+          : `Venta #${sale.consecutive} cobrada — ${formatColones(sale.amount)}`,
+      );
       for (const w of sale.stockWarnings) {
         addToast(`Inventario de ${w.name} en ${w.stock}: revisa las existencias`);
       }
       resetForm();
       setShowChangeCalc(false);
+      setShowUsdModal(false);
     },
   });
 
@@ -509,6 +530,9 @@ export function POSPage() {
 
     if (method === 'efectivo') {
       setShowChangeCalc(true);
+    } else if (method === 'dolares') {
+      createMutation.reset();
+      setShowUsdModal(true);
     } else {
       createMutation.mutate(buildSale());
     }
@@ -616,7 +640,7 @@ export function POSPage() {
           {/* Payment method */}
           <div>
             <p id="method-label" className="mb-2 text-sm font-medium text-text-secondary">Método de pago</p>
-            <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-labelledby="method-label">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5" role="radiogroup" aria-labelledby="method-label">
               {METHODS.map(({ value, label }) => (
                 <button
                   key={value}
@@ -724,6 +748,17 @@ export function POSPage() {
       )}
 
       {/* Change calculator modal */}
+      {showUsdModal && register && (
+        <UsdPaymentModal
+          amount={total}
+          rateInfo={rateInfo}
+          onConfirm={(cents) => createMutation.mutate(buildSale(cents))}
+          onClose={() => setShowUsdModal(false)}
+          isLoading={createMutation.isPending}
+          error={createMutation.isError ? createMutation.error.message : null}
+        />
+      )}
+
       {showChangeCalc && register && (
         <ChangeCalcModal
           amount={total}

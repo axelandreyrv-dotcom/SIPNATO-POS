@@ -10,6 +10,9 @@ const envSchema = z.object({
   TENANT_BASE_DOMAIN: z.string().default('localhost'),
   // Solo desarrollo: negocio usado cuando el host no trae subdominio (http://localhost:5173)
   DEV_TENANT: z.string().optional(),
+  // Token Bearer del API SDDE del BCCR (tipo de cambio). Sin él, cada negocio usa su
+  // tipo de cambio de respaldo manual. Uno para toda la plataforma.
+  BCCR_API_TOKEN: z.string().optional(),
   // Dev usa un default explícito para no bloquear `pnpm dev` sin .env
   SESSION_SECRET: z
     .string()
