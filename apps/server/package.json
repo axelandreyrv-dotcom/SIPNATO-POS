@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
     "build": "tsc && node -e \"require('fs').cpSync('src/db/migrations', 'dist/db/migrations', {recursive: true})\"",
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate",
@@ -12,7 +12,8 @@
     "db:seed": "tsx src/db/seed.ts",
     "tenant": "tsx src/scripts/tenant.ts",
     "reset-admin": "tsx src/scripts/reset-admin.ts",
-    "test": "node --import tsx/esm --test src/db/tests/*.test.ts src/tests/*.test.ts"
+    "test": "node --import tsx/esm --test src/db/tests/*.test.ts src/tests/*.test.ts",
+    "superadmin": "tsx src/scripts/superadmin.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

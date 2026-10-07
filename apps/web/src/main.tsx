@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createRouter, RouterProvider } from '@tanstack/react-router';
 import './styles/globals.css';
@@ -76,8 +76,19 @@ declare module '@tanstack/react-router' {
 const rootEl = document.getElementById('root');
 if (!rootEl) throw new Error('#root no encontrado en el DOM');
 
+// admin.<dominio> es el panel de la plataforma, no un negocio. Se carga aparte para no
+// sumar su código a la app que usan los negocios. El servidor hace la separación real.
+const isPlatform = window.location.hostname.split('.')[0] === 'admin';
+const PlatformApp = lazy(() => import('./features/platform/PlatformApp'));
+
 createRoot(rootEl).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    {isPlatform ? (
+      <Suspense fallback={null}>
+        <PlatformApp />
+      </Suspense>
+    ) : (
+      <RouterProvider router={router} />
+    )}
   </StrictMode>,
 );

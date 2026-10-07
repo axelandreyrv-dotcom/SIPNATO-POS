@@ -8,6 +8,7 @@
 }
 
 # Cada negocio vive en <slug>.dosuxsoft.com — el servidor identifica el negocio por el Host.
+# admin.dosuxsoft.com es el panel de la plataforma (misma SPA, otra pantalla según el Host).
 *.dosuxsoft.com {
     tls {
         on_demand
@@ -22,6 +23,12 @@
 
     # Auth endpoints — prefijo /auth, no /api
     handle /auth/* {
+        reverse_proxy server:3000
+    }
+
+    # Panel de superadministrador (solo responde en admin.dosuxsoft.com; el servidor
+    # devuelve 404 a /platform/* desde cualquier otro subdominio)
+    handle /platform/* {
         reverse_proxy server:3000
     }
 
@@ -51,7 +58,7 @@
     encode gzip zstd
 }
 
-# El dominio raíz no es un negocio. Placeholder hasta tener landing/registro (Fase F).
+# El dominio raíz no es un negocio. Los negocios se dan de alta desde admin.dosuxsoft.com (sin registro público).
 dosuxsoft.com, www.dosuxsoft.com {
     header -Server
     respond "Dosuxsoft POS" 200

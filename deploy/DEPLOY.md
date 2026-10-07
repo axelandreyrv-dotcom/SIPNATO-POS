@@ -138,6 +138,28 @@ Abrir `https://taller.dosuxsoft.com` en el navegador → debe aparecer `/setup` 
 Cada negocio tiene **su propia base de datos** (`/app/data/tenants/<slug>.db`), sus propias
 sesiones y sus propios backups. Nada se comparte entre negocios.
 
+### Panel de la plataforma (recomendado)
+
+Los negocios se crean, cobran y suspenden desde **`https://admin.dosuxsoft.com`**. El DNS comodín
+`*.dosuxsoft.com` ya lo cubre y Caddy emite su certificado. Primero crear la cuenta del panel
+(solo por consola, no hay alta por web):
+
+```bash
+docker exec -it deploy-server-1 node apps/server/dist/scripts/superadmin.js create axel
+```
+
+Imprime una contraseña temporal: entrar al panel y cambiarla en **Configuración → Mi contraseña**.
+En **Configuración → Cobro** poner la mensualidad por defecto y cómo pagar (SINPE, cuenta).
+Otros comandos: `superadmin.js reset <usuario>` (contraseña nueva, desbloquea y cierra sesiones),
+`disable` / `enable` / `list`.
+
+En **Nuevo negocio** se elige el subdominio, el contacto para el cobro y hasta cuándo está pagado; el
+panel muestra el código de activación con un botón para enviarlo por WhatsApp. Cada pago se registra
+en el negocio y corre su vencimiento. Un atraso **no bloquea** al negocio: el dueño y los
+administradores ven un aviso, y la suspensión es manual desde el panel.
+
+### Por consola (respaldo)
+
 ```bash
 # Crear un negocio (slug = subdominio: minúsculas, dígitos y guiones)
 docker exec -it deploy-server-1 node apps/server/dist/scripts/tenant.js create taller "Taller Axel"

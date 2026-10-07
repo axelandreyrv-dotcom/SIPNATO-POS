@@ -18,6 +18,11 @@ export function verifyPassword(password: string, hash: string): Promise<boolean>
   return argon2.verify(hash, password);
 }
 
+// Hash argon2id válido que nunca coincide: se verifica contra él cuando el usuario no existe,
+// para que la respuesta tarde lo mismo y no revele qué usuarios existen.
+export const DUMMY_HASH =
+  '$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
 // ─── Recovery codes ───────────────────────────────────────────────────────────
 // High-entropy random string, shown once. Hashed with argon2id at rest
 // because the user types it in (brute-force protection needed).

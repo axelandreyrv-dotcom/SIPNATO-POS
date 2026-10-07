@@ -218,3 +218,35 @@ export class AutorizacionInvalida extends AppError {
     super('AUTORIZACION_INVALIDA', 'La autorización no es válida: usuario o contraseña/PIN incorrectos, o sin permiso', 403);
   }
 }
+
+// ─── Plataforma (Fase F) ──────────────────────────────────────────────────────
+
+export class NegocioNoEncontrado extends AppError {
+  constructor() {
+    super('NEGOCIO_NO_ENCONTRADO', 'Negocio no encontrado', 404);
+  }
+}
+
+export class NegocioYaExiste extends AppError {
+  constructor() {
+    super('NEGOCIO_YA_EXISTE', 'Ya existe un negocio con ese subdominio', 409);
+  }
+}
+
+export class NegocioYaActivado extends AppError {
+  constructor() {
+    super('NEGOCIO_YA_ACTIVADO', 'Este negocio ya tiene dueño. Para recuperar el acceso usa reset-admin en el servidor.', 409);
+  }
+}
+
+export class PagoNoEncontrado extends AppError {
+  constructor() {
+    super('PAGO_NO_ENCONTRADO', 'Pago no encontrado', 404);
+  }
+}
+
+export class PagoYaAnulado extends AppError {
+  constructor() {
+    super('PAGO_YA_ANULADO', 'Este pago ya fue anulado', 409);
+  }
+}

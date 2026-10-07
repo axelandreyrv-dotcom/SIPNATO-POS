@@ -27,6 +27,7 @@ import { Logo } from '../../components/branding/Logo';
 import { useDarkMode } from '../../lib/hooks/useDarkMode';
 import { authApi } from '../../features/auth/api';
 import { useBusiness, useCurrentUser } from '../../features/auth/useCurrentUser';
+import { SubscriptionNotice } from '../../features/subscription/SubscriptionNotice';
 
 // `module`: solo aparece si el negocio lo tiene activo (perfil del negocio).
 const NAV_ITEMS: ReadonlyArray<{
@@ -240,6 +241,7 @@ export function AppLayout() {
         className="flex-1 overflow-auto pt-14 sm:pt-0 bg-surface-bg vt-page"
         inert={drawerOpen || undefined}
       >
+        <SubscriptionNotice />
         <Outlet />
       </main>
     </div>

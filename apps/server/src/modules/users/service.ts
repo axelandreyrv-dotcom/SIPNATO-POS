@@ -7,7 +7,7 @@ import {
   type UserRecord,
 } from '@sipnato/shared';
 import type { Actor } from '../../db/client.js';
-import { hashPassword, verifyPassword } from '../../lib/crypto.js';
+import { DUMMY_HASH, hashPassword, verifyPassword } from '../../lib/crypto.js';
 import {
   AppError,
   AutorizacionInvalida,
@@ -37,11 +37,6 @@ interface Meta {
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MS = 15 * 60 * 1000;
-
-// Hash argon2id válido que nunca coincide: se verifica contra él cuando el usuario no existe,
-// para que la respuesta tarde lo mismo y no revele qué usuarios existen.
-const DUMMY_HASH =
-  '$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 
 function isLocked(user: UserRow, now = Date.now()): boolean {
   return user.lockedUntil !== null && new Date(user.lockedUntil).getTime() > now;

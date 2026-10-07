@@ -1,7 +1,7 @@
 # CLAUDE.md — Biblia del Proyecto SIPNATO POS
 
 > Este archivo es la fuente de verdad del proyecto. Se actualiza al finalizar cada fase.
-> Última actualización: 2026-10-07 · Estado: **Fases A–E completas** — BD por negocio · usuarios con roles · inventario · plantillas por tipo de negocio · cobro en dólares y avisos por WhatsApp ✅
+> Última actualización: 2026-10-07 · Estado: **Fases A–F completas** — BD por negocio · usuarios con roles · inventario · plantillas por tipo de negocio · cobro en dólares y avisos por WhatsApp · panel de la plataforma con cobro de la mensualidad ✅
 
 ---
 
@@ -116,7 +116,7 @@
         │                                      │
         │  AsyncLocalStorage: `db` = BD de ese negocio      node-cron: cada job recorre
         ▼                                                    los negocios activos uno a uno
-   /app/data/control.db                  ← registro de negocios (sin datos operativos)
+   /app/data/control.db                  ← registro de negocios + plataforma (suscripción, superadmins); sin datos operativos
    /app/data/tenants/<slug>.db           ← TODOS los datos de un negocio (ventas, sesiones, audit…)
    /app/data/backups/<slug>/             ← respaldos de ese negocio
 ```
@@ -129,6 +129,11 @@
 - La cookie de sesión no lleva `Domain` → queda atada a su subdominio.
 - Rate limit por negocio + IP.
 - Test de aislamiento: `apps/server/src/tests/tenancy.test.ts` — **debe pasar siempre**.
+
+### Panel de la plataforma (Fase F)
+- `admin.<dominio>` (`PLATFORM_SUBDOMAIN`, reservado como slug) es el panel de superadministrador. Misma SPA: `main.tsx` carga `features/platform/PlatformApp` (lazy) según el Host.
+- En el servidor, `middleware/tenant.ts`: desde `admin.` **solo** responde `/platform/*` y nunca entra al contexto de un negocio; desde cualquier otro subdominio `/platform/*` da 404. `requirePlatformAuth` lo vuelve a comprobar.
+- Test: `apps/server/src/tests/platform.test.ts` — **debe pasar siempre** (aislamiento del panel, bloqueo, pagos, suspensión).
 
 ### Principio de módulos
 Cada módulo de negocio sigue el patrón:
@@ -265,7 +270,8 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 ### 6.12 Break-glass (recuperación de emergencia)
 - **Riesgo aceptado:** un solo admin + recovery code significa que si se pierden ambos, el sistema queda bloqueado — sin reset por email ni segundo usuario.
 - **Mitigación:** script `apps/server/src/scripts/reset-admin.ts <slug>` (compila a `dist/scripts/reset-admin.js`), ejecutable con acceso directo al servidor, que resetea la contraseña del admin **de ese negocio** (genera contraseña temporal + nuevo recovery code, e invalida todas las sesiones del negocio). Construido en la Fase 2; recibe el slug desde la Fase A.
-- **Administración de negocios:** `apps/server/src/scripts/tenant.ts` → `create <slug> "<nombre>"`, `list`, `suspend <slug>`, `activate <slug>`. Tampoco es endpoint HTTP.
+- **Administración de negocios:** normalmente desde el panel `admin.<dominio>` (Fase F). Respaldo por consola: `apps/server/src/scripts/tenant.ts` → `create <slug> "<nombre>"`, `list`, `suspend <slug>`, `activate <slug>`.
+- **Superadministradores:** `apps/server/src/scripts/superadmin.ts` → `create <usuario>` (contraseña temporal), `reset`, `disable`, `enable`, `list`. **No hay alta ni recuperación por HTTP**: quien controla el panel controla todos los negocios.
 - El script **no es un endpoint** — solo corre con acceso local al servidor, protegido por el acceso SSH por clave. Esa es la red de seguridad ante un bloqueo total.
 
 ### 6.13 Roles y permisos (Fase B)
@@ -283,6 +289,17 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 - **Autor en audit_log:** columna `user_id`, rellenada con `currentActorId()` (el actor que `requireAuth` deja en el contexto del request). NULL = sistema o sin sesión. Toda inserción nueva en `audit_log` debe incluir `userId: currentActorId()`.
 - Un solo dueño por negocio (índice único parcial). Usuarios nunca se borran: se desactivan. El rol no se cambia (contraseña vs PIN): se desactiva y se crea otro.
 - El recovery code es solo del dueño; admins y cajeros los restablece un superior desde Usuarios.
+
+### 6.14 Panel de la plataforma (Fase F)
+| Decisión | Valor |
+|---|---|
+| Cuentas | Tabla `superadmins` en `control.db`, argon2id, creadas solo por consola |
+| Sesión | Cookie `dosuxsoft_platform` (distinta a la de los negocios, sin `Domain` → solo `admin.`), tabla `platform_sessions`, mismas 8 h / 60 min |
+| Login | 5 fallos → bloqueo 15 min por cuenta + rate limit 5/15 min por IP; usuario inexistente = mismo tiempo y mensaje |
+| Cambio de contraseña | Cierra todas las sesiones de esa cuenta y abre una nueva para quien la cambió |
+| Bitácora | `platform_audit_log` (solo inserción): login, alta, cambios con valor anterior y nuevo, pagos, anulaciones, suspensiones |
+| Datos de un negocio | El panel solo lee métricas de uso (cantidad de usuarios, fecha de la última venta). Nunca clientes ni montos del negocio |
+| Sin MFA | Igual que el resto del sistema (§10). Mitigación: cuentas solo por consola, bloqueo, bitácora |
 
 ---
 
@@ -338,7 +355,7 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 - **Scripts CLI:** recibir el slug como argumento y ejecutar dentro de `runWithTenant(slug, fn)`.
 - **Rutas sin negocio** (health, tls-check) se declaran en `GLOBAL_PATHS` de `middleware/tenant.ts` y no pueden tocar `db`.
 - Rutas a archivos de un negocio: usar `tenantDbPath(slug)` / `tenantBackupDir(slug)` — validan el slug.
-- `control.db` solo guarda el registro de negocios. **Nunca** datos operativos.
+- `control.db` guarda el registro de negocios y lo de la plataforma (suscripción, pagos de la mensualidad, superadministradores, tipo de cambio). **Nunca** datos operativos de un negocio.
 
 ### Reglas de inventario (Fase C)
 - `products.stock` es el saldo de `stock_movements`. **Solo** `applyStockChange(tx, …)` (`modules/products/repository.ts`) lo modifica, siempre dentro de la transacción del llamador y dejando el movimiento con `stock_after`.
@@ -362,6 +379,14 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 - BCCR: API SDDE (`apim.bccr.fi.cr`, token Bearer en `BCCR_API_TOKEN`, uno para toda la plataforma). Tabla `exchange_rates` en `control.db` (global). Job horario `jobs/exchange-rate.ts`, no por negocio.
 - **Avisos por WhatsApp:** enlaces `wa.me/506XXXXXXXX?text=…` (`whatsappLink`), la persona toca Enviar. Plantillas en settings `msg_*` (vacío = `DEFAULT_MESSAGES`). Cada aviso abierto queda en `customer_notifications` (solo inserción). No hay envío automático.
 
+### Reglas de la plataforma (Fase F)
+- **Alta solo desde el panel** (o `tenant create`): no hay registro público.
+- **Cobro manual:** el superadministrador registra cada pago (SINPE / transferencia). `tenants.paid_until` es el último día cubierto (YYYY-MM-DD, calendario de CR); NULL = sin cobro. Un pago extiende **desde el vencimiento actual aunque ya pasó** (`addMonths`, compartido). Los pagos no se borran: se anulan, y anular el último pago devuelve el vencimiento (`previous_paid_until`) si nadie lo corrigió después.
+- **Un atraso nunca bloquea.** Estado derivado con `subscriptionStatus` (compartido): `al_dia`, `por_vencer` (≤ 5 días), `vencido`, `sin_cobro`. El dueño y los admins ven un aviso; suspender es manual desde el panel.
+- Precio: `monthly_price` del negocio o, si es NULL, `default_monthly_price` de `platform_settings`.
+- Las tablas de `control.db` se crean con `CREATE TABLE IF NOT EXISTS` y columnas nuevas con `ALTER TABLE` condicional en `db/control.ts` (no usa las migraciones de Drizzle). Todo lo que escribe más de una tabla usa `controlTransaction`.
+- El enrutado del panel en el frontend es un enrutador mínimo propio (`features/platform/router.tsx`), para no mezclar un segundo árbol de TanStack Router con los tipos de la app de los negocios.
+
 ### Regla de migraciones
 - Migraciones a mano: agregarlas al `_journal.json` con `when` **mayor que la anterior**. Drizzle salta las que tengan `when` menor que la última aplicada (lo encontró el test de la migración 0009 al agregar la 0010).
 
@@ -382,6 +407,7 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 ## 8. Variables de Entorno
 
 Definidas en `.env` (nunca en el repositorio). Ver `.env.example` para estructura.
+Producción: `deploy/.env` (lo lee Docker Compose). Desarrollo: `apps/server/.env`, opcional, cargado por `pnpm dev` con `--env-file-if-exists` (p. ej. para `BCCR_API_TOKEN`).
 
 | Variable | Descripción |
 |---|---|
@@ -460,6 +486,7 @@ La estructura está fijada y aprobada — no modificar sin actualizar este archi
 | 2026-06-17 | Post-launch bugfix | **Apartados eliminado del sidebar** — ítem `/apartados` removido de `NAV_ITEMS` en `AppLayout.tsx` (commit `2cee7ed`). El módulo backend y la página siguen existiendo pero no son accesibles desde la navegación; decisión tomada por el usuario. |
 | 2026-06-17 | Post-launch bugfix | **`drizzle.config.ts` apuntaba a DB incorrecta** — `sipnato.db` → `dosuxsoft.db` (commit `26832fa`). La BD de producción siempre se llamó `dosuxsoft.db` (volumen Docker `dosuxsoft-data`); el config de desarrollo nunca era crítico pero era engañoso. |
 | 2026-06-17 | Post-launch bugfix | **Bug crítico de Drizzle en módulo Créditos** — `listCreditoRows` y `getCreditoWithPaymentsRow` en `modules/creditos/repository.ts` producían 500 en producción: `"You tried to reference 'paidAmount' field from a subquery, which is a raw SQL field, but it doesn't have an alias declared."`. Causa: Drizzle v0.36.4 exige `.as('fieldAlias')` en campos `sql<T>\`...\`` dentro de subqueries nombrados. Fix: añadido `.as('paidAmount')` en ambas funciones (commit `e9cbe24`). El error solo se manifestó en producción porque `tsc` no lo detecta — ver regla de alias en Sección 7. |
+| 2026-10-07 | Fase F | **Panel de la plataforma y cobro de la mensualidad.** Decisiones del usuario: alta de negocios solo desde el panel; cobro manual por SINPE/transferencia; un atraso solo genera avisos; un plan con precio por defecto y precio especial por negocio. `control.db`: columnas de contacto/precio/vencimiento en `tenants`, tablas `superadmins`, `platform_sessions`, `subscription_payments`, `platform_settings`, `platform_audit_log`. Backend: `modules/platform/` (NUEVO: sesión del superadministrador con bloqueo, alta con BD y código de activación, datos y vencimiento auditados, pagos y anulaciones, suspensión, configuración de cobro), `middleware/platform-auth.ts` (NUEVO), subdominio `admin` aislado en `middleware/tenant.ts`, `modules/subscription/` (NUEVO: `/api/subscription` para dueño y admins), `scripts/superadmin.ts` (NUEVO), tls-check acepta `admin.`, limpieza diaria de sesiones del panel. Shared: `schemas/platform.ts` (NUEVO: validación del subdominio movida aquí, `addMonths`, `subscriptionStatus`, esquemas y tipos del panel). Frontend: `features/platform/` (NUEVO: login, negocios con resumen de cobros y filtros, alta con código enviable por WhatsApp, detalle con pagos/recordatorio/datos/acceso/actividad, configuración), `features/subscription/` (NUEVO: aviso de vencimiento en el layout y sección en Configuración). Deploy: Caddy enruta `/platform/*`; DEPLOY.md con la cuenta del panel. Tests: `src/tests/platform.test.ts` (NUEVO, 16 casos); 82/82 pasan. Verificado en navegador: login, configuración de cobro, alta de negocio con subdominio sugerido, activación con el código, aviso "vence el 09 oct" en el negocio, recordatorio y pago de 3 meses que corre el vencimiento al 09 ene 2027, vista de celular y modo oscuro. |
 | 2026-10-07 | Fase E | **Cobro en dólares y avisos a clientes por WhatsApp.** Decisiones del usuario: cobrar en USD con contabilidad en colones; tipo de cambio automático del BCCR; avisos por WhatsApp que la persona envía con un toque; avisos de orden recibida/lista, cobro de créditos, abono registrado y cotización. DB: migración `0010_dolares_avisos.sql` (campos USD en `sales`, totales USD en el cierre de `cash_registers`, tabla `customer_notifications`); `exchange_rates` en `control.db`. Backend: `lib/bccr.ts` (NUEVO: cliente API SDDE, compra 317/venta 318), `jobs/exchange-rate.ts` (NUEVO: consulta horaria global), `lib/exchange-rate.ts` (NUEVO: compra BCCR reciente o respaldo manual), método de pago `dolares` con conversión y vuelto calculados en el servidor, totales de caja con dólares en caja y vueltos, reportes y dashboard con dólares, `/api/exchange-rate` y `/api/notifications` (NUEVOS), settings `usd_manual_rate` y plantillas `msg_*`. Shared: utilidades USD en `money.ts`, `schemas/notifications.ts` (NUEVO: plantillas, `renderMessage`, `whatsappLink`). Frontend: botón "Dólares" y diálogo de cobro en USD en el POS, dólares en caja y arqueo, Configuración con tipo de cambio y editor de mensajes, `WhatsAppNotify` + historial en órdenes (comprobante / listo para retirar), créditos (recordar cobro, comprobante de abono), apartados (comprobante de abono) y cotizaciones. **Bugs previos corregidos:** fechas sin hora (vencimiento de créditos) se mostraban un día antes y un crédito figuraba vencido el mismo día de su vencimiento. Tests: `src/tests/currency.test.ts` (NUEVO, 11 casos, incluye el cliente BCCR con respuestas simuladas); 66/66 pasan. Verificado en navegador: respaldo de ₡505.50, cobro de ₡8,000 con $20 → vuelto ₡2,110, caja con $20.00 en dólares, aviso por WhatsApp con mensaje y número correctos y su historial. |
 | 2026-10-07 | Fase D | **Plantillas por tipo de negocio y órdenes de servicio configurables.** Decisiones del usuario: 5 plantillas (celulares, electrónica, taller mecánico, tienda sin servicio técnico, genérico); campos editables por el dueño; sin estados en las órdenes; módulos propuestos por la plantilla y ajustables por el dueño. DB: migración `0009_perfil_negocio.sql` (tabla `business_profile` con perfil "celulares" para todo negocio existente; `boletas.fields` JSON; IMEI y contraseña de las boletas existentes migrados a `fields`; columnas `imei`/`unlock_password` e índice eliminados). Backend: `modules/business/` (NUEVO: GET para todos, PUT solo dueño, auditado), `middleware/module.ts` (NUEVO: `registerModuleRoutes`, 404 `MODULO_DESACTIVADO`), boletas validan `fields` contra el perfil y buscan en ellos (placa, serie, IMEI...), setup aplica la plantilla elegida. Shared: `schemas/business.ts` (NUEVO: plantillas, `validateOrderFields`, `fieldKeyFromLabel`; `validateImei` movido aquí). Frontend: perfil en el contexto del router (`useBusiness`, `requireModule`), menú filtrado por módulos y con el nombre de las órdenes del negocio, formulario de orden generado desde el perfil (texto, número, lista, IMEI, contraseña del cliente con aviso), editor en Configuración (plantillas con confirmación inline, nombres, campos con orden/tipo/obligatorio/opciones, módulos), setup con tipo de negocio, dashboard y POS respetan módulos, textos genéricos ("negocio" en vez de "taller"). Tests: `src/tests/business.test.ts` (NUEVO, 8 casos incluida la migración con boletas del formato anterior); 55/55 pasan. Verificado en navegador: cambio a plantilla de taller, menú actualizado sin recargar, módulo apagado bloqueado, orden con validación de placa y kilometraje. |
 | 2026-10-07 | Fase C | **Inventario / catálogo integrado al POS.** Decisiones del usuario: carrito con varios productos + líneas libres; vender sin stock avisa y permite; entradas y ajustes simples con motivo; admin/dueño gestionan, el cajero consulta. DB: migración `0008_inventario.sql` (`products` con código único parcial y `track_stock` para servicios, `stock_movements` como historial con `stock_after`, `sale_items` con precio y costo copiados). Backend: `modules/products/` (NUEVO: listado con filtros activos/stock bajo/desactivados, lookup por código para lectores de barras, CRUD, entradas que actualizan el costo al de la última compra, ajustes por conteo con motivo obligatorio calculados dentro de la transacción, historial), `applyStockChange` como único punto que toca el stock; ventas: precio desde el catálogo, descuento de stock en la transacción de la venta, `stockWarnings`, devolución de stock al eliminar, descripción resumen automática, líneas en el listado. Venta de monto libre sin cambios. Permisos `manageInventory`/`viewCosts`; costos ocultos para el cajero. Frontend: pantalla Inventario (lista densa, filtros, alta inline, fila expandible con edición, "Llegó mercadería"/"Corregir conteo" e historial), POS con buscador/escáner y carrito con cantidades y aviso de stock, ticket impreso con líneas. **Bug encontrado y corregido:** fechas con default `datetime('now')` (UTC sin `Z`) se mostraban 6 h corridas; regla añadida en §7. Tests: `src/tests/inventory.test.ts` (NUEVO, 11 casos); 47/47 pasan. Verificado en navegador: escaneo, búsqueda, carrito con aviso de stock, línea libre, cobro SINPE, stock y costos por rol, entrada con historial. |

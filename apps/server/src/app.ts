@@ -9,7 +9,7 @@ import { startAutoCloseCron } from './jobs/auto-close.js';
 import { startBackupCron } from './jobs/backup.js';
 import { startCleanupJobs } from './jobs/cleanup-sessions.js';
 import { registerSecurityHeaders } from './middleware/security-headers.js';
-import { registerTenantResolution, slugFromHostname } from './middleware/tenant.js';
+import { isPlatformHost, PLATFORM_PREFIX, registerTenantResolution, slugFromHostname } from './middleware/tenant.js';
 import authRoutes from './modules/auth/routes.js';
 import cashRegisterRoutes from './modules/cash-registers/routes.js';
 import boletasRoutes from './modules/boletas/routes.js';
@@ -28,6 +28,8 @@ import usersRoutes from './modules/users/routes.js';
 import productsRoutes from './modules/products/routes.js';
 import businessRoutes from './modules/business/routes.js';
 import notificationsRoutes, { exchangeRateRoutes } from './modules/notifications/routes.js';
+import platformRoutes from './modules/platform/routes.js';
+import subscriptionRoutes from './modules/subscription/routes.js';
 import { startExchangeRateCron } from './jobs/exchange-rate.js';
 import { registerModuleRoutes } from './middleware/module.js';
 
@@ -55,7 +57,7 @@ export async function buildApp(opts: { startJobs?: boolean } = {}) {
   await app.register(rateLimit, {
     max: 200,
     timeWindow: '1 minute',
-    keyGenerator: (req) => `${req.tenantSlug ?? '-'}:${req.ip}`,
+    keyGenerator: (req) => `${req.isPlatform ? 'platform' : (req.tenantSlug ?? '-')}:${req.ip}`,
     // Per-route overrides are set in route config.rateLimit
   });
 
@@ -93,6 +95,10 @@ export async function buildApp(opts: { startJobs?: boolean } = {}) {
   await app.register(businessRoutes, { prefix: '/api/business' });
   await app.register(exchangeRateRoutes, { prefix: '/api/exchange-rate' });
   await app.register(notificationsRoutes, { prefix: '/api/notifications' });
+  await app.register(subscriptionRoutes, { prefix: '/api/subscription' });
+
+  // Panel de superadministrador: solo responde en admin.<dominio> (middleware/tenant.ts).
+  await app.register(platformRoutes, { prefix: PLATFORM_PREFIX.slice(0, -1) });
 
   // Módulos que cada negocio activa o desactiva (perfil del negocio).
   await registerModuleRoutes(app, 'ordenes', boletasRoutes, '/api/boletas');
@@ -106,6 +112,7 @@ export async function buildApp(opts: { startJobs?: boolean } = {}) {
   // Solo accesible dentro de la red Docker: el Caddyfile no expone /internal/*.
   app.get('/internal/tls-check', async (request, reply) => {
     const { domain } = request.query as { domain?: string };
+    if (domain && isPlatformHost(domain)) return reply.status(200).send();
     const slug = domain ? slugFromHostname(domain, config.TENANT_BASE_DOMAIN) : null;
     const tenant = slug ? findTenant(slug) : null;
     return reply.status(tenant?.status === 'active' ? 200 : 404).send();

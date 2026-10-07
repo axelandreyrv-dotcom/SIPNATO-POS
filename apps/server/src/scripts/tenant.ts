@@ -1,5 +1,6 @@
 /**
  * Administración de negocios (tenants) — ejecutar con acceso directo al servidor.
+ * Lo habitual es usar el panel de superadministrador (admin.<dominio>); esto queda como respaldo.
  *
  *   tenant create <slug> "<nombre>"   crea el negocio y su BD, e imprime el código de activación
  *   tenant setup-code <slug>          emite un código de activación nuevo (solo si aún no hay admin)
@@ -17,23 +18,16 @@ import {
   insertTenant,
   isValidSlug,
   listTenants,
-  setSetupCodeHash,
   setTenantStatus,
 } from '../db/control.js';
 import { users } from '../db/schema.js';
-import { generateSetupCode, hashSetupCode } from '../lib/crypto.js';
+import { issueSetupCode } from '../modules/platform/service.js';
 
 const [command, slug, ...rest] = process.argv.slice(2);
 
 function fail(message: string): never {
   console.error(`\n[tenant] ${message}\n`);
   process.exit(1);
-}
-
-async function issueSetupCode(tenantSlug: string): Promise<string> {
-  const code = generateSetupCode();
-  setSetupCodeHash(tenantSlug, await hashSetupCode(code));
-  return code;
 }
 
 function printSetupCode(tenantSlug: string, code: string): void {

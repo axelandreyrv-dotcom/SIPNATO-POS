@@ -3,6 +3,8 @@ import type { FastifyBaseLogger } from 'fastify';
 import { lt } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { sessions } from '../db/schema.js';
+import { INACTIVITY_TIMEOUT_MS } from '../lib/session.js';
+import { deleteExpiredPlatformSessions } from '../modules/platform/repository.js';
 import { forEachActiveTenant } from './for-each-tenant.js';
 
 export function startCleanupJobs(log: FastifyBaseLogger): void {
@@ -13,5 +15,8 @@ export function startCleanupJobs(log: FastifyBaseLogger): void {
       const result = db.delete(sessions).where(lt(sessions.expiresAt, now)).run();
       tenantLog.info(`[cleanup] Expired sessions deleted: ${result.changes}`);
     });
+
+    const inactiveBefore = new Date(Date.now() - INACTIVITY_TIMEOUT_MS).toISOString();
+    log.info(`[cleanup] Sesiones del panel eliminadas: ${deleteExpiredPlatformSessions(inactiveBefore)}`);
   });
 }

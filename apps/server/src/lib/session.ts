@@ -5,7 +5,7 @@ import { sessions, users } from '../db/schema.js';
 import { generateSessionToken, hashSessionToken } from './crypto.js';
 
 export const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;  // 8 hours absolute
-const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;           // 60 minutes inactivity
+export const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;           // 60 minutes inactivity
 
 export type Session = typeof sessions.$inferSelect;
 

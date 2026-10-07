@@ -25,6 +25,7 @@ export default defineConfig({
       '/api': apiProxy,
       '/auth': apiProxy,
       '/health': apiProxy,
+      '/platform': apiProxy,
     },
   },
 });
