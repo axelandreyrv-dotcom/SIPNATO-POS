@@ -1,7 +1,7 @@
 /**
  * Seed de datos para DESARROLLO únicamente.
- * Ejecutar: pnpm --filter @sipnato/server db:seed
- * NO ejecutar en producción.
+ * Ejecutar: pnpm --filter @sipnato/server db:seed [slug]   (default: "demo")
+ * Crea el negocio en control.db si no existe. NO ejecutar en producción.
  */
 import { config } from '../config.js';
 
@@ -10,44 +10,41 @@ if (config.NODE_ENV === 'production') {
   process.exit(1);
 }
 
-import { db, runMigrations } from './client.js';
-import { counters, customers, settings } from './schema.js';
+import { db, runWithTenant } from './client.js';
+import { findTenant, insertTenant, setSetupCodeHash } from './control.js';
+import { customers, settings } from './schema.js';
+import { generateSetupCode, hashSetupCode } from '../lib/crypto.js';
+import { eq } from 'drizzle-orm';
 
-runMigrations();
+const slug = process.argv[2] ?? 'demo';
+if (!findTenant(slug)) {
+  insertTenant(slug, `Negocio ${slug}`);
+  const code = generateSetupCode();
+  setSetupCodeHash(slug, await hashSetupCode(code));
+  console.log(`[seed] Negocio "${slug}" creado · código de activación: ${code}`);
+}
 
-// Settings iniciales del taller
-await db
-  .insert(settings)
-  .values([
-    { key: 'shop_name', value: 'Dosuxsoft Taller' },
-    { key: 'shop_phone', value: '88888888' },
-    { key: 'shop_id_number', value: '3-101-000000' },
-    { key: 'receipt_footer', value: 'Gracias por su preferencia.' },
-    { key: 'boleta_footer', value: 'Tiempo de entrega estimado: 3-5 días hábiles.' },
-    { key: 'quote_footer', value: 'Esta cotización tiene validez de 15 días.' },
-    { key: 'auto_close_enabled', value: 'false' },
-    { key: 'auto_close_time', value: '00:00' },
-  ])
-  .onConflictDoNothing();
+runWithTenant(slug, () => {
+  const values: Record<string, string> = {
+    shop_name: 'Dosuxsoft Taller',
+    shop_phone: '88888888',
+    shop_id_number: '3-101-000000',
+    receipt_footer: 'Gracias por su preferencia.',
+    boleta_footer: 'Tiempo de entrega estimado: 3-5 días hábiles.',
+    quote_footer: 'Esta cotización tiene validez de 15 días.',
+  };
+  for (const [key, value] of Object.entries(values)) {
+    db.update(settings).set({ value }).where(eq(settings.key, key)).run();
+  }
 
-// Contadores en cero
-await db
-  .insert(counters)
-  .values([
-    { type: 'sale', currentValue: 0 },
-    { type: 'boleta', currentValue: 0 },
-    { type: 'quote', currentValue: 0 },
-  ])
-  .onConflictDoNothing();
+  db.insert(customers)
+    .values([
+      { name: 'Juan Pérez', phone: '88001234', email: 'juan@example.com' },
+      { name: 'María López', phone: '72005678' },
+      { name: 'Carlos Mora', phone: '66009012', idNumber: '1-0234-0567' },
+    ])
+    .onConflictDoNothing()
+    .run();
+});
 
-// Clientes de prueba
-await db
-  .insert(customers)
-  .values([
-    { name: 'Juan Pérez', phone: '88001234', email: 'juan@example.com' },
-    { name: 'María López', phone: '72005678' },
-    { name: 'Carlos Mora', phone: '66009012', idNumber: '1-0234-0567' },
-  ])
-  .onConflictDoNothing();
-
-console.log('[seed] ✅ Datos de prueba insertados correctamente.');
+console.log(`[seed] ✅ Datos de prueba insertados en el negocio "${slug}".`);

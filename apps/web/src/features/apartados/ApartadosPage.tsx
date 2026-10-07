@@ -18,6 +18,7 @@ import type {
   ApartadoWithPayments,
 } from '@sipnato/shared';
 import { apartadosApi } from './api';
+import { useCan } from '../auth/useCurrentUser';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -185,6 +186,7 @@ function ApartadoRow({ ap }: { ap: Apartado }) {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const canCancel = useCan('cancelDocuments');
 
   const { data: detail, isFetching } = useQuery({
     queryKey: ['apartado', ap.id],
@@ -283,7 +285,7 @@ function ApartadoRow({ ap }: { ap: Apartado }) {
             <>
               <AddPaymentForm apartadoId={ap.id} onSuccess={() => {}} />
               <div className="mt-3 flex justify-end">
-                {confirmCancel ? (
+                {!canCancel ? null : confirmCancel ? (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-text-muted">¿Cancelar apartado?</span>
                     <button

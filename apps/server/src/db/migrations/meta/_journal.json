@@ -50,6 +50,20 @@
       "when": 1781633340053,
       "tag": "0006_creditos",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1791400000000,
+      "tag": "0007_usuarios",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1791500000000,
+      "tag": "0008_inventario",
+      "breakpoints": true
     }
   ]
 }

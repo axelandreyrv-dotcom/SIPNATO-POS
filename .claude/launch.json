@@ -2,11 +2,19 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "server",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@sipnato/server", "dev"],
+      "port": 3000,
+      "url": "http://localhost:3000"
+    },
+    {
       "name": "web",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@sipnato/web", "dev"],
       "port": 5174,
-      "autoPort": false
+      "autoPort": false,
+      "url": "http://taller.localhost:5174"
     }
   ]
 }

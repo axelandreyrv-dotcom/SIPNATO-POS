@@ -1,5 +1,5 @@
 import { and, eq, isNull, sum } from 'drizzle-orm';
-import { db } from '../../db/client.js';
+import { currentActorId, db } from '../../db/client.js';
 import { auditLog, expenses } from '../../db/schema.js';
 import type { CreateExpenseInput, Expense } from '@sipnato/shared';
 
@@ -47,6 +47,7 @@ export function createExpenseRow(
       payloadSnapshot: JSON.stringify({ description: input.description, amount: input.amount }),
       ip: meta.ip,
       userAgent: meta.userAgent,
+      userId: currentActorId(),
     }).run();
 
     return mapRow(row);
@@ -61,7 +62,7 @@ export function findExpenseById(id: number): Expense | null {
 export function softDeleteExpenseRow(
   id: number,
   meta: AuditMeta,
-  snapshot: { description: string; amount: number },
+  snapshot: Record<string, unknown>,
 ): void {
   const deletedAt = new Date().toISOString();
 
@@ -75,6 +76,7 @@ export function softDeleteExpenseRow(
       payloadSnapshot: JSON.stringify(snapshot),
       ip: meta.ip,
       userAgent: meta.userAgent,
+      userId: currentActorId(),
     }).run();
   });
 }

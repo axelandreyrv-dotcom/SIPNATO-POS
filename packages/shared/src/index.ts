@@ -13,3 +13,4 @@ export * from './schemas/dashboard.js';
 export * from './schemas/apartado.js';
 export * from './schemas/factura.js';
 export * from './schemas/credito.js';
+export * from './schemas/product.js';

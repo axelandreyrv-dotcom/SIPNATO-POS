@@ -1,4 +1,18 @@
-www.dosuxsoft.com {
+{
+    # Certificados por subdominio, emitidos al primer acceso. Antes de emitir, Caddy pregunta
+    # al servidor si el subdominio es un negocio activo: evita emitir certificados para
+    # subdominios inventados (abuso de rate limit de Let's Encrypt).
+    on_demand_tls {
+        ask http://server:3000/internal/tls-check
+    }
+}
+
+# Cada negocio vive en <slug>.dosuxsoft.com — el servidor identifica el negocio por el Host.
+*.dosuxsoft.com {
+    tls {
+        on_demand
+    }
+
     root * /srv
 
     # API REST → Fastify (servicio Docker "server")
@@ -15,6 +29,8 @@ www.dosuxsoft.com {
     handle /health {
         reverse_proxy server:3000
     }
+
+    # /internal/* (tls-check) NO se expone: solo Caddy lo llama dentro de la red Docker.
 
     # SPA: servir archivos estáticos, fallback a index.html para React Router
     handle {
@@ -35,7 +51,8 @@ www.dosuxsoft.com {
     encode gzip zstd
 }
 
-# Redirigir dosuxsoft.com (sin www) → www.dosuxsoft.com
-dosuxsoft.com {
-    redir https://www.dosuxsoft.com{uri} permanent
+# El dominio raíz no es un negocio. Placeholder hasta tener landing/registro (Fase F).
+dosuxsoft.com, www.dosuxsoft.com {
+    header -Server
+    respond "Dosuxsoft POS" 200
 }

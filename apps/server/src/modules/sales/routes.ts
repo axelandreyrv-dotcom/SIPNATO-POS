@@ -1,9 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import { z } from 'zod';
 import { createSaleSchema } from '@sipnato/shared';
-import { AppError, PinInvalido, PinRequerido } from '../../lib/errors.js';
+import { AppError } from '../../lib/errors.js';
 import { requireAuth } from '../../middleware/auth.js';
-import { getSalesPinSet, verifySalesPin } from '../settings/service.js';
+import { authorizeOrEscalate } from '../../middleware/authorization.js';
 import { createSale, deleteSale, listSales } from './service.js';
 
 export default async function salesRoutes(app: FastifyInstance) {
@@ -36,24 +35,12 @@ export default async function salesRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
     }
 
-    if (getSalesPinSet()) {
-      const bodyParsed = z.object({ pin: z.string().min(1) }).safeParse(request.body);
-      if (!bodyParsed.success) {
-        const err = new PinRequerido();
-        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
-      }
-      const valid = await verifySalesPin(bodyParsed.data.pin);
-      if (!valid) {
-        const err = new PinInvalido();
-        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
-      }
-    }
-
     try {
+      const authorizedBy = await authorizeOrEscalate(request, 'deleteMoneyDirectly');
       deleteSale(parsed, {
         ip: request.ip ?? null,
         userAgent: request.headers['user-agent'] ?? null,
-      });
+      }, authorizedBy);
       return reply.send({ ok: true });
     } catch (err) {
       if (err instanceof AppError) {

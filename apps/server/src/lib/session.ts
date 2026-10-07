@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
-import { db } from '../db/client.js';
-import { sessions } from '../db/schema.js';
+import { db, type Actor } from '../db/client.js';
+import { sessions, users } from '../db/schema.js';
 import { generateSessionToken, hashSessionToken } from './crypto.js';
 
 export const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;  // 8 hours absolute
@@ -10,6 +10,7 @@ const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;           // 60 minutes inactivity
 export type Session = typeof sessions.$inferSelect;
 
 export async function createSession(
+  userId: number,
   ip: string | null,
   userAgent: string | null,
 ): Promise<{ token: string; session: Session }> {
@@ -22,6 +23,7 @@ export async function createSession(
     .insert(sessions)
     .values({
       id: randomUUID(),
+      userId,
       tokenHash,
       expiresAt,
       lastActiveAt: now.toISOString(),
@@ -34,32 +36,35 @@ export async function createSession(
   return { token, session };
 }
 
-export async function verifySession(token: string): Promise<Session | null> {
+// Devuelve la sesión y su usuario. Un usuario desactivado invalida la sesión al instante,
+// aunque su desactivación ya revoque sus sesiones: defensa en profundidad.
+export async function verifySession(token: string): Promise<{ session: Session; user: Actor } | null> {
   const tokenHash = hashSessionToken(token);
 
-  const [session] = await db
-    .select()
+  const [row] = await db
+    .select({ session: sessions, user: users })
     .from(sessions)
+    .innerJoin(users, eq(users.id, sessions.userId))
     .where(eq(sessions.tokenHash, tokenHash))
     .limit(1);
 
-  if (!session) return null;
-
+  if (!row) return null;
+  const { session, user } = row;
   const now = new Date();
 
-  // Absolute expiry
-  if (new Date(session.expiresAt) < now) {
+  const expired =
+    new Date(session.expiresAt) < now ||
+    new Date(session.lastActiveAt).getTime() + INACTIVITY_TIMEOUT_MS < now.getTime();
+
+  if (expired || !user.active) {
     await db.delete(sessions).where(eq(sessions.id, session.id));
     return null;
   }
 
-  // Inactivity timeout
-  if (new Date(session.lastActiveAt).getTime() + INACTIVITY_TIMEOUT_MS < now.getTime()) {
-    await db.delete(sessions).where(eq(sessions.id, session.id));
-    return null;
-  }
-
-  return session;
+  return {
+    session,
+    user: { id: user.id, username: user.username, displayName: user.displayName, role: user.role },
+  };
 }
 
 export async function touchSession(sessionId: string): Promise<void> {
@@ -74,6 +79,7 @@ export async function revokeSession(token: string): Promise<void> {
   await db.delete(sessions).where(eq(sessions.tokenHash, tokenHash));
 }
 
-export async function revokeAllSessions(): Promise<void> {
-  await db.delete(sessions);
+// Al cambiar la contraseña/PIN o desactivar a un usuario (CLAUDE.md §6.1).
+export function revokeUserSessions(userId: number): void {
+  db.delete(sessions).where(eq(sessions.userId, userId)).run();
 }

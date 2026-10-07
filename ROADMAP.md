@@ -2,7 +2,7 @@
 
 > Desarrollo por fases pequeñas y lógicas. Cada fase es atómica: una sola responsabilidad, verificable antes de avanzar.
 > Al completar cada fase: marcar `[x]`, anotar la fecha y actualizar `CLAUDE.md`.
-> Última actualización: 2026-06-13 · Todas las fases ✅ + polish post-lanzamiento (logo, animaciones, personaje login)
+> Última actualización: 2026-10-07 · Fases 0–15 ✅ · Inicia la versión multi-negocio: Fase A ✅
 
 ---
 
@@ -28,6 +28,108 @@
 | 14 | Módulo de Apartados (layaway) | ✅ COMPLETADA 2026-06-12 |
 | — | Polish post-lanzamiento (UI/branding) | ✅ 2026-06-13 |
 | 15 | Módulo de Ventas a Crédito | ✅ COMPLETADA 2026-06-15 |
+
+### Versión multi-negocio (varios clientes y tipos de tienda, BD separada por negocio)
+
+| Fase | Nombre | Estado |
+|---|---|---|
+| A | Aislamiento multi-negocio (BD por negocio, subdominios) | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
+| B | Multiusuario y roles (dueño / administrador / cajero, PIN por cajero) | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
+| C | Inventario / catálogo integrado al POS (manteniendo venta libre) | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
+| D | Plantillas por tipo de negocio + órdenes de servicio configurables | ⬜ Pendiente |
+| E | Colones + dólares · notificaciones a clientes | ⬜ Pendiente |
+| F | Registro de negocios, cobro de suscripción y panel de superadministrador | ⬜ Pendiente |
+
+> IVA y facturación electrónica de Hacienda: **descartados** (decisión del usuario, 2026-10-07).
+
+---
+
+## Fase C — Inventario integrado al POS ✅ COMPLETADA 2026-10-07
+
+**Objetivo:** vender productos del catálogo con control de existencias, sin perder la venta de monto libre.
+
+### Tareas Backend
+- [x] Tablas `products`, `stock_movements` (historial con saldo) y `sale_items` (migración 0008)
+- [x] API de productos: listado/búsqueda, filtros, lookup por código de barras, alta, edición, desactivación
+- [x] Entradas de mercadería (actualizan el costo) y ajustes por conteo con motivo
+- [x] Venta con carrito: precio desde el catálogo, descuento de stock en la misma transacción, aviso de stock negativo
+- [x] Eliminar una venta devuelve el stock
+- [x] Costos visibles solo para admin/dueño
+
+### Tareas Frontend
+- [x] Pantalla Inventario (lista, filtros, alta, edición, existencias, historial)
+- [x] POS: buscador/escáner, carrito con cantidades y aviso de stock, monto libre como línea opcional
+- [x] Ticket impreso con las líneas de la venta
+
+### Criterio de completitud
+Escanear un producto en el POS, cobrarlo junto con una línea libre, y ver el stock descontado y el movimiento en el historial del producto. ✅ Verificado con tests y en navegador.
+
+### Fuera de esta fase (posibles siguientes pasos)
+- Descuentos por línea o por venta
+- Reporte de ventas y margen por producto
+- Usar el catálogo en cotizaciones, apartados y créditos
+
+---
+
+## Fase B — Multiusuario y roles ✅ COMPLETADA 2026-10-07
+
+**Objetivo:** que cada persona que atiende tenga su usuario, con permisos según su rol, y que cada acción quede registrada a su nombre.
+
+### Tareas Backend
+- [x] Tabla `users` (migración 0007); el admin existente pasa a ser el dueño (`dueno`)
+- [x] Login por usuario: contraseña (dueño/admin) o PIN de 6 dígitos (cajero); bloqueo tras 5 fallos
+- [x] Sesiones ligadas al usuario; desactivar o cambiar secreto cierra sus sesiones
+- [x] `requireRole` y matriz de permisos compartida; cancelar/anular solo admin/dueño; configuración y backups solo dueño
+- [x] Autorización de supervisor para que un cajero elimine ventas/gastos; queda `authorizedBy` en la bitácora
+- [x] Autor (`user_id`) en todas las entradas de `audit_log`
+- [x] API de usuarios: listar, crear, editar, desactivar, desbloquear, cambiar el propio secreto
+- [x] Eliminado el PIN compartido de borrado
+
+### Tareas Frontend
+- [x] Pantalla Usuarios y Mi cuenta
+- [x] Diálogo de autorización de supervisor en POS y Gastos
+- [x] Sidebar filtrado por rol + usuario actual visible
+- [x] Login con usuario; setup con nombre y usuario del dueño
+
+### Criterio de completitud
+Una cajera vende y, al eliminar una venta, se le pide la autorización de un admin; la bitácora registra que la cajera eliminó y el admin autorizó. ✅ Verificado con tests y en navegador.
+
+---
+
+## Fase A — Aislamiento multi-negocio ✅ COMPLETADA 2026-10-07
+
+**Objetivo:** que varios negocios usen el mismo servidor sin ningún cruce de datos. Sin funcionalidades nuevas de negocio.
+
+### Tareas Backend
+- [x] `control.db` con registro de negocios (slug, nombre, estado activo/suspendido)
+- [x] Una BD SQLite por negocio (`tenants/<slug>.db`), migraciones y bootstrap al primer acceso
+- [x] Identificación del negocio por subdominio en hook `onRequest`; 404 inexistente / 403 suspendido
+- [x] `db` ligado al negocio del request vía `AsyncLocalStorage`, falla cerrado fuera de contexto
+- [x] Jobs (cierre automático, backup, limpieza de sesiones) por negocio, aislando fallos
+- [x] Backups por negocio en `backups/<slug>/`; descarga solo del propio negocio
+- [x] Rate limit por negocio + IP
+- [x] `/internal/tls-check` para que Caddy emita certificados solo a negocios activos
+- [x] CLI `tenant` (create/setup-code/list/suspend/activate); `reset-admin` y `seed` reciben el negocio
+
+### Tareas Frontend
+- [x] Pantalla `/no-disponible` para negocio inexistente o suspendido
+- [x] Corregida detección de redirects de TanStack Router (setup de negocio nuevo)
+- [x] Proxy de Vite conserva el subdominio en desarrollo (`taller.localhost:5173`)
+
+### Despliegue
+- [x] Caddyfile `*.dosuxsoft.com` + on-demand TLS; dominio raíz como placeholder
+- [x] docker-compose con `DATA_DIR` / `TENANT_BASE_DOMAIN`; `backup.sh` por negocio
+- [x] DEPLOY.md: DNS comodín, alta de negocios, migración de la BD anterior
+
+### Checklist de seguridad (Fase A)
+- [x] Test automático de aislamiento (`src/tests/tenancy.test.ts`): sesión, contraseña y datos de un negocio no sirven en otro
+- [x] Slug validado como label DNS antes de usarse en rutas de archivos (path traversal)
+- [x] Cookie de sesión sin `Domain` (atada al subdominio)
+- [x] `/auth/setup` exige código de activación de un solo uso (nadie más puede reclamar un negocio recién creado)
+- [x] `/internal/*` no expuesto por Caddy
+
+### Criterio de completitud
+Dos negocios en el mismo servidor: configurar el admin de uno no afecta al otro, la sesión de uno da 401 en el otro y los datos creados en uno no aparecen en el otro. ✅ Verificado con tests y en navegador (`taller.localhost` / `ferreteria.localhost`).
 
 ---
 

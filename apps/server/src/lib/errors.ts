@@ -129,14 +129,73 @@ export class AbonoPagoExcede extends AppError {
   }
 }
 
-export class PinInvalido extends AppError {
+// ─── Inventario (Fase C) ──────────────────────────────────────────────────────
+
+export class ProductoNoEncontrado extends AppError {
   constructor() {
-    super('PIN_INVALIDO', 'PIN incorrecto', 403);
+    super('PRODUCTO_NO_ENCONTRADO', 'Producto no encontrado', 404);
   }
 }
 
-export class PinRequerido extends AppError {
+export class CodigoProductoDuplicado extends AppError {
   constructor() {
-    super('PIN_REQUERIDO', 'Se requiere PIN para eliminar ventas', 403);
+    super('CODIGO_DUPLICADO', 'Ya existe un producto con ese código', 409);
+  }
+}
+
+export class ProductoInactivo extends AppError {
+  constructor(name: string) {
+    super('PRODUCTO_INACTIVO', `"${name}" está desactivado y no se puede vender`, 400);
+  }
+}
+
+export class ProductoSinControlStock extends AppError {
+  constructor() {
+    super('PRODUCTO_SIN_STOCK', 'Este producto no lleva control de existencias', 400);
+  }
+}
+
+// ─── Usuarios y permisos (Fase B) ─────────────────────────────────────────────
+
+export class CredencialesInvalidas extends AppError {
+  constructor() {
+    super('INVALID_CREDENTIALS', 'Usuario o contraseña/PIN incorrectos', 401);
+  }
+}
+
+export class UsuarioBloqueado extends AppError {
+  constructor() {
+    super('USUARIO_BLOQUEADO', 'Demasiados intentos fallidos. Espera 15 minutos o pide a un administrador que restablezca tu acceso.', 429);
+  }
+}
+
+export class PermisoDenegado extends AppError {
+  constructor(message = 'No tienes permiso para esta acción') {
+    super('FORBIDDEN', message, 403);
+  }
+}
+
+export class UsuarioNoEncontrado extends AppError {
+  constructor() {
+    super('USUARIO_NO_ENCONTRADO', 'Usuario no encontrado', 404);
+  }
+}
+
+export class UsuarioYaExiste extends AppError {
+  constructor() {
+    super('USUARIO_YA_EXISTE', 'Ya existe un usuario con ese nombre de usuario', 409);
+  }
+}
+
+// El cajero intentó una acción que requiere que un admin o dueño la autorice en el momento.
+export class AutorizacionRequerida extends AppError {
+  constructor() {
+    super('AUTORIZACION_REQUERIDA', 'Esta acción requiere la autorización de un administrador', 403);
+  }
+}
+
+export class AutorizacionInvalida extends AppError {
+  constructor() {
+    super('AUTORIZACION_INVALIDA', 'La autorización no es válida: usuario o contraseña/PIN incorrectos, o sin permiso', 403);
   }
 }

@@ -1,5 +1,5 @@
 import { count, desc, eq, sql } from 'drizzle-orm';
-import { db } from '../../db/client.js';
+import { currentActorId, db } from '../../db/client.js';
 import { auditLog, counters, quoteItems, quotes } from '../../db/schema.js';
 import type { CreateQuoteInput, Quote, QuoteItem, QuoteWithItems } from '@sipnato/shared';
 
@@ -74,6 +74,7 @@ export function createQuoteRow(input: CreateQuoteInput, meta: AuditMeta): QuoteW
       payloadSnapshot: JSON.stringify({ consecutive, total, itemCount: items.length }),
       ip: meta.ip,
       userAgent: meta.userAgent,
+      userId: currentActorId(),
     }).run();
 
     return { ...mapQuote(quote), items };
@@ -147,6 +148,7 @@ export function updateQuoteRow(id: number, input: CreateQuoteInput, meta: AuditM
       payloadSnapshot: JSON.stringify({ consecutive: existing.consecutive, total, itemCount: items.length }),
       ip: meta.ip,
       userAgent: meta.userAgent,
+      userId: currentActorId(),
     }).run();
 
     return { ...mapQuote(updated), items };
@@ -168,6 +170,7 @@ export function hardDeleteQuoteRow(
       payloadSnapshot: JSON.stringify(snapshot),
       ip: meta.ip,
       userAgent: meta.userAgent,
+      userId: currentActorId(),
     }).run();
   });
 }

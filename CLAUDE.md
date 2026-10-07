@@ -1,7 +1,7 @@
 # CLAUDE.md — Biblia del Proyecto SIPNATO POS
 
 > Este archivo es la fuente de verdad del proyecto. Se actualiza al finalizar cada fase.
-> Última actualización: 2026-06-17 · Estado: **COMPLETO** + módulo Créditos · Apartados desactivado del sidebar · bug de subquery Drizzle corregido ✅
+> Última actualización: 2026-10-07 · Estado: **Fases A, B y C completas** — BD por negocio (subdominio) · usuarios con roles · inventario integrado al POS ✅
 
 ---
 
@@ -10,11 +10,11 @@
 | Campo | Valor |
 |---|---|
 | Nombre | SIPNATO POS |
-| Propósito | Sistema POS para taller de reparación de celulares y venta de accesorios |
+| Propósito | Sistema POS multi-negocio — nació para un taller de celulares; se generaliza a otros tipos de tienda |
 | País / Zona horaria | Costa Rica · `America/Costa_Rica` |
 | Moneda | Colones costarricenses (₡) únicamente |
-| Usuario operativo | Un solo administrador |
-| Tipo de sistema | Aplicación web privada detrás de login, accesible vía subdominio HTTPS |
+| Usuarios | Por negocio: un **dueño**, administradores y cajeros (Fase B, ver §6.13) |
+| Tipo de sistema | Aplicación web privada detrás de login · cada negocio en su subdominio HTTPS (`<slug>.dosuxsoft.com`) con su propia BD |
 
 ---
 
@@ -100,22 +100,35 @@
 | Hosting | VPS Ubuntu 22.04 LTS |
 | Reverse proxy + HTTPS | Caddy (Let's Encrypt automático) |
 | Contenedores | Docker Compose (server + caddy) |
-| Base de datos | SQLite · archivo único · WAL mode |
-| Respaldo | backup diario interno (better-sqlite3 backup API) · rotación 30 días |
+| Base de datos | SQLite · `control.db` (registro de negocios) + **un archivo por negocio** `tenants/<slug>.db` · WAL mode |
+| Respaldo | backup diario interno por negocio (better-sqlite3 backup API) en `backups/<slug>/` · rotación 30 días |
+| HTTPS por negocio | Caddy on-demand TLS · `ask` a `/internal/tls-check` (solo emite para negocios activos) |
 
 ---
 
 ## 4. Arquitectura
 
 ```
-[Navegador — SPA React] ──window.print()──► Ticketera 80mm (Epson predeterminada)
-        │ HTTPS (Caddy)
+[Navegador — SPA React en taller.dosuxsoft.com] ──window.print()──► Ticketera 80mm
+        │ HTTPS (Caddy, on-demand TLS por subdominio)
         ▼
-   API Fastify ──── node-cron (cierre auto + backup diario)
-        │
-        ▼
-   SQLite /app/data/sipnato.db  +  /app/data/backups/
+   API Fastify ── hook onRequest: Host → slug → control.db (¿existe? ¿activo?)
+        │                                      │
+        │  AsyncLocalStorage: `db` = BD de ese negocio      node-cron: cada job recorre
+        ▼                                                    los negocios activos uno a uno
+   /app/data/control.db                  ← registro de negocios (sin datos operativos)
+   /app/data/tenants/<slug>.db           ← TODOS los datos de un negocio (ventas, sesiones, audit…)
+   /app/data/backups/<slug>/             ← respaldos de ese negocio
 ```
+
+### Aislamiento multi-negocio (Fase A)
+- **Una BD por negocio.** Sesiones, admin, audit_log y datos viven en `tenants/<slug>.db`. Un token de sesión de un negocio no existe en la BD de otro.
+- El negocio se resuelve **solo en el servidor**, desde el `Host` (`middleware/tenant.ts`). Inexistente → 404 `NEGOCIO_NO_ENCONTRADO`; suspendido → 403 `NEGOCIO_SUSPENDIDO`.
+- `db` (de `db/client.ts`) es un proxy al negocio del contexto actual. **Falla cerrado:** usarlo fuera de un negocio lanza error en vez de caer en una BD por defecto.
+- El slug pasa por un regex de label DNS antes de convertirse en nombre de archivo (barrera contra path traversal). Subdominios reservados: `www`, `api`, `app`, `admin`, `mail`, `static`, `assets`, `control`.
+- La cookie de sesión no lleva `Domain` → queda atada a su subdominio.
+- Rate limit por negocio + IP.
+- Test de aislamiento: `apps/server/src/tests/tenancy.test.ts` — **debe pasar siempre**.
 
 ### Principio de módulos
 Cada módulo de negocio sigue el patrón:
@@ -182,8 +195,10 @@ Agregar un módulo nuevo = crear esas carpetas. **Nada existente se modifica.**
 | Sesión — duración absoluta | **8 horas** |
 | Sesión — timeout de inactividad | **60 minutos** |
 | Almacenamiento de sesión | Cookie `HttpOnly` + `Secure` + `SameSite=Strict` · tabla `sessions` en BD |
-| Al cambiar contraseña | Invalidar **todas** las filas de `sessions` del usuario |
+| Al cambiar contraseña/PIN o desactivar | Invalidar **todas** las filas de `sessions` de ese usuario (`revokeUserSessions`) |
+| Login | Usuario + contraseña (dueño/admin) o usuario + PIN de 6 dígitos (cajero). 5 fallos → bloqueo de 15 min por usuario (además del rate limit por IP). Usuario inexistente = mismo tiempo y mensaje que contraseña incorrecta |
 | Recovery code | Generado con `crypto.randomBytes(16).toString('hex')` · mostrado UNA vez · almacenado hasheado con argon2id · invalidado al usarse (genera uno nuevo) |
+| Código de activación (Fase A) | `/auth/setup` exige un código de un solo uso emitido por `tenant create` / `tenant setup-code` (64 bits, `XXXX-XXXX-XXXX-XXXX`, argon2id en `control.db`, se borra al usarse). Sin código vigente el setup queda cerrado. Evita que un tercero reclame un negocio recién creado (los subdominios son adivinables y aparecen en los logs públicos de Certificate Transparency). |
 
 ### 6.2 Impresión de tickets (sin token de bridge)
 - La impresión ocurre **100% en el navegador** vía `window.print()` — no hay servicio externo, WebSocket ni token que proteger.
@@ -191,12 +206,14 @@ Agregar un módulo nuevo = crear esas carpetas. **Nada existente se modifica.**
 
 ### 6.3 Endpoint de descarga de backup
 - Verificación de sesión activa **server-side** obligatoria antes de servir el archivo.
-- La ruta del archivo está **hardcodeada** en el servidor (`/app/data/backups/sipnato-latest.db`).
+- La ruta del archivo la deriva el servidor **solo del negocio resuelto por el Host** (`/app/data/backups/<slug>/latest.db`) — un negocio nunca puede descargar el backup de otro.
 - El endpoint **nunca** acepta parámetros del cliente para construir la ruta (previene path traversal · CWE-22).
 - Respuesta con header `Content-Disposition: attachment` — nunca inline.
 - Rate limit: máximo **5 descargas por hora** por sesión.
 
 ### 6.4 Rate limiting (Fastify `@fastify/rate-limit`)
+Los contadores se llevan por **negocio + IP** (`keyGenerator` en `app.ts`).
+
 | Endpoint | Límite |
 |---|---|
 | `POST /auth/login` | 5 intentos por IP cada 15 minutos |
@@ -247,8 +264,25 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 
 ### 6.12 Break-glass (recuperación de emergencia)
 - **Riesgo aceptado:** un solo admin + recovery code significa que si se pierden ambos, el sistema queda bloqueado — sin reset por email ni segundo usuario.
-- **Mitigación:** script `apps/server/src/scripts/reset-admin.ts` (compila a `dist/scripts/reset-admin.js`), ejecutable por SSH directamente en el VPS, que resetea la contraseña del admin en la BD (genera contraseña temporal + nuevo recovery code, e invalida todas las sesiones). Construido en la Fase 2.
+- **Mitigación:** script `apps/server/src/scripts/reset-admin.ts <slug>` (compila a `dist/scripts/reset-admin.js`), ejecutable con acceso directo al servidor, que resetea la contraseña del admin **de ese negocio** (genera contraseña temporal + nuevo recovery code, e invalida todas las sesiones del negocio). Construido en la Fase 2; recibe el slug desde la Fase A.
+- **Administración de negocios:** `apps/server/src/scripts/tenant.ts` → `create <slug> "<nombre>"`, `list`, `suspend <slug>`, `activate <slug>`. Tampoco es endpoint HTTP.
 - El script **no es un endpoint** — solo corre con acceso local al servidor, protegido por el acceso SSH por clave. Esa es la red de seguridad ante un bloqueo total.
+
+### 6.13 Roles y permisos (Fase B)
+| Acción | Dueño | Admin | Cajero |
+|---|---|---|---|
+| Vender, caja, gastos, boletas, clientes, cotizaciones, abonos, reportes | ✅ | ✅ | ✅ |
+| Eliminar ventas/gastos | ✅ | ✅ | Solo con **autorización en el momento** de un admin/dueño |
+| Cancelar créditos/apartados, anular facturas | ✅ | ✅ | ❌ |
+| Gestionar usuarios | Admins y cajeros | Solo cajeros | ❌ |
+| Inventario: crear/editar productos, precios, entradas y ajustes; ver costos | ✅ | ✅ | ❌ (consulta precio y stock) |
+| Editar configuración, descargar backups | ✅ | ❌ | ❌ |
+
+- Matriz en `packages/shared/src/schemas/auth.ts` (`PERMISSIONS`, `can`, `manageableRoles`). El frontend la usa solo para mostrar/ocultar; **el servidor la hace cumplir** con `requireRole(...)` (rutas) y `authorizeOrEscalate(request, permiso)` (acciones escalables).
+- **Autorización de supervisor:** el cajero envía `body.authorization = { username, secret }` de un admin/dueño junto con la acción. Se valida con el mismo `verifyCredentials` del login (cuenta intentos fallidos y bloquea), no abre sesión, y queda en el `payload_snapshot` como `authorizedBy`. Los intentos fallidos se registran como `SUPERVISOR_AUTH_FAILED`.
+- **Autor en audit_log:** columna `user_id`, rellenada con `currentActorId()` (el actor que `requireAuth` deja en el contexto del request). NULL = sistema o sin sesión. Toda inserción nueva en `audit_log` debe incluir `userId: currentActorId()`.
+- Un solo dueño por negocio (índice único parcial). Usuarios nunca se borran: se desactivan. El rol no se cambia (contraseña vs PIN): se desactiva y se crea otro.
+- El recovery code es solo del dueño; admins y cajeros los restablece un superior desde Usuarios.
 
 ---
 
@@ -285,6 +319,7 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 
 ### Reglas de fecha y hora
 - **Todos los timestamps se almacenan en UTC** en la BD.
+- **Fijar `createdAt`/`updatedAt` explícitamente con `new Date().toISOString()`** en cada inserción que se muestre en pantalla. El default `datetime('now')` de SQLite guarda UTC *sin* `Z` (`2026-10-07 19:52:52`) y el navegador lo interpreta como hora local: 6 h de error en Costa Rica (bug encontrado en Fase C en `stock_movements`).
 - **Todos los límites de día/semana/mes** (reportes, "ventas de hoy" por fecha) y el **cron de cierre automático** se computan en `America/Costa_Rica`.
 - El corte de caja agrupa ventas por `cash_register_id` (FK), **no por fecha** — inmune al problema de zona horaria.
 - El contenedor Docker corre en UTC; la conversión a hora de CR ocurre en la capa de lógica, nunca se asume la TZ del sistema operativo.
@@ -296,6 +331,21 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 ### Restricción de caja única abierta
 - SQLite no soporta índices parciales (`WHERE`) via Drizzle ORM — no es posible un `UNIQUE INDEX ... WHERE closed_at IS NULL`.
 - La invariante "solo una caja abierta" se garantiza en el **service layer** de Fase 4: `POST /api/cash-registers/open` consulta si existe una fila con `closed_at IS NULL` dentro de una transacción antes de insertar. SQLite es single-writer — no hay race condition real en este modelo.
+
+### Reglas multi-negocio (Fase A)
+- Los repositories importan `db` desde `db/client.ts` como siempre — **nunca** abrir `better-sqlite3` directamente ni guardar una referencia a la BD de un negocio en una variable de módulo.
+- **Jobs (node-cron):** envolver la lógica en `forEachActiveTenant(log, 'nombre-job', fn)` (`jobs/for-each-tenant.ts`). Un job que use `db` sin esto lanza error.
+- **Scripts CLI:** recibir el slug como argumento y ejecutar dentro de `runWithTenant(slug, fn)`.
+- **Rutas sin negocio** (health, tls-check) se declaran en `GLOBAL_PATHS` de `middleware/tenant.ts` y no pueden tocar `db`.
+- Rutas a archivos de un negocio: usar `tenantDbPath(slug)` / `tenantBackupDir(slug)` — validan el slug.
+- `control.db` solo guarda el registro de negocios. **Nunca** datos operativos.
+
+### Reglas de inventario (Fase C)
+- `products.stock` es el saldo de `stock_movements`. **Solo** `applyStockChange(tx, …)` (`modules/products/repository.ts`) lo modifica, siempre dentro de la transacción del llamador y dejando el movimiento con `stock_after`.
+- Venta con carrito: el cliente envía `{ productId, quantity }`; **precio y costo salen del catálogo en el servidor** y se copian a `sale_items` (cambiar el precio después no altera ventas pasadas). Líneas libres: `{ description, quantity, unitPrice }`.
+- `sales.amount` y `sales.description` se siguen llenando (total y resumen "2× X, Y"): caja, reportes y dashboard no leen `sale_items`.
+- Vender sin stock se permite (stock negativo) y se devuelve en `stockWarnings`. Eliminar una venta devuelve el stock (`anulacion_venta`).
+- El costo solo se envía a roles con `viewCosts`; el cajero recibe `cost: null`.
 
 ### Regla de alias en subqueries Drizzle ORM
 - Los campos `sql<T>\`...\`` dentro de un subquery nombrado (`.as('subqueryName')`) **deben** tener su propio `.as('fieldAlias')` o Drizzle v0.36+ lanza en runtime:
@@ -318,8 +368,9 @@ Definidas en `.env` (nunca en el repositorio). Ver `.env.example` para estructur
 | Variable | Descripción |
 |---|---|
 | `SESSION_SECRET` | Secret para firmar cookies de sesión (min 64 chars, random) |
-| `DATABASE_PATH` | Ruta absoluta al archivo SQLite (default: `/app/data/dosuxsoft.db`) |
-| `BACKUP_PATH` | Ruta absoluta al directorio de backups (default: `/app/data/backups/`) |
+| `DATA_DIR` | Directorio de datos: `control.db`, `tenants/<slug>.db`, `backups/<slug>/` (default: `./data`; prod: `/app/data`) |
+| `TENANT_BASE_DOMAIN` | Dominio base de los negocios (default: `localhost`; prod: `dosuxsoft.com`) |
+| `DEV_TENANT` | Solo desarrollo: negocio para `localhost` sin subdominio (opcional) |
 | `LOG_PATH` | Ruta absoluta al directorio de logs (default: `/app/logs/`) |
 | `PORT` | Puerto del servidor Fastify (default: `3000`) |
 | `ALLOWED_ORIGIN` | Origen CORS permitido — **`https://www.sipnato.com`** |
@@ -336,15 +387,15 @@ La estructura está fijada y aprobada — no modificar sin actualizar este archi
 
 ## 10. Fuera de Alcance (Explícito y Definitivo)
 
-- Facturación electrónica de Hacienda (Costa Rica)
-- Inventario / catálogo de productos / control de stock
-- Multi-usuario, roles y permisos
-- Multi-moneda
+- **Facturación electrónica de Hacienda e IVA (13%)** — descartado definitivamente por el usuario (2026-10-07), también en la versión multi-negocio
 - Estados de workflow y abonos en boletas
-- Notificaciones automáticas a clientes (WhatsApp/SMS/correo)
-- Multi-sucursal
+- Multi-sucursal dentro de un mismo negocio
 - MFA / TOTP
-- Staging environment (sistema personal)
+- Staging environment
+
+> **Ya no fuera de alcance — planificado para la versión multi-negocio** (ver ROADMAP, Fases B–F):
+> multiusuario con roles, inventario/catálogo, plantillas por tipo de negocio, órdenes de servicio
+> configurables, colones + dólares, notificaciones a clientes, registro/cobro y panel de superadministrador.
 
 ---
 
@@ -390,4 +441,7 @@ La estructura está fijada y aprobada — no modificar sin actualizar este archi
 | 2026-06-17 | Post-launch bugfix | **Apartados eliminado del sidebar** — ítem `/apartados` removido de `NAV_ITEMS` en `AppLayout.tsx` (commit `2cee7ed`). El módulo backend y la página siguen existiendo pero no son accesibles desde la navegación; decisión tomada por el usuario. |
 | 2026-06-17 | Post-launch bugfix | **`drizzle.config.ts` apuntaba a DB incorrecta** — `sipnato.db` → `dosuxsoft.db` (commit `26832fa`). La BD de producción siempre se llamó `dosuxsoft.db` (volumen Docker `dosuxsoft-data`); el config de desarrollo nunca era crítico pero era engañoso. |
 | 2026-06-17 | Post-launch bugfix | **Bug crítico de Drizzle en módulo Créditos** — `listCreditoRows` y `getCreditoWithPaymentsRow` en `modules/creditos/repository.ts` producían 500 en producción: `"You tried to reference 'paidAmount' field from a subquery, which is a raw SQL field, but it doesn't have an alias declared."`. Causa: Drizzle v0.36.4 exige `.as('fieldAlias')` en campos `sql<T>\`...\`` dentro de subqueries nombrados. Fix: añadido `.as('paidAmount')` en ambas funciones (commit `e9cbe24`). El error solo se manifestó en producción porque `tsc` no lo detecta — ver regla de alias en Sección 7. |
+| 2026-10-07 | Fase C | **Inventario / catálogo integrado al POS.** Decisiones del usuario: carrito con varios productos + líneas libres; vender sin stock avisa y permite; entradas y ajustes simples con motivo; admin/dueño gestionan, el cajero consulta. DB: migración `0008_inventario.sql` (`products` con código único parcial y `track_stock` para servicios, `stock_movements` como historial con `stock_after`, `sale_items` con precio y costo copiados). Backend: `modules/products/` (NUEVO: listado con filtros activos/stock bajo/desactivados, lookup por código para lectores de barras, CRUD, entradas que actualizan el costo al de la última compra, ajustes por conteo con motivo obligatorio calculados dentro de la transacción, historial), `applyStockChange` como único punto que toca el stock; ventas: precio desde el catálogo, descuento de stock en la transacción de la venta, `stockWarnings`, devolución de stock al eliminar, descripción resumen automática, líneas en el listado. Venta de monto libre sin cambios. Permisos `manageInventory`/`viewCosts`; costos ocultos para el cajero. Frontend: pantalla Inventario (lista densa, filtros, alta inline, fila expandible con edición, "Llegó mercadería"/"Corregir conteo" e historial), POS con buscador/escáner y carrito con cantidades y aviso de stock, ticket impreso con líneas. **Bug encontrado y corregido:** fechas con default `datetime('now')` (UTC sin `Z`) se mostraban 6 h corridas; regla añadida en §7. Tests: `src/tests/inventory.test.ts` (NUEVO, 11 casos); 47/47 pasan. Verificado en navegador: escaneo, búsqueda, carrito con aviso de stock, línea libre, cobro SINPE, stock y costos por rol, entrada con historial. |
+| 2026-10-07 | Fase B | **Multiusuario con roles dueño/admin/cajero.** Decisiones del usuario: cajero vende, abre/cierra caja y ve reportes; eliminar ventas/gastos requiere autorización de admin/dueño; no cancela créditos/apartados; login con PIN de 6 dígitos para cajeros; admin gestiona cajeros, solo el dueño gestiona admins, configuración y backups; el PIN compartido de borrado se elimina. DB: migración `0007_usuarios.sql` (tabla `users`, el admin existente pasa a ser el dueño con usuario `dueno`, se elimina `admin`, `sessions` recreada con `user_id`, `audit_log.user_id`, se borra `sales_delete_pin_hash`). Backend: `modules/users/` (NUEVO: CRUD con reglas de jerarquía, `verifyCredentials` con bloqueo 5 intentos/15 min, `verifySupervisor`, cambio de secreto propio), `middleware/authorization.ts` (NUEVO: `authorizeOrEscalate`), `requireRole`, actor en el contexto ALS (`setActor`/`currentActorId`) y `userId` en las 23 inserciones de audit_log, `/auth/me` devuelve el usuario, recover devuelve el usuario del dueño, cancelar/anular restringido a admin/dueño, settings PUT y backup solo dueño. Shared: schemas de usuarios + matriz `PERMISSIONS`. Frontend: pantalla Usuarios (lista + alta/restablecer inline), Mi cuenta (cambiar contraseña/PIN), `SupervisorAuthDialog` en POS y Gastos (reemplaza el modal de PIN), sidebar filtrado por rol + bloque del usuario actual, login con usuario, setup con nombre/usuario del dueño, botones de cancelar/anular ocultos sin permiso, guards de ruta. Tests: `src/tests/users.test.ts` (NUEVO, 14 casos); 36/36 pasan. Verificado en navegador con la BD de desarrollo migrada (admin → dueño) y un flujo real de cajera eliminando con autorización. |
+| 2026-10-07 | Fase A | **Multi-negocio con BD separada por negocio.** Backend: `db/control.ts` (NUEVO — `control.db` con tabla `tenants`: slug/nombre/estado, validación de slug como label DNS + reservados), `db/client.ts` reescrito (caché de conexiones por negocio, migraciones + bootstrap al primer `openTenantDb`, `AsyncLocalStorage` con `runWithTenant`, `db` como proxy que falla cerrado fuera de contexto), `middleware/tenant.ts` (NUEVO — hook `onRequest` Host → slug → 404/403/contexto), rate limit por negocio+IP, `/internal/tls-check` para on-demand TLS de Caddy, `/health` sobre `control.db`. Jobs (`auto-close`, `backup`, `cleanup-sessions`) recorren negocios activos vía `jobs/for-each-tenant.ts` (NUEVO); backups en `backups/<slug>/`. Descarga de backup derivada del negocio del request. Scripts: `scripts/tenant.ts` (NUEVO: create/list/suspend/activate), `reset-admin.ts <slug>`, `seed.ts [slug]`. Env: `DATABASE_PATH`/`BACKUP_PATH` → `DATA_DIR` + `TENANT_BASE_DOMAIN` + `DEV_TENANT`. Script `db:migrate` eliminado (las migraciones son por negocio). **Código de activación de un solo uso** para `/auth/setup` (hallazgo de la revisión de seguridad: sin él, quien llegara primero al subdominio de un negocio nuevo podía reclamar su admin) — columna `setup_code_hash` en `control.db`, `tenant setup-code <slug>`, campo en el formulario de setup. Tests: `src/tests/tenancy.test.ts` (NUEVO — 14 casos: BD separada, sesión/contraseña/datos no cruzan, código de activación propio y de un solo uso, 404/403, hosts maliciosos, tls-check, backup por negocio, falla cerrado); 22/22 pasan. Frontend: pantalla `/no-disponible` (negocio inexistente/suspendido) + `features/auth/tenant-guard.ts`. Deploy: Caddyfile `*.dosuxsoft.com` con on-demand TLS, apex/www como placeholder, compose con nuevas env, `backup.sh` por negocio, DEPLOY.md (DNS comodín en Cloudflare "Solo DNS", crear negocios, migrar BD anterior). **Bugs previos encontrados y corregidos:** (1) `login.tsx`/`setup.tsx` detectaban redirects con `'_isRedirect' in e`, propiedad que ya no existe en TanStack Router 1.170 (los redirects son `Response` con `.options`) → el redirect a `/setup` se perdía y un sistema sin admin mostraba "Iniciar sesión" (el síntoma visto en producción en agosto); ahora usan `isRedirect` de la librería. (2) Un `apps/web/vite.config.js` generado por `tsc -b` el 2026-06-12 (ignorado por git) tenía prioridad sobre `vite.config.ts` en desarrollo: ningún cambio de config de Vite desde esa fecha se aplicaba localmente (incluido el fix de framer-motion); `tsconfig.node.json` ahora emite a `node_modules/.tmp`. (3) Proxy de Vite con `changeOrigin: false` para conservar el subdominio. IVA/Hacienda descartados definitivamente. |
 | 2026-06-17 | Docs | **`DATABASE_PATH` default en CLAUDE.md corregido** — `sipnato.db` → `dosuxsoft.db`. Regla de alias en subqueries Drizzle añadida a Sección 7. Diagnóstico de BD en `deploy/ACTUALIZAR-VPS.md` corregido: el comando `node -e` debe ejecutarse desde `/app/apps/server` (pnpm workspace instala `better-sqlite3` allí, no en `/app`). |

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { createRoute, redirect, useNavigate } from '@tanstack/react-router';
+import { createRoute, isRedirect, redirect, useNavigate } from '@tanstack/react-router';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { loginSchema } from '@sipnato/shared';
 import { ApiError } from '@/lib/api-client';
 import { authApi } from '@/features/auth/api';
+import { redirectIfTenantUnavailable } from '@/features/auth/tenant-guard';
 import { AuthShell } from '@/features/auth/AuthShell';
 import { Route as rootRoute } from './__root';
 
@@ -11,15 +12,13 @@ export const Route = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
   beforeLoad: async () => {
-    const isRouterRedirect = (e: unknown) =>
-      typeof e === 'object' && e !== null && '_isRedirect' in e;
-
     // Already authed → go to dashboard
     try {
       await authApi.getMe();
       throw redirect({ to: '/' });
     } catch (err) {
-      if (isRouterRedirect(err)) throw err;
+      if (isRedirect(err)) throw err;
+      redirectIfTenantUnavailable(err);
       // Not authed (401 or network error) — fall through
     }
 
@@ -28,7 +27,7 @@ export const Route = createRoute({
       const { setup } = await authApi.getStatus();
       if (!setup) throw redirect({ to: '/setup' });
     } catch (err) {
-      if (isRouterRedirect(err)) throw err;
+      if (isRedirect(err)) throw err;
       // Network error → show login (server unreachable)
     }
   },
@@ -37,6 +36,7 @@ export const Route = createRoute({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,9 +46,9 @@ function LoginPage() {
     e.preventDefault();
     setError(null);
 
-    const parsed = loginSchema.safeParse({ password });
+    const parsed = loginSchema.safeParse({ username, password });
     if (!parsed.success) {
-      setError('Ingresa tu contraseña.');
+      setError(parsed.error.issues[0]?.message ?? 'Completa los campos.');
       return;
     }
 
@@ -82,17 +82,43 @@ function LoginPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
-          {/* Password field */}
+          {/* Username field */}
+          <div className="space-y-1.5">
+            <label htmlFor="username" className="block text-sm font-medium text-text-secondary">
+              Usuario
+            </label>
+            <input
+              id="username"
+              type="text"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              autoFocus
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                if (error) setError(null);
+              }}
+              className={[
+                'h-10 w-full rounded-lg border px-3 text-sm text-text-primary',
+                'bg-surface-input outline-none transition-all duration-150',
+                error
+                  ? 'border-brand-error ring-1 ring-brand-error/20'
+                  : 'border-border focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20',
+              ].join(' ')}
+            />
+          </div>
+
+          {/* Password / PIN field */}
           <div className="space-y-1.5">
             <label htmlFor="password" className="block text-sm font-medium text-text-secondary">
-              Contraseña
+              Contraseña o PIN
             </label>
             <div className="relative">
               <input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
-                autoFocus
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -106,7 +132,6 @@ function LoginPage() {
                     ? 'border-brand-error ring-1 ring-brand-error/20'
                     : 'border-border focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20',
                 ].join(' ')}
-                placeholder="••••••••"
               />
               <button
                 type="button"
@@ -170,7 +195,7 @@ function LoginPage() {
         {/* Recovery link */}
         <div className="border-t border-border pt-5">
           <p className="text-center text-sm text-text-muted">
-            ¿Olvidaste tu contraseña?{' '}
+            ¿Eres el dueño y olvidaste tu contraseña?{' '}
             <a
               href="/recover"
               onClick={(e) => {

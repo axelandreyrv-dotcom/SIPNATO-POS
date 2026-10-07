@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { db } from '../../db/client.js';
+import { currentActorId, db } from '../../db/client.js';
 import { auditLog, cashRegisters } from '../../db/schema.js';
 import { CajaNoAbierta, CajaYaAbierta } from '../../lib/errors.js';
 import type { CashRegisterCurrent, CashRegisterList, CashRegisterTotals } from '@sipnato/shared';
@@ -42,6 +42,7 @@ export function openCashRegister(
       payloadSnapshot: JSON.stringify({ openingAmount }),
       ip: meta.ip,
       userAgent: meta.userAgent,
+      userId: currentActorId(),
     }).run();
 
     return row.id;
@@ -90,6 +91,7 @@ export function closeCashRegister(
       payloadSnapshot: JSON.stringify({ closeType, totals }),
       ip: meta.ip,
       userAgent: meta.userAgent,
+      userId: currentActorId(),
     }).run();
   });
 

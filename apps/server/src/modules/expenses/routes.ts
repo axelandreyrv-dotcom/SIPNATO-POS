@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { createExpenseSchema } from '@sipnato/shared';
 import { AppError } from '../../lib/errors.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { authorizeOrEscalate } from '../../middleware/authorization.js';
 import { createExpense, deleteExpense, listExpenses } from './service.js';
 
 export default async function expensesRoutes(app: FastifyInstance) {
@@ -35,10 +36,11 @@ export default async function expensesRoutes(app: FastifyInstance) {
     }
 
     try {
+      const authorizedBy = await authorizeOrEscalate(request, 'deleteMoneyDirectly');
       deleteExpense(parsed, {
         ip: request.ip ?? null,
         userAgent: request.headers['user-agent'] ?? null,
-      });
+      }, authorizedBy);
       return reply.send({ ok: true });
     } catch (err) {
       if (err instanceof AppError) {

@@ -5,18 +5,20 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   CheckCircle,
-  KeyRound,
   Loader2,
   Printer,
   Trash2,
   X,
 } from 'lucide-react';
-import type { PaymentMethod, Sale, Settings } from '@sipnato/shared';
+import type { CreateSaleInput, PaymentMethod, Product, Sale, Settings, SupervisorAuth } from '@sipnato/shared';
 import { formatColones } from '@sipnato/shared';
 import { fmtTime } from '../../lib/format';
 import { cashRegisterApi } from '../cash-register/api';
 import { salesApi } from './api';
+import { CartLines, ProductSearch, cartTotal, type CartLine } from './ProductCart';
 import { settingsApi } from '../settings/api';
+import { useCan } from '../auth/useCurrentUser';
+import { SupervisorAuthDialog, supervisorAuthErrorMessage } from '../../components/SupervisorAuthDialog';
 
 const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'efectivo', label: 'Efectivo' },
@@ -191,108 +193,6 @@ function ChangeCalcModal({
   );
 }
 
-// ── PIN delete modal ──────────────────────────────────────────────────────────
-function PinDeleteModal({
-  onConfirm,
-  onClose,
-  isLoading,
-  error,
-}: {
-  onConfirm: (pin: string) => void;
-  onClose: () => void;
-  isLoading: boolean;
-  error: string | null;
-}) {
-  const [pin, setPin] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && pin.length === 4) onConfirm(pin);
-    if (e.key === 'Escape') onClose();
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      onClick={onClose}
-    >
-      <div className="absolute inset-0 bg-black/40" aria-hidden />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="pin-modal-title"
-        className="relative w-full sm:max-w-xs rounded-t-2xl sm:rounded-xl border border-border bg-surface-card p-6 shadow-[0_8px_32px_-4px_oklch(0%_0_0/0.18)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <KeyRound size={16} strokeWidth={1.5} className="text-brand-error" aria-hidden />
-            <h2 id="pin-modal-title" className="text-base font-semibold text-text-primary">
-              Confirmar eliminación
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
-            aria-label="Cerrar"
-          >
-            <X size={16} strokeWidth={1.5} aria-hidden />
-          </button>
-        </div>
-
-        <p className="mb-4 text-sm text-text-muted">
-          Ingresa el PIN para eliminar esta venta.
-        </p>
-
-        <div className="mb-5">
-          <label htmlFor="delete-pin" className="mb-1.5 block text-sm font-medium text-text-secondary">
-            PIN de borrado
-          </label>
-          <input
-            id="delete-pin"
-            ref={inputRef}
-            type="password"
-            inputMode="numeric"
-            maxLength={4}
-            value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-            onKeyDown={handleKeyDown}
-            placeholder="••••"
-            className="h-11 w-full rounded-lg border border-border bg-surface-input px-3 text-center text-xl tracking-[0.5em] text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:tracking-normal placeholder:text-base"
-          />
-          {error && (
-            <p className="mt-1.5 text-xs text-brand-error" role="alert">{error}</p>
-          )}
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex flex-1 h-9 items-center justify-center rounded-lg border border-border text-sm text-text-secondary transition-colors hover:bg-surface-bg"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            disabled={pin.length !== 4 || isLoading}
-            onClick={() => onConfirm(pin)}
-            className="flex flex-1 h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-error text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isLoading && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />}
-            Eliminar
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Sale row ──────────────────────────────────────────────────────────────────
 function SaleRow({
   sale,
@@ -415,8 +315,20 @@ function SalePrintView({ sale, settings }: { sale: Sale; settings: Settings | un
 
         <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
 
-        {/* Description */}
-        {sale.description && (
+        {/* Líneas (venta con carrito) o descripción (monto libre) */}
+        {sale.items.length > 0 ? (
+          <div style={{ marginBottom: 5 }}>
+            {sale.items.map((item, i) => (
+              <div key={i} style={{ fontSize: 10, marginBottom: 2 }}>
+                <div style={{ wordBreak: 'break-word' }}>{item.description}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{item.quantity} x {formatColones(item.unitPrice)}</span>
+                  <span>{formatColones(item.total)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : sale.description && (
           <div style={{ fontSize: 10, marginBottom: 5, wordBreak: 'break-word' }}>
             {sale.description}
           </div>
@@ -456,12 +368,39 @@ export function POSPage() {
   const [amountStr, setAmountStr] = useState('');
   const [method, setMethod] = useState<PaymentMethod>('efectivo');
   const [showChangeCalc, setShowChangeCalc] = useState(false);
+  // Venta que un cajero quiere eliminar: espera la autorización de un admin/dueño.
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
-  const [pinError, setPinError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const canDeleteDirectly = useCan('deleteMoneyDirectly');
   const amountInputRef = useRef<HTMLInputElement>(null);
+  const [cart, setCart] = useState<CartLine[]>([]);
 
+  // Con productos en el carrito, el monto libre se suma como una línea más (opcional).
   const amount = Math.max(0, Math.floor(Number(amountStr) || 0));
-  const canSubmit = amount >= 1 && method !== undefined;
+  const total = cartTotal(cart) + amount;
+  const canSubmit = total >= 1 && method !== undefined;
+
+  function addToCart(product: Product) {
+    setCart((prev) => {
+      const existing = prev.find((l) => l.product.id === product.id);
+      return existing
+        ? prev.map((l) => (l.product.id === product.id ? { ...l, quantity: l.quantity + 1 } : l))
+        : [...prev, { product, quantity: 1 }];
+    });
+  }
+
+  function buildSale(): CreateSaleInput {
+    if (cart.length === 0) {
+      return { description: description || undefined, amount, paymentMethod: method };
+    }
+    return {
+      paymentMethod: method,
+      items: [
+        ...cart.map((l) => ({ productId: l.product.id, quantity: l.quantity })),
+        ...(amount >= 1 ? [{ description: description.trim() || 'Monto libre', quantity: 1, unitPrice: amount }] : []),
+      ],
+    };
+  }
 
   const { data: register } = useQuery({
     queryKey: ['cash-register', 'current'],
@@ -486,6 +425,7 @@ export function POSPage() {
     setDescription('');
     setAmountStr('');
     setMethod('efectivo');
+    setCart([]);
   }
 
   const createMutation = useMutation({
@@ -493,24 +433,28 @@ export function POSPage() {
     onSuccess: (sale) => {
       queryClient.invalidateQueries({ queryKey: ['sales', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['cash-register', 'current'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       addToast(`Venta #${sale.consecutive} cobrada — ${formatColones(sale.amount)}`);
+      for (const w of sale.stockWarnings) {
+        addToast(`Inventario de ${w.name} en ${w.stock}: revisa las existencias`);
+      }
       resetForm();
       setShowChangeCalc(false);
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: ({ id, pin }: { id: number; pin?: string }) => salesApi.delete(id, pin),
+    mutationFn: ({ id, authorization }: { id: number; authorization?: SupervisorAuth }) =>
+      salesApi.delete(id, authorization),
     onSuccess: () => {
       setPendingDeleteId(null);
-      setPinError(null);
+      setAuthError(null);
       queryClient.invalidateQueries({ queryKey: ['sales', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['cash-register', 'current'] });
     },
     onError: (err: unknown) => {
-      if (err && typeof err === 'object' && 'code' in err && err.code === 'PIN_INVALIDO') {
-        setPinError('PIN incorrecto. Intenta de nuevo.');
-      }
+      if (pendingDeleteId !== null) setAuthError(supervisorAuthErrorMessage(err));
+      else addToast(supervisorAuthErrorMessage(err));
     },
   });
 
@@ -545,17 +489,17 @@ export function POSPage() {
   }
 
   function handleDeleteRequest(id: number) {
-    if (settings?.salesDeletePinSet) {
-      setPinError(null);
-      setPendingDeleteId(id);
-    } else {
+    if (canDeleteDirectly) {
       deleteMutation.mutate({ id });
+    } else {
+      setAuthError(null);
+      setPendingDeleteId(id);
     }
   }
 
-  function handlePinConfirm(pin: string) {
+  function handleAuthorize(authorization: SupervisorAuth) {
     if (pendingDeleteId === null) return;
-    deleteMutation.mutate({ id: pendingDeleteId, pin });
+    deleteMutation.mutate({ id: pendingDeleteId, authorization });
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -565,13 +509,13 @@ export function POSPage() {
     if (method === 'efectivo') {
       setShowChangeCalc(true);
     } else {
-      createMutation.mutate({ description: description || undefined, amount, paymentMethod: method });
+      createMutation.mutate(buildSale());
     }
   }
 
   function handleConfirmSale() {
     if (!canSubmit || !register) return;
-    createMutation.mutate({ description: description || undefined, amount, paymentMethod: method });
+    createMutation.mutate(buildSale());
   }
 
   function handleMethodKey(e: React.KeyboardEvent, value: PaymentMethod) {
@@ -611,6 +555,20 @@ export function POSPage() {
       {/* POS Form */}
       <form onSubmit={handleSubmit} className="mb-8">
         <fieldset disabled={noRegister || createMutation.isPending} className="space-y-4 disabled:opacity-60">
+          {/* Catálogo: buscar / escanear y carrito */}
+          <ProductSearch onAdd={addToCart} disabled={noRegister || createMutation.isPending} />
+          <CartLines
+            lines={cart}
+            onChangeQty={(id, quantity) => setCart((prev) => prev.map((l) => (l.product.id === id ? { ...l, quantity } : l)))}
+            onRemove={(id) => setCart((prev) => prev.filter((l) => l.product.id !== id))}
+          />
+
+          {cart.length > 0 && (
+            <p className="pt-1 text-xs font-medium uppercase tracking-wide text-text-muted">
+              Monto libre <span className="normal-case tracking-normal font-normal">(opcional: mano de obra, instalación…)</span>
+            </p>
+          )}
+
           {/* Description */}
           <div>
             <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-text-secondary">
@@ -689,7 +647,7 @@ export function POSPage() {
             {createMutation.isPending ? (
               <><Loader2 size={18} strokeWidth={1.5} className="animate-spin" aria-hidden /> Procesando...</>
             ) : (
-              amount >= 1 ? `Cobrar ${formatColones(amount)}` : 'Cobrar'
+              total >= 1 ? `Cobrar ${formatColones(total)}` : 'Cobrar'
             )}
           </button>
 
@@ -752,20 +710,22 @@ export function POSPage() {
         )}
       </div>
 
-      {/* PIN delete modal */}
+      {/* Autorización de supervisor (cajeros) */}
       {pendingDeleteId !== null && (
-        <PinDeleteModal
-          onConfirm={handlePinConfirm}
-          onClose={() => { setPendingDeleteId(null); setPinError(null); }}
+        <SupervisorAuthDialog
+          title="Autorizar eliminación"
+          description="Eliminar una venta requiere que un administrador o el dueño lo autorice."
+          onConfirm={handleAuthorize}
+          onClose={() => { setPendingDeleteId(null); setAuthError(null); }}
           isLoading={deleteMutation.isPending}
-          error={pinError}
+          error={authError}
         />
       )}
 
       {/* Change calculator modal */}
       {showChangeCalc && register && (
         <ChangeCalcModal
-          amount={amount}
+          amount={total}
           onConfirm={handleConfirmSale}
           onClose={() => setShowChangeCalc(false)}
           isLoading={createMutation.isPending}

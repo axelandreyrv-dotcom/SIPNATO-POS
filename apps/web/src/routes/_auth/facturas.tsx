@@ -6,6 +6,7 @@ import { formatColones } from '@sipnato/shared';
 import { fetchFactura, fetchFacturas, anularFactura } from '../../features/facturas/api';
 import { useFacturaPrint } from '../../features/facturas/FacturaPrintView';
 import { Route as authRoute } from '../_auth';
+import { useCan } from '../../features/auth/useCurrentUser';
 import type { Factura, FacturaWithItems } from '@sipnato/shared';
 
 export const Route = createRoute({
@@ -21,6 +22,7 @@ function FacturaRow({ factura, onReprint, onAnular }: {
 }) {
   const [expanded, setExpanded] = useState(false);
   const [confirmAnular, setConfirmAnular] = useState(false);
+  const canAnular = useCan('cancelDocuments');
 
   const detailQuery = useQuery({
     queryKey: ['factura', factura.id],
@@ -116,7 +118,7 @@ function FacturaRow({ factura, onReprint, onAnular }: {
               Reimprimir
             </button>
 
-            {!isAnulada && !confirmAnular && (
+            {canAnular && !isAnulada && !confirmAnular && (
               <button
                 onClick={() => setConfirmAnular(true)}
                 className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-red-500 ml-auto"
@@ -125,7 +127,7 @@ function FacturaRow({ factura, onReprint, onAnular }: {
                 Anular
               </button>
             )}
-            {!isAnulada && confirmAnular && (
+            {canAnular && !isAnulada && confirmAnular && (
               <div className="flex items-center gap-2 ml-auto">
                 <span className="text-xs text-muted-foreground">¿Confirmar anulación?</span>
                 <button

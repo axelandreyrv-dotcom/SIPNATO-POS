@@ -1,5 +1,5 @@
 import { count, desc, eq, like, or, sql } from 'drizzle-orm';
-import { db } from '../../db/client.js';
+import { currentActorId, db } from '../../db/client.js';
 import { auditLog, boletas, counters, customers } from '../../db/schema.js';
 import type {
   Boleta,
@@ -100,6 +100,7 @@ export function createBoletaRow(
       }),
       ip: meta.ip,
       userAgent: meta.userAgent,
+      userId: currentActorId(),
     }).run();
 
     return {

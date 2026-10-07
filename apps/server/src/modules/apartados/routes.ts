@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { AppError } from '../../lib/errors.js';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { createApartadoSchema, addApartadoPaymentSchema } from '@sipnato/shared';
 import {
   createApartado,
@@ -77,7 +77,7 @@ const apartadosRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // POST /api/apartados/:id/cancel
-  app.post('/:id/cancel', { preHandler: requireAuth }, async (req, reply) => {
+  app.post('/:id/cancel', { preHandler: [requireAuth, requireRole('dueno', 'admin')] }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const parsed = parseInt(id, 10);
     if (isNaN(parsed)) return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });

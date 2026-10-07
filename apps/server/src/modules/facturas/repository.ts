@@ -1,5 +1,5 @@
 import { and, count, desc, eq, like, or, sql } from 'drizzle-orm';
-import { db } from '../../db/client.js';
+import { currentActorId, db } from '../../db/client.js';
 import { auditLog, counters, facturaItems, facturas } from '../../db/schema.js';
 import type { CreateFacturaInput, Factura, FacturaItem, FacturaWithItems } from '@sipnato/shared';
 
@@ -100,6 +100,7 @@ export function insertFacturaRow(input: CreateFacturaInput, meta: Meta): Factura
         payloadSnapshot: JSON.stringify({ consecutive, total, clientName: input.clientName }),
         ip: meta.ip,
         userAgent: meta.userAgent ?? null,
+        userId: currentActorId(),
       })
       .run();
 
@@ -128,6 +129,7 @@ export function anularFacturaRow(id: number, meta: Meta): Factura {
         payloadSnapshot: JSON.stringify({ consecutive: factura.consecutive }),
         ip: meta.ip,
         userAgent: meta.userAgent ?? null,
+        userId: currentActorId(),
       })
       .run();
 

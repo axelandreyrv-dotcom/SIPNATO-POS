@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import {
   BarChart3,
+  Boxes,
   CreditCard,
   FileOutput,
   FileText,
@@ -17,17 +18,27 @@ import {
   ShoppingCart,
   Sun,
   TrendingDown,
+  UserCog,
   Users,
   X,
 } from 'lucide-react';
+import { can, ROLE_LABELS, type Permission } from '@sipnato/shared';
 import { Logo } from '../../components/branding/Logo';
 import { useDarkMode } from '../../lib/hooks/useDarkMode';
 import { authApi } from '../../features/auth/api';
+import { useCurrentUser } from '../../features/auth/useCurrentUser';
 
-const NAV_ITEMS = [
+const NAV_ITEMS: ReadonlyArray<{
+  to: string;
+  label: string;
+  icon: React.ElementType;
+  exact: boolean;
+  permission?: Permission;
+}> = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { to: '/pos', label: 'Punto de venta', icon: ShoppingCart, exact: false },
   { to: '/caja', label: 'Caja', icon: Landmark, exact: false },
+  { to: '/inventario', label: 'Inventario', icon: Boxes, exact: false },
   { to: '/boletas', label: 'Boletas', icon: FileText, exact: false },
   { to: '/clientes', label: 'Clientes', icon: Users, exact: false },
   { to: '/gastos', label: 'Gastos', icon: TrendingDown, exact: false },
@@ -37,8 +48,9 @@ const NAV_ITEMS = [
   { to: '/creditos', label: 'Créditos', icon: CreditCard, exact: false },
   { to: '/notas', label: 'Notas', icon: NotebookPen, exact: false },
   { to: '/reportes', label: 'Reportes', icon: BarChart3, exact: false },
-  { to: '/settings', label: 'Configuración', icon: Settings, exact: false },
-] as const;
+  { to: '/usuarios', label: 'Usuarios', icon: UserCog, exact: false, permission: 'manageUsers' },
+  { to: '/settings', label: 'Configuración', icon: Settings, exact: false, permission: 'manageSettings' },
+];
 
 interface NavItemProps {
   to: string;
@@ -75,6 +87,10 @@ function NavItem({ to, label, icon: Icon, exact, onClick }: NavItemProps) {
 
 function SidebarNav({ onNav }: { onNav?: () => void }) {
   const { isDark, toggle } = useDarkMode();
+  const user = useCurrentUser();
+  const { location } = useRouterState();
+  const items = NAV_ITEMS.filter((item) => !item.permission || can(user.role, item.permission));
+  const onAccount = location.pathname === '/mi-cuenta';
 
   async function handleLogout() {
     try {
@@ -93,7 +109,7 @@ function SidebarNav({ onNav }: { onNav?: () => void }) {
         aria-label="Navegación principal"
       >
         <ul className="space-y-0.5 list-none p-0 m-0">
-          {NAV_ITEMS.map((item) => (
+          {items.map((item) => (
             <li key={item.to}>
               <NavItem {...item} {...(onNav ? { onClick: onNav } : {})} />
             </li>
@@ -103,6 +119,28 @@ function SidebarNav({ onNav }: { onNav?: () => void }) {
 
       {/* Bottom actions */}
       <div className="border-t border-white/10 px-3 py-3 space-y-0.5">
+        {/* Quién tiene la sesión abierta: en un mostrador compartido debe verse siempre */}
+        <Link
+          to="/mi-cuenta"
+          viewTransition
+          {...(onNav ? { onClick: onNav } : {})}
+          className={[
+            'flex items-center gap-3 rounded-lg px-3 py-2 transition-colors duration-150',
+            onAccount ? 'bg-white/[0.12]' : 'hover:bg-white/[0.06]',
+          ].join(' ')}
+        >
+          <span
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/[0.14] text-xs font-semibold text-white"
+            aria-hidden
+          >
+            {user.displayName.trim().charAt(0).toUpperCase()}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-medium text-white">{user.displayName}</span>
+            <span className="block text-xs text-white/50">{ROLE_LABELS[user.role]}</span>
+          </span>
+        </Link>
+
         <button
           type="button"
           onClick={toggle}

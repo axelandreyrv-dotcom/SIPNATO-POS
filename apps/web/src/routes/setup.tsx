@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { createRoute, redirect, useNavigate } from '@tanstack/react-router';
+import { createRoute, isRedirect, redirect, useNavigate } from '@tanstack/react-router';
 import { CheckCircle, Copy, Eye, EyeOff, Loader2, ShieldAlert } from 'lucide-react';
 import { setupSchema } from '@sipnato/shared';
 import { ApiError } from '@/lib/api-client';
 import { authApi } from '@/features/auth/api';
+import { redirectIfTenantUnavailable } from '@/features/auth/tenant-guard';
 import { AuthShell } from '@/features/auth/AuthShell';
 import { Route as rootRoute } from './__root';
 
@@ -15,8 +16,8 @@ export const Route = createRoute({
       const { setup } = await authApi.getStatus();
       if (setup) throw redirect({ to: '/login' });
     } catch (err) {
-      const isRedirect = (e: unknown) => typeof e === 'object' && e !== null && '_isRedirect' in e;
       if (isRedirect(err)) throw err;
+      redirectIfTenantUnavailable(err);
       // Network error → fall through and show setup form
     }
   },
@@ -30,22 +31,34 @@ function SetupPage() {
   const [copied, setCopied] = useState(false);
 
   // Form state
+  const [setupCode, setSetupCode] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({});
+  const [errors, setErrors] = useState<{
+    setupCode?: string;
+    displayName?: string;
+    username?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({});
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrors({});
 
-    const parsed = setupSchema.safeParse({ password, confirmPassword: confirm });
+    const parsed = setupSchema.safeParse({ setupCode, displayName, username, password, confirmPassword: confirm });
     if (!parsed.success) {
       const fieldErrors: typeof errors = {};
       for (const issue of parsed.error.issues) {
         const field = issue.path[0];
+        if (field === 'setupCode') fieldErrors.setupCode = issue.message;
+        if (field === 'displayName') fieldErrors.displayName = issue.message;
+        if (field === 'username') fieldErrors.username = issue.message;
         if (field === 'password') fieldErrors.password = issue.message;
         if (field === 'confirmPassword') fieldErrors.confirmPassword = issue.message;
       }
@@ -59,7 +72,9 @@ function SetupPage() {
       setRecoveryCode(code);
       setStep('code');
     } catch (err) {
-      if (err instanceof ApiError) {
+      if (err instanceof ApiError && err.code === 'SETUP_CODE_INVALID') {
+        setErrors({ setupCode: err.message });
+      } else if (err instanceof ApiError) {
         setErrors({ password: err.message });
       } else {
         setErrors({ password: 'No se pudo conectar con el servidor.' });
@@ -167,6 +182,78 @@ function SetupPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
+          {/* Setup code — evita que un tercero reclame un negocio recién creado */}
+          <div className="space-y-1.5">
+            <label htmlFor="setup-code" className="block text-sm font-medium text-text-secondary">
+              Código de activación
+            </label>
+            <input
+              id="setup-code"
+              type="text"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              autoFocus
+              value={setupCode}
+              onChange={(e) => {
+                setSetupCode(e.target.value);
+                if (errors.setupCode) setErrors(({ setupCode: _s, ...rest }) => rest);
+              }}
+              className={[
+                'h-10 w-full rounded-lg border px-3 font-mono text-sm tracking-wider text-text-primary',
+                'bg-surface-input outline-none transition-all duration-150 placeholder:text-text-muted',
+                errors.setupCode
+                  ? 'border-brand-error ring-1 ring-brand-error/20'
+                  : 'border-border focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20',
+              ].join(' ')}
+              placeholder="XXXX-XXXX-XXXX-XXXX"
+            />
+            {errors.setupCode ? (
+              <p role="alert" className="text-xs text-brand-error" style={{ animation: 'slideDown 0.15s ease-out' }}>
+                {errors.setupCode}
+              </p>
+            ) : (
+              <p className="text-xs text-text-muted">Lo recibiste junto con la dirección de tu negocio.</p>
+            )}
+          </div>
+
+          {/* Dueño: nombre y usuario */}
+          <div className="grid gap-5 sm:grid-cols-2">
+            {([
+              ['displayName', 'Tu nombre', displayName, setDisplayName, 'María Rojas', 'name'],
+              ['username', 'Usuario', username, (v: string) => setUsername(v.toLowerCase()), 'maria', 'username'],
+            ] as const).map(([field, label, value, set, placeholder, autoComplete]) => (
+              <div key={field} className="space-y-1.5">
+                <label htmlFor={`setup-${field}`} className="block text-sm font-medium text-text-secondary">
+                  {label}
+                </label>
+                <input
+                  id={`setup-${field}`}
+                  type="text"
+                  autoComplete={autoComplete}
+                  autoCapitalize={field === 'username' ? 'none' : 'words'}
+                  spellCheck={false}
+                  value={value}
+                  onChange={(e) => {
+                    set(e.target.value);
+                    if (errors[field]) setErrors(({ [field]: _x, ...rest }) => rest);
+                  }}
+                  placeholder={placeholder}
+                  className={[
+                    'h-10 w-full rounded-lg border px-3 text-sm text-text-primary',
+                    'bg-surface-input outline-none transition-all duration-150 placeholder:text-text-muted',
+                    errors[field]
+                      ? 'border-brand-error ring-1 ring-brand-error/20'
+                      : 'border-border focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20',
+                  ].join(' ')}
+                />
+                {errors[field] && (
+                  <p role="alert" className="text-xs text-brand-error">{errors[field]}</p>
+                )}
+              </div>
+            ))}
+          </div>
+
           {/* Password */}
           <div className="space-y-1.5">
             <label htmlFor="password" className="block text-sm font-medium text-text-secondary">
@@ -177,7 +264,6 @@ function SetupPage() {
                 id="password"
                 type={showPwd ? 'text' : 'password'}
                 autoComplete="new-password"
-                autoFocus
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);

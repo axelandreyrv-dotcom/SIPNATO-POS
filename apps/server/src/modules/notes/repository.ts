@@ -1,5 +1,5 @@
 import { desc, eq } from 'drizzle-orm';
-import { db } from '../../db/client.js';
+import { currentActorId, db } from '../../db/client.js';
 import { auditLog, notes } from '../../db/schema.js';
 import type { CreateNoteInput, Note, UpdateNoteInput } from '@sipnato/shared';
 
@@ -37,6 +37,7 @@ export function createNoteRow(input: CreateNoteInput, meta: AuditMeta): Note {
       payloadSnapshot: JSON.stringify({ title: input.title, bodyLength: input.body.length }),
       ip: meta.ip,
       userAgent: meta.userAgent,
+      userId: currentActorId(),
     }).run();
 
     return mapNote(row);
@@ -68,6 +69,7 @@ export function updateNoteRow(id: number, input: UpdateNoteInput, meta: AuditMet
       payloadSnapshot: JSON.stringify({ title: input.title, bodyLength: input.body.length }),
       ip: meta.ip,
       userAgent: meta.userAgent,
+      userId: currentActorId(),
     }).run();
 
     return mapNote(row);
@@ -88,6 +90,7 @@ export function hardDeleteNoteRow(
       payloadSnapshot: JSON.stringify(snapshot),
       ip: meta.ip,
       userAgent: meta.userAgent,
+      userId: currentActorId(),
     }).run();
   });
 }

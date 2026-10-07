@@ -17,6 +17,7 @@ function RecoverPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<'form' | 'code'>('form');
   const [newRecoveryCode, setNewRecoveryCode] = useState('');
+  const [ownerUsername, setOwnerUsername] = useState('');
   const [copied, setCopied] = useState(false);
 
   const [recoveryCode, setRecoveryCode] = useState('');
@@ -45,8 +46,9 @@ function RecoverPage() {
 
     setLoading(true);
     try {
-      const { newRecoveryCode: code } = await authApi.recover(parsed.data);
+      const { newRecoveryCode: code, username } = await authApi.recover(parsed.data);
       setNewRecoveryCode(code);
+      setOwnerUsername(username);
       setStep('code');
     } catch (err) {
       if (err instanceof ApiError) {
@@ -76,7 +78,8 @@ function RecoverPage() {
                 Contraseña actualizada
               </h1>
               <p className="mt-1 text-sm text-text-muted">
-                Tu acceso fue restaurado correctamente.
+                Tu acceso fue restaurado. Tu usuario es{' '}
+                <span className="font-medium text-text-primary">{ownerUsername}</span>.
               </p>
             </div>
           </div>

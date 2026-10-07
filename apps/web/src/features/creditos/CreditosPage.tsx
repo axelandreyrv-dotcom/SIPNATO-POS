@@ -13,6 +13,7 @@ import {
 import { formatColones } from '@sipnato/shared';
 import type { Credito, CreditoWithPayments } from '@sipnato/shared';
 import { creditosApi } from './api';
+import { useCan } from '../auth/useCurrentUser';
 import { fmtDate, fmtDateTime } from '../../lib/format';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -230,6 +231,7 @@ function CreditoRow({
   const [detail, setDetail] = useState<CreditoWithPayments | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const canCancel = useCan('cancelDocuments');
 
   const cancelMutation = useMutation({
     mutationFn: () => creditosApi.cancel(credito.id),
@@ -354,7 +356,7 @@ function CreditoRow({
                 <Plus size={13} strokeWidth={1.5} aria-hidden />
                 Abonar
               </button>
-              {!confirmCancel ? (
+              {!canCancel ? null : !confirmCancel ? (
                 <button
                   type="button"
                   onClick={() => setConfirmCancel(true)}

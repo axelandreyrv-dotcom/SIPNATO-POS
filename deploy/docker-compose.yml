@@ -7,8 +7,9 @@ services:
     env_file: .env
     environment:
       NODE_ENV: production
-      DATABASE_PATH: /app/data/dosuxsoft.db
-      BACKUP_PATH: /app/data/backups
+      # control.db + tenants/<slug>.db + backups/<slug>/
+      DATA_DIR: /app/data
+      TENANT_BASE_DOMAIN: dosuxsoft.com
       LOG_PATH: /app/logs
       PORT: "3000"
     volumes:
