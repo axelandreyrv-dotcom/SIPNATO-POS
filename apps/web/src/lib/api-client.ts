@@ -23,7 +23,7 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as {
+    const body = (await res.json().catch(() => ({}))) as {
       error?: { code?: string; message?: string };
     };
     throw new ApiError(

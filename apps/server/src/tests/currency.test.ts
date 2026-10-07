@@ -13,12 +13,14 @@ delete process.env['BCCR_API_TOKEN'];
 
 const { buildApp } = await import('../app.js');
 const { closeAllTenantDbs } = await import('../db/client.js');
-const { closeControlDb, insertTenant, saveExchangeRate, setSetupCodeHash } = await import('../db/control.js');
+const { closeControlDb, insertTenant, saveExchangeRate, setSetupCodeHash } =
+  await import('../db/control.js');
 const { COOKIE_NAME } = await import('../lib/constants.js');
 const { generateSetupCode, hashSetupCode } = await import('../lib/crypto.js');
 const { todayCR } = await import('../lib/cr-time.js');
 const { fetchBccrRates } = await import('../lib/bccr.js');
-const { formatUsd, parseUsdToCents, usdCentsToColones, renderMessage, whatsappLink } = await import('@sipnato/shared');
+const { formatUsd, parseUsdToCents, usdCentsToColones, renderMessage, whatsappLink } =
+  await import('@sipnato/shared');
 
 type App = Awaited<ReturnType<typeof buildApp>>;
 const HOST = 'tienda.dosuxsoft.test';
@@ -41,7 +43,10 @@ describe('utilidades de dólares y mensajes', () => {
   });
 
   it('arma el mensaje y el enlace de WhatsApp', () => {
-    const msg = renderMessage('Hola {cliente}, orden #{numero} {desconocida}', { cliente: 'Ana', numero: '7' });
+    const msg = renderMessage('Hola {cliente}, orden #{numero} {desconocida}', {
+      cliente: 'Ana',
+      numero: '7',
+    });
     assert.equal(msg, 'Hola Ana, orden #7 {desconocida}');
     assert.equal(whatsappLink('8888-7777', 'hola'), 'https://wa.me/50688887777?text=hola');
     assert.equal(whatsappLink(null, 'a b'), 'https://wa.me/?text=a%20b');
@@ -57,16 +62,21 @@ describe('cliente del API SDDE del BCCR', () => {
       assert.equal((init?.headers as Record<string, string>)['Authorization'], 'Bearer tok');
       const code = url.includes('/317/') ? '317' : '318';
       const values = code === '317' ? [505.23, 506.1] : [511.8, 512.4];
-      return new Response(JSON.stringify({
-        estado: true,
-        datos: [{
-          codigoIndicador: code,
-          series: [
-            { fecha: '2026-10-06T00:00:00', valorDatoPorPeriodo: values[0] },
-            { fecha: '2026-10-07T00:00:00', valorDatoPorPeriodo: values[1] },
+      return new Response(
+        JSON.stringify({
+          estado: true,
+          datos: [
+            {
+              codigoIndicador: code,
+              series: [
+                { fecha: '2026-10-06T00:00:00', valorDatoPorPeriodo: values[0] },
+                { fecha: '2026-10-07T00:00:00', valorDatoPorPeriodo: values[1] },
+              ],
+            },
           ],
-        }],
-      }), { status: 200 });
+        }),
+        { status: 200 },
+      );
     }) as typeof fetch;
     try {
       const rates = await fetchBccrRates('2026-10-01', '2026-10-07', 'tok');
@@ -96,11 +106,19 @@ describe('cobro en dólares', () => {
   let token = '';
 
   const call = (method: 'GET' | 'POST' | 'PUT', url: string, payload?: object) =>
-    app.inject({ method, url, headers: { host: HOST, cookie: `${COOKIE_NAME}=${token}` }, ...(payload ? { payload } : {}) });
+    app.inject({
+      method,
+      url,
+      headers: { host: HOST, cookie: `${COOKIE_NAME}=${token}` },
+      ...(payload ? { payload } : {}),
+    });
 
   async function setManualRate(rate: string) {
     const settings = (await call('GET', '/api/settings')).json();
-    assert.equal((await call('PUT', '/api/settings', { ...settings, usd_manual_rate: rate })).statusCode, 200);
+    assert.equal(
+      (await call('PUT', '/api/settings', { ...settings, usd_manual_rate: rate })).statusCode,
+      200,
+    );
   }
 
   const saleUsd = (amount: number, usdReceivedCents: number) =>
@@ -112,11 +130,22 @@ describe('cobro en dólares', () => {
     setSetupCodeHash('tienda', await hashSetupCode(code));
     app = await buildApp({ startJobs: false });
     const setup = await app.inject({
-      method: 'POST', url: '/auth/setup', headers: { host: HOST },
-      payload: { setupCode: code, username: 'dueno', displayName: 'Dueño', password: 'clave-dueno-1', confirmPassword: 'clave-dueno-1' },
+      method: 'POST',
+      url: '/auth/setup',
+      headers: { host: HOST },
+      payload: {
+        setupCode: code,
+        username: 'dueno',
+        displayName: 'Dueño',
+        password: 'clave-dueno-1',
+        confirmPassword: 'clave-dueno-1',
+      },
     });
     token = setup.cookies.find((c) => c.name === COOKIE_NAME)!.value;
-    assert.equal((await call('POST', '/api/cash-registers/open', { openingAmount: 0 })).statusCode, 201);
+    assert.equal(
+      (await call('POST', '/api/cash-registers/open', { openingAmount: 0 })).statusCode,
+      201,
+    );
   });
 
   after(async () => {
@@ -140,7 +169,10 @@ describe('cobro en dólares', () => {
 
     const sale = (await saleUsd(8000, 2000)).json();
     assert.equal(sale.amount, 8000, 'la venta se registra en colones');
-    assert.deepEqual([sale.usdReceivedCents, sale.exchangeRate, sale.changeColones], [2000, 50000, 2000]);
+    assert.deepEqual(
+      [sale.usdReceivedCents, sale.exchangeRate, sale.changeColones],
+      [2000, 50000, 2000],
+    );
   });
 
   it('dólares insuficientes se rechazan indicando el mínimo', async () => {
@@ -155,7 +187,11 @@ describe('cobro en dólares', () => {
 
     saveExchangeRate(todayCR(), 50523, 51180);
     const info = (await call('GET', '/api/exchange-rate')).json();
-    assert.deepEqual([info.rate, info.source, info.bccrSell], [50523, 'bccr', 51180], 'recibir USD usa el tipo de compra');
+    assert.deepEqual(
+      [info.rate, info.source, info.bccrSell],
+      [50523, 'bccr', 51180],
+      'recibir USD usa el tipo de compra',
+    );
 
     const sale = (await saleUsd(8000, 2000)).json();
     assert.equal(sale.changeColones, 10_105 - 8000);
@@ -173,17 +209,31 @@ describe('cobro en dólares', () => {
 
   it('un tipo de respaldo con formato inválido se rechaza', async () => {
     const settings = (await call('GET', '/api/settings')).json();
-    assert.equal((await call('PUT', '/api/settings', { ...settings, usd_manual_rate: 'quinientos' })).statusCode, 400);
+    assert.equal(
+      (await call('PUT', '/api/settings', { ...settings, usd_manual_rate: 'quinientos' }))
+        .statusCode,
+      400,
+    );
   });
 
   it('registra los avisos enviados por WhatsApp', async () => {
-    const ok = await call('POST', '/api/notifications', { event: 'orden_lista', entityType: 'boleta', entityId: 5, phone: '88887777' });
+    const ok = await call('POST', '/api/notifications', {
+      event: 'orden_lista',
+      entityType: 'boleta',
+      entityId: 5,
+      phone: '88887777',
+    });
     assert.equal(ok.statusCode, 201);
     const list = (await call('GET', '/api/notifications?entityType=boleta&entityId=5')).json();
     assert.equal(list[0].event, 'orden_lista');
     assert.equal(list[0].username, 'dueno');
 
-    const bad = await call('POST', '/api/notifications', { event: 'spam', entityType: 'boleta', entityId: 5, phone: null });
+    const bad = await call('POST', '/api/notifications', {
+      event: 'spam',
+      entityType: 'boleta',
+      entityId: 5,
+      phone: null,
+    });
     assert.equal(bad.statusCode, 400);
   });
 });

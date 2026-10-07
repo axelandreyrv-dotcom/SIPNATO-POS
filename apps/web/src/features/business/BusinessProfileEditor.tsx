@@ -26,7 +26,15 @@ const inputCls =
 const iconBtn =
   'flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary disabled:opacity-30 disabled:hover:bg-transparent';
 
-function Block({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+function Block({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="py-8 sm:grid sm:grid-cols-3 sm:gap-8">
       <div>
@@ -73,11 +81,19 @@ function FieldRow({
           onChange={(e) => {
             const type = e.target.value as OrderFieldType;
             const { options: _o, ...rest } = field;
-            onChange(type === 'select' ? { ...rest, type, options: field.options ?? [] } : { ...rest, type });
+            onChange(
+              type === 'select'
+                ? { ...rest, type, options: field.options ?? [] }
+                : { ...rest, type },
+            );
           }}
           className={`${inputCls} w-auto`}
         >
-          {ORDER_FIELD_TYPES.map((t) => <option key={t} value={t}>{ORDER_FIELD_TYPE_LABELS[t]}</option>)}
+          {ORDER_FIELD_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {ORDER_FIELD_TYPE_LABELS[t]}
+            </option>
+          ))}
         </select>
         <label className="flex h-9 items-center gap-2 px-1 text-sm text-text-secondary">
           <input
@@ -89,13 +105,30 @@ function FieldRow({
           Obligatorio
         </label>
         <div className="ml-auto flex">
-          <button type="button" onClick={() => onMove(-1)} disabled={index === 0} className={iconBtn} aria-label="Subir campo">
+          <button
+            type="button"
+            onClick={() => onMove(-1)}
+            disabled={index === 0}
+            className={iconBtn}
+            aria-label="Subir campo"
+          >
             <ArrowUp size={14} strokeWidth={1.5} aria-hidden />
           </button>
-          <button type="button" onClick={() => onMove(1)} disabled={index === total - 1} className={iconBtn} aria-label="Bajar campo">
+          <button
+            type="button"
+            onClick={() => onMove(1)}
+            disabled={index === total - 1}
+            className={iconBtn}
+            aria-label="Bajar campo"
+          >
             <ArrowDown size={14} strokeWidth={1.5} aria-hidden />
           </button>
-          <button type="button" onClick={onRemove} className={`${iconBtn} hover:text-brand-error`} aria-label="Quitar campo">
+          <button
+            type="button"
+            onClick={onRemove}
+            className={`${iconBtn} hover:text-brand-error`}
+            aria-label="Quitar campo"
+          >
             <Trash2 size={14} strokeWidth={1.5} aria-hidden />
           </button>
         </div>
@@ -106,14 +139,22 @@ function FieldRow({
           value={optionsText}
           onChange={(e) => {
             setOptionsText(e.target.value);
-            onChange({ ...field, options: e.target.value.split(',').map((o) => o.trim()).filter(Boolean) });
+            onChange({
+              ...field,
+              options: e.target.value
+                .split(',')
+                .map((o) => o.trim())
+                .filter(Boolean),
+            });
           }}
           placeholder="Opciones separadas por coma: Gasolina, Diésel, Eléctrico"
           className={inputCls}
         />
       )}
       {field.type === 'secret' && (
-        <p className="text-xs text-text-muted">Se guarda sin cifrar; el formulario lo advierte al llenarlo.</p>
+        <p className="text-xs text-text-muted">
+          Se guarda sin cifrar; el formulario lo advierte al llenarlo.
+        </p>
       )}
     </li>
   );
@@ -144,7 +185,10 @@ export function BusinessProfileEditor() {
       // Menú, formularios de órdenes y guards leen el perfil del contexto del router.
       await router.invalidate();
     },
-    onError: (err) => setError(err instanceof ApiError || err instanceof Error ? err.message : 'No se pudo guardar'),
+    onError: (err) =>
+      setError(
+        err instanceof ApiError || err instanceof Error ? err.message : 'No se pudo guardar',
+      ),
   });
 
   function update(patch: Partial<BusinessProfile>) {
@@ -165,7 +209,10 @@ export function BusinessProfileEditor() {
 
   function addField() {
     const label = 'Nuevo campo';
-    const key = fieldKeyFromLabel(label, draft.fields.map((f) => f.key));
+    const key = fieldKeyFromLabel(
+      label,
+      draft.fields.map((f) => f.key),
+    );
     update({ fields: [...draft.fields, { key, label, type: 'text', required: false }] });
   }
 
@@ -177,8 +224,15 @@ export function BusinessProfileEditor() {
 
   return (
     <div className="divide-y divide-border">
-      <Block title="Tipo de negocio" description="La plantilla propone los campos de las órdenes y los módulos. Después puedes ajustarlos.">
-        <div role="radiogroup" aria-label="Tipo de negocio" className="overflow-hidden rounded-xl border border-border">
+      <Block
+        title="Tipo de negocio"
+        description="La plantilla propone los campos de las órdenes y los módulos. Después puedes ajustarlos."
+      >
+        <div
+          role="radiogroup"
+          aria-label="Tipo de negocio"
+          className="overflow-hidden rounded-xl border border-border"
+        >
           {BUSINESS_TEMPLATES.map((t) => {
             const selected = draft.template === t;
             return (
@@ -193,51 +247,97 @@ export function BusinessProfileEditor() {
                   selected ? 'bg-brand-blue/[0.06]' : 'hover:bg-surface-bg',
                 ].join(' ')}
               >
-                <span className={[
-                  'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
-                  selected ? 'border-brand-blue' : 'border-border',
-                ].join(' ')}>
+                <span
+                  className={[
+                    'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                    selected ? 'border-brand-blue' : 'border-border',
+                  ].join(' ')}
+                >
                   {selected && <span className="h-2 w-2 rounded-full bg-brand-blue" />}
                 </span>
                 <span>
-                  <span className="block text-sm font-medium text-text-primary">{TEMPLATE_INFO[t].name}</span>
-                  <span className="block text-xs text-text-muted">{TEMPLATE_INFO[t].description}</span>
+                  <span className="block text-sm font-medium text-text-primary">
+                    {TEMPLATE_INFO[t].name}
+                  </span>
+                  <span className="block text-xs text-text-muted">
+                    {TEMPLATE_INFO[t].description}
+                  </span>
                 </span>
               </button>
             );
           })}
         </div>
         {pendingTemplate && (
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-warning/30 bg-brand-warning/[0.07] px-4 py-3" role="alert">
+          <div
+            className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-warning/30 bg-brand-warning/[0.07] px-4 py-3"
+            role="alert"
+          >
             <p className="flex-1 text-sm text-text-primary">
-              Usar <strong>{TEMPLATE_INFO[pendingTemplate].name}</strong> reemplaza los nombres, campos y módulos de abajo. Las órdenes ya creadas no cambian.
+              Usar <strong>{TEMPLATE_INFO[pendingTemplate].name}</strong> reemplaza los nombres,
+              campos y módulos de abajo. Las órdenes ya creadas no cambian.
             </p>
-            <button type="button" onClick={() => applyTemplate(pendingTemplate)} className="h-9 rounded-lg bg-brand-blue px-3 text-sm font-medium text-white hover:brightness-110">
+            <button
+              type="button"
+              onClick={() => applyTemplate(pendingTemplate)}
+              className="h-9 rounded-lg bg-brand-blue px-3 text-sm font-medium text-white hover:brightness-110"
+            >
               Usar plantilla
             </button>
-            <button type="button" onClick={() => setPendingTemplate(null)} className="h-9 rounded-lg px-3 text-sm text-text-secondary hover:bg-surface-bg">
+            <button
+              type="button"
+              onClick={() => setPendingTemplate(null)}
+              className="h-9 rounded-lg px-3 text-sm text-text-secondary hover:bg-surface-bg"
+            >
               Cancelar
             </button>
           </div>
         )}
       </Block>
 
-      <Block title="Órdenes de servicio" description="Cómo se llaman en el menú y qué datos se piden al recibir algo del cliente.">
+      <Block
+        title="Órdenes de servicio"
+        description="Cómo se llaman en el menú y qué datos se piden al recibir algo del cliente."
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="bp-orders-label" className="mb-1.5 block text-sm font-medium text-text-secondary">Nombre en el menú</label>
-            <input id="bp-orders-label" value={draft.ordersLabel} onChange={(e) => update({ ordersLabel: e.target.value })} placeholder="Boletas" className={inputCls} />
+            <label
+              htmlFor="bp-orders-label"
+              className="mb-1.5 block text-sm font-medium text-text-secondary"
+            >
+              Nombre en el menú
+            </label>
+            <input
+              id="bp-orders-label"
+              value={draft.ordersLabel}
+              onChange={(e) => update({ ordersLabel: e.target.value })}
+              placeholder="Boletas"
+              className={inputCls}
+            />
           </div>
           <div>
-            <label htmlFor="bp-item-label" className="mb-1.5 block text-sm font-medium text-text-secondary">Qué se recibe</label>
-            <input id="bp-item-label" value={draft.itemLabel} onChange={(e) => update({ itemLabel: e.target.value })} placeholder="Modelo del equipo" className={inputCls} />
+            <label
+              htmlFor="bp-item-label"
+              className="mb-1.5 block text-sm font-medium text-text-secondary"
+            >
+              Qué se recibe
+            </label>
+            <input
+              id="bp-item-label"
+              value={draft.itemLabel}
+              onChange={(e) => update({ itemLabel: e.target.value })}
+              placeholder="Modelo del equipo"
+              className={inputCls}
+            />
           </div>
         </div>
 
         <div>
           <p className="mb-1.5 text-sm font-medium text-text-secondary">Campos adicionales</p>
           {draft.fields.length > 0 ? (
-            <ul key={revision} className="m-0 list-none overflow-hidden rounded-xl border border-border bg-surface-card p-0">
+            <ul
+              key={revision}
+              className="m-0 list-none overflow-hidden rounded-xl border border-border bg-surface-card p-0"
+            >
               {draft.fields.map((f, i) => (
                 <FieldRow
                   key={f.key}
@@ -267,15 +367,25 @@ export function BusinessProfileEditor() {
         </div>
       </Block>
 
-      <Block title="Módulos" description="Los módulos apagados desaparecen del menú y quedan bloqueados. Sus datos se conservan.">
+      <Block
+        title="Módulos"
+        description="Los módulos apagados desaparecen del menú y quedan bloqueados. Sus datos se conservan."
+      >
         <div className="grid gap-2 sm:grid-cols-2">
           {TOGGLEABLE_MODULES.map((m) => (
-            <label key={m} className="flex cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2.5 text-sm text-text-primary hover:bg-surface-bg">
+            <label
+              key={m}
+              className="flex cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2.5 text-sm text-text-primary hover:bg-surface-bg"
+            >
               <input
                 type="checkbox"
                 checked={draft.modules.includes(m)}
                 onChange={(e) =>
-                  update({ modules: e.target.checked ? [...draft.modules, m] : draft.modules.filter((x) => x !== m) })
+                  update({
+                    modules: e.target.checked
+                      ? [...draft.modules, m]
+                      : draft.modules.filter((x) => x !== m),
+                  })
                 }
                 className="h-4 w-4 accent-[var(--color-brand-blue)]"
               />
@@ -286,14 +396,26 @@ export function BusinessProfileEditor() {
       </Block>
 
       <div className="flex flex-wrap items-center justify-end gap-3 py-6">
-        {error && <p role="alert" className="mr-auto text-sm text-brand-error">{error}</p>}
+        {error && (
+          <p role="alert" className="mr-auto text-sm text-brand-error">
+            {error}
+          </p>
+        )}
         {done && (
           <span className="mr-auto flex items-center gap-1.5 text-sm text-brand-success">
             <CheckCircle size={15} strokeWidth={1.5} aria-hidden /> Guardado
           </span>
         )}
         {dirty && (
-          <button type="button" onClick={() => { setDraft(saved); setRevision((r) => r + 1); setError(null); }} className="h-10 rounded-lg px-4 text-sm text-text-secondary hover:bg-surface-bg">
+          <button
+            type="button"
+            onClick={() => {
+              setDraft(saved);
+              setRevision((r) => r + 1);
+              setError(null);
+            }}
+            className="h-10 rounded-lg px-4 text-sm text-text-secondary hover:bg-surface-bg"
+          >
             Descartar cambios
           </button>
         )}
@@ -303,7 +425,9 @@ export function BusinessProfileEditor() {
           disabled={!dirty || mutation.isPending}
           className="flex h-10 items-center gap-1.5 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
         >
-          {mutation.isPending && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+          {mutation.isPending && (
+            <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
+          )}
           Guardar tipo de negocio
         </button>
       </div>

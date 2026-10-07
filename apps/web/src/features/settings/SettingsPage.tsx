@@ -10,7 +10,6 @@ import { SubscriptionSection } from '../subscription/SubscriptionSection';
 import { ApiError } from '@/lib/api-client';
 import { BusinessProfileEditor } from '../business/BusinessProfileEditor';
 
-
 function PrintSection({ settings }: { settings: Settings | null }) {
   const [testPrint, setTestPrint] = useState(false);
 
@@ -36,8 +35,17 @@ function PrintSection({ settings }: { settings: Settings | null }) {
   const shopId = settings?.shop_id_number?.trim();
   const footer = settings?.receipt_footer?.trim();
   const now = new Date();
-  const date = now.toLocaleDateString('es-CR', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'America/Costa_Rica' });
-  const time = now.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Costa_Rica' });
+  const date = now.toLocaleDateString('es-CR', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'America/Costa_Rica',
+  });
+  const time = now.toLocaleTimeString('es-CR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'America/Costa_Rica',
+  });
 
   return (
     <Section
@@ -50,7 +58,8 @@ function PrintSection({ settings }: { settings: Settings | null }) {
       </div>
 
       <p className="text-sm text-text-muted leading-relaxed">
-        En el módulo POS, cada venta tiene un botón de impresora. Al hacer clic se abre el diálogo del navegador — selecciona la Epson y confirma.
+        En el módulo POS, cada venta tiene un botón de impresora. Al hacer clic se abre el diálogo
+        del navegador — selecciona la Epson y confirma.
       </p>
 
       <button
@@ -62,42 +71,68 @@ function PrintSection({ settings }: { settings: Settings | null }) {
         Imprimir ticket de prueba
       </button>
 
-      {testPrint && createPortal(
-        <div className="sale-print-overlay" style={{ fontFamily: '"Courier New", Courier, monospace', color: '#000' }}>
-          <div style={{ width: '100%', maxWidth: 290, margin: '0 auto', padding: '4px 0', fontSize: 15, lineHeight: 1.55 }}>
-            <div style={{ textAlign: 'center', marginBottom: 8 }}>
-              <div style={{ fontSize: 20, fontWeight: 700 }}>{shopName}</div>
-              {shopId && <div style={{ fontSize: 13 }}>Cédula: {shopId}</div>}
-              {shopAddress && <div style={{ fontSize: 13 }}>{shopAddress}</div>}
-              {shopPhone && <div style={{ fontSize: 13 }}>Tel: {shopPhone}</div>}
-              {shopMobile && <div style={{ fontSize: 13 }}>Cel: {shopMobile}</div>}
+      {testPrint &&
+        createPortal(
+          <div
+            className="sale-print-overlay"
+            style={{ fontFamily: '"Courier New", Courier, monospace', color: '#000' }}
+          >
+            <div
+              style={{
+                width: '100%',
+                maxWidth: 290,
+                margin: '0 auto',
+                padding: '4px 0',
+                fontSize: 15,
+                lineHeight: 1.55,
+              }}
+            >
+              <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                <div style={{ fontSize: 20, fontWeight: 700 }}>{shopName}</div>
+                {shopId && <div style={{ fontSize: 13 }}>Cédula: {shopId}</div>}
+                {shopAddress && <div style={{ fontSize: 13 }}>{shopAddress}</div>}
+                {shopPhone && <div style={{ fontSize: 13 }}>Tel: {shopPhone}</div>}
+                {shopMobile && <div style={{ fontSize: 13 }}>Cel: {shopMobile}</div>}
+              </div>
+              <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
+              <div style={{ textAlign: 'center', marginBottom: 6 }}>
+                <div style={{ fontSize: 15, fontWeight: 600 }}>*** TICKET DE PRUEBA ***</div>
+                <div style={{ fontSize: 14 }}>
+                  {date} — {time}
+                </div>
+              </div>
+              <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
+              <div style={{ fontSize: 14, marginBottom: 5 }}>Reparación de pantalla Samsung</div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: 14,
+                  marginBottom: 1,
+                }}
+              >
+                <span>Método:</span>
+                <span>Efectivo</span>
+              </div>
+              <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
+              <div
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}
+              >
+                <span style={{ fontSize: 17, fontWeight: 700 }}>TOTAL</span>
+                <span style={{ fontSize: 26, fontWeight: 700 }}>₡25 000</span>
+              </div>
+              <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
+              <div style={{ textAlign: 'center', fontSize: 13 }}>
+                {footer ? (
+                  <span style={{ whiteSpace: 'pre-wrap' }}>{footer}</span>
+                ) : (
+                  <span>Gracias por su compra</span>
+                )}
+              </div>
             </div>
-            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
-            <div style={{ textAlign: 'center', marginBottom: 6 }}>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>*** TICKET DE PRUEBA ***</div>
-              <div style={{ fontSize: 14 }}>{date} — {time}</div>
-            </div>
-            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
-            <div style={{ fontSize: 14, marginBottom: 5 }}>Reparación de pantalla Samsung</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 1 }}>
-              <span>Método:</span><span>Efectivo</span>
-            </div>
-            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <span style={{ fontSize: 17, fontWeight: 700 }}>TOTAL</span>
-              <span style={{ fontSize: 26, fontWeight: 700 }}>₡25 000</span>
-            </div>
-            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
-            <div style={{ textAlign: 'center', fontSize: 13 }}>
-              {footer
-                ? <span style={{ whiteSpace: 'pre-wrap' }}>{footer}</span>
-                : <span>Gracias por su compra</span>
-              }
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
+          </div>,
+          document.body,
+        )}
     </Section>
   );
 }
@@ -130,7 +165,11 @@ export function SettingsPage() {
       setTimeout(() => setSaved(false), 3000);
     },
     onError: (err) => {
-      setSaveError(err instanceof ApiError ? err.message : 'No se pudieron guardar los cambios. Intenta de nuevo.');
+      setSaveError(
+        err instanceof ApiError
+          ? err.message
+          : 'No se pudieron guardar los cambios. Intenta de nuevo.',
+      );
     },
   });
 
@@ -193,7 +232,9 @@ export function SettingsPage() {
       {/* Header */}
       <div className="mb-2">
         <h1 className="text-xl font-semibold text-text-primary">Configuración</h1>
-        <p className="mt-1 text-sm text-text-muted">Datos del negocio, tickets, tipo de negocio y módulos.</p>
+        <p className="mt-1 text-sm text-text-muted">
+          Datos del negocio, tickets, tipo de negocio y módulos.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -370,9 +411,7 @@ export function SettingsPage() {
               Guardado
             </span>
           )}
-          {saveError && (
-            <span className="text-sm text-brand-error">{saveError}</span>
-          )}
+          {saveError && <span className="text-sm text-brand-error">{saveError}</span>}
           <button
             type="submit"
             disabled={mutation.isPending}

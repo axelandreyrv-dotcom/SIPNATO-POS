@@ -24,7 +24,9 @@ function RecoverPage() {
   const [newPassword, setNewPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{ recoveryCode?: string; newPassword?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ recoveryCode?: string; newPassword?: string }>(
+    {},
+  );
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -72,7 +74,11 @@ function RecoverPage() {
       <AuthShell>
         <div className="space-y-8">
           <div className="flex items-start gap-3">
-            <CheckCircle size={22} strokeWidth={1.5} className="mt-0.5 shrink-0 text-brand-success" />
+            <CheckCircle
+              size={22}
+              strokeWidth={1.5}
+              className="mt-0.5 shrink-0 text-brand-success"
+            />
             <div>
               <h1 className="text-xl font-semibold tracking-tight text-text-primary">
                 Contraseña actualizada
@@ -112,12 +118,14 @@ function RecoverPage() {
                 ].join(' ')}
                 aria-label="Copiar código"
               >
-                {copied ? <CheckCircle size={16} strokeWidth={1.5} /> : <Copy size={16} strokeWidth={1.5} />}
+                {copied ? (
+                  <CheckCircle size={16} strokeWidth={1.5} />
+                ) : (
+                  <Copy size={16} strokeWidth={1.5} />
+                )}
               </button>
             </div>
-            {copied && (
-              <p className="text-xs text-brand-success">Copiado al portapapeles</p>
-            )}
+            {copied && <p className="text-xs text-brand-success">Copiado al portapapeles</p>}
           </div>
 
           <button
@@ -161,7 +169,10 @@ function RecoverPage() {
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
           {/* Recovery code */}
           <div className="space-y-1.5">
-            <label htmlFor="recovery-code" className="block text-sm font-medium text-text-secondary">
+            <label
+              htmlFor="recovery-code"
+              className="block text-sm font-medium text-text-secondary"
+            >
               Código de recuperación
             </label>
             <input
@@ -173,7 +184,8 @@ function RecoverPage() {
               value={recoveryCode}
               onChange={(e) => {
                 setRecoveryCode(e.target.value.trim());
-                if (fieldErrors.recoveryCode) setFieldErrors(({ recoveryCode: _r, ...rest }) => rest);
+                if (fieldErrors.recoveryCode)
+                  setFieldErrors(({ recoveryCode: _r, ...rest }) => rest);
                 if (error) setError(null);
               }}
               className={[
@@ -205,7 +217,8 @@ function RecoverPage() {
                 value={newPassword}
                 onChange={(e) => {
                   setNewPassword(e.target.value);
-                  if (fieldErrors.newPassword) setFieldErrors(({ newPassword: _n, ...rest }) => rest);
+                  if (fieldErrors.newPassword)
+                    setFieldErrors(({ newPassword: _n, ...rest }) => rest);
                 }}
                 className={[
                   'h-10 w-full rounded-lg border px-3 pr-10 text-sm text-text-primary',
@@ -222,7 +235,11 @@ function RecoverPage() {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted transition-colors hover:text-text-secondary"
                 aria-label={showPwd ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               >
-                {showPwd ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
+                {showPwd ? (
+                  <EyeOff size={16} strokeWidth={1.5} />
+                ) : (
+                  <Eye size={16} strokeWidth={1.5} />
+                )}
               </button>
             </div>
             {fieldErrors.newPassword && (

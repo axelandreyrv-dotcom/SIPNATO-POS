@@ -15,7 +15,8 @@ export const productsApi = {
       `/api/products?filter=${filter}${q ? `&q=${encodeURIComponent(q)}` : ''}`,
     ),
 
-  lookup: (code: string) => apiFetch<Product>(`/api/products/lookup?code=${encodeURIComponent(code)}`),
+  lookup: (code: string) =>
+    apiFetch<Product>(`/api/products/lookup?code=${encodeURIComponent(code)}`),
 
   create: (data: CreateProductInput) =>
     apiFetch<Product>('/api/products', { method: 'POST', body: JSON.stringify(data) }),
@@ -24,7 +25,10 @@ export const productsApi = {
     apiFetch<Product>(`/api/products/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   addMovement: (id: number, data: StockMovementInput) =>
-    apiFetch<Product>(`/api/products/${id}/movements`, { method: 'POST', body: JSON.stringify(data) }),
+    apiFetch<Product>(`/api/products/${id}/movements`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 
   movements: (id: number) => apiFetch<StockMovement[]>(`/api/products/${id}/movements`),
 };

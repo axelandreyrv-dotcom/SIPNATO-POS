@@ -23,8 +23,7 @@ export function NuevaCotizacionPage() {
 
   const total = items.reduce((sum, item) => sum + parseAmount(item.amountStr), 0);
 
-  const allValid =
-    items.length >= 1 && items.every((item) => item.description.trim().length > 0);
+  const allValid = items.length >= 1 && items.every((item) => item.description.trim().length > 0);
 
   const createMutation = useMutation({
     mutationFn: quotesApi.create,
@@ -43,9 +42,7 @@ export function NuevaCotizacionPage() {
   }
 
   function updateItem(id: string, field: 'description' | 'amountStr', value: string) {
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)),
-    );
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
   }
 
   function handleSubmit(e: React.FormEvent) {

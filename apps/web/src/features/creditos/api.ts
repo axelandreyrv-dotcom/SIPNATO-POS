@@ -1,4 +1,10 @@
-import type { CreateCredito, AddCreditoPayment, Credito, CreditoWithPayments, CreditoList } from '@sipnato/shared';
+import type {
+  CreateCredito,
+  AddCreditoPayment,
+  Credito,
+  CreditoWithPayments,
+  CreditoList,
+} from '@sipnato/shared';
 
 const BASE = '/api/creditos';
 
@@ -6,7 +12,9 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, { credentials: 'include', ...options });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error((body as { error?: { message?: string } }).error?.message ?? 'Error del servidor');
+    throw new Error(
+      (body as { error?: { message?: string } }).error?.message ?? 'Error del servidor',
+    );
   }
   return res.json() as Promise<T>;
 }

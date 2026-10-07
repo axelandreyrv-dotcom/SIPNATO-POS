@@ -1,7 +1,13 @@
 import { eq, sql, isNull, desc } from 'drizzle-orm';
 import { currentActorId, db } from '../../db/client.js';
 import { apartados, apartadoPayments, counters, auditLog } from '../../db/schema.js';
-import type { CreateApartadoInput, AddApartadoPaymentInput, Apartado, ApartadoPayment, ApartadoWithPayments } from '@sipnato/shared';
+import type {
+  CreateApartadoInput,
+  AddApartadoPaymentInput,
+  Apartado,
+  ApartadoPayment,
+  ApartadoWithPayments,
+} from '@sipnato/shared';
 
 type PaymentDbRow = typeof apartadoPayments.$inferSelect;
 type ApartadoDbRow = typeof apartados.$inferSelect;
@@ -95,10 +101,10 @@ export function insertApartadoRow(
   });
 }
 
-export function listApartadosRows(filter?: {
-  status?: string;
-  search?: string;
-}): { data: Apartado[]; total: number } {
+export function listApartadosRows(filter?: { status?: string; search?: string }): {
+  data: Apartado[];
+  total: number;
+} {
   const rows = db
     .select({
       id: apartados.id,
@@ -237,10 +243,7 @@ export function addPaymentRow(
   });
 }
 
-export function cancelApartadoRow(
-  id: number,
-  meta: { ip?: string; userAgent?: string },
-): Apartado {
+export function cancelApartadoRow(id: number, meta: { ip?: string; userAgent?: string }): Apartado {
   return db.transaction((tx) => {
     const row = tx
       .update(apartados)

@@ -18,11 +18,17 @@ export function MyAccountPage() {
   const mutation = useMutation({
     mutationFn: usersApi.changeOwnSecret,
     // El servidor cierra todas las sesiones del usuario: hay que volver a entrar.
-    onSuccess: () => { window.location.href = '/login'; },
+    onSuccess: () => {
+      window.location.href = '/login';
+    },
     onError: (err) => {
-      setError(err instanceof ApiError && err.code === 'INVALID_CREDENTIALS'
-        ? `${label} actual incorrecto${me.role === 'cajero' ? '' : 'a'}.`
-        : err instanceof ApiError ? err.message : 'No se pudo conectar con el servidor.');
+      setError(
+        err instanceof ApiError && err.code === 'INVALID_CREDENTIALS'
+          ? `${label} actual incorrecto${me.role === 'cajero' ? '' : 'a'}.`
+          : err instanceof ApiError
+            ? err.message
+            : 'No se pudo conectar con el servidor.',
+      );
     },
   });
 
@@ -30,8 +36,14 @@ export function MyAccountPage() {
     e.preventDefault();
     setError(null);
     const parsed = secretSchemaFor(me.role).safeParse(next);
-    if (!parsed.success) { setError(parsed.error.issues[0]?.message ?? 'Valor inválido'); return; }
-    if (next !== confirm) { setError(`Los ${me.role === 'cajero' ? 'PIN' : 'valores'} no coinciden.`); return; }
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? 'Valor inválido');
+      return;
+    }
+    if (next !== confirm) {
+      setError(`Los ${me.role === 'cajero' ? 'PIN' : 'valores'} no coinciden.`);
+      return;
+    }
     mutation.mutate({ currentSecret: current, newSecret: next });
   }
 
@@ -48,32 +60,56 @@ export function MyAccountPage() {
         <dd className="text-text-primary">{ROLE_LABELS[me.role]}</dd>
       </dl>
 
-      <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-4 border-t border-border pt-6">
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="mt-8 space-y-4 border-t border-border pt-6"
+      >
         <h2 className="text-base font-semibold text-text-primary">Cambiar {label.toLowerCase()}</h2>
 
         <div className="space-y-1.5">
-          <label htmlFor="current-secret" className="block text-sm font-medium text-text-secondary">{label} actual</label>
-          <SecretInput id="current-secret" role={me.role} value={current} onChange={setCurrent} autoComplete="current-password" />
+          <label htmlFor="current-secret" className="block text-sm font-medium text-text-secondary">
+            {label} actual
+          </label>
+          <SecretInput
+            id="current-secret"
+            role={me.role}
+            value={current}
+            onChange={setCurrent}
+            autoComplete="current-password"
+          />
         </div>
         <div className="space-y-1.5">
-          <label htmlFor="next-secret" className="block text-sm font-medium text-text-secondary">{label} nuevo{me.role === 'cajero' ? '' : 'a'}</label>
+          <label htmlFor="next-secret" className="block text-sm font-medium text-text-secondary">
+            {label} nuevo{me.role === 'cajero' ? '' : 'a'}
+          </label>
           <SecretInput id="next-secret" role={me.role} value={next} onChange={setNext} />
         </div>
         <div className="space-y-1.5">
-          <label htmlFor="confirm-secret" className="block text-sm font-medium text-text-secondary">Confirmar</label>
+          <label htmlFor="confirm-secret" className="block text-sm font-medium text-text-secondary">
+            Confirmar
+          </label>
           <SecretInput id="confirm-secret" role={me.role} value={confirm} onChange={setConfirm} />
         </div>
 
-        {error && <p role="alert" className="text-sm text-brand-error">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-brand-error">
+            {error}
+          </p>
+        )}
 
-        <p className="text-xs text-text-muted">Al guardar se cerrarán tus sesiones abiertas y volverás a iniciar sesión.</p>
+        <p className="text-xs text-text-muted">
+          Al guardar se cerrarán tus sesiones abiertas y volverás a iniciar sesión.
+        </p>
 
         <button
           type="submit"
           disabled={mutation.isPending || !current || !next || !confirm}
           className="flex h-10 items-center gap-1.5 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
         >
-          {mutation.isPending && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+          {mutation.isPending && (
+            <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
+          )}
           Guardar
         </button>
       </form>

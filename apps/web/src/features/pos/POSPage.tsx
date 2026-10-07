@@ -2,15 +2,15 @@ import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  AlertTriangle,
-  CheckCircle,
-  Loader2,
-  Printer,
-  Trash2,
-  X,
-} from 'lucide-react';
-import type { CreateSaleInput, PaymentMethod, Product, Sale, Settings, SupervisorAuth } from '@sipnato/shared';
+import { AlertTriangle, CheckCircle, Loader2, Printer, Trash2, X } from 'lucide-react';
+import type {
+  CreateSaleInput,
+  PaymentMethod,
+  Product,
+  Sale,
+  Settings,
+  SupervisorAuth,
+} from '@sipnato/shared';
 import { formatColones, PAYMENT_METHOD_LABELS } from '@sipnato/shared';
 import { fmtTime } from '../../lib/format';
 import { cashRegisterApi } from '../cash-register/api';
@@ -20,7 +20,10 @@ import { UsdPaymentModal } from './UsdPaymentModal';
 import { exchangeRateApi } from './exchange-rate-api';
 import { settingsApi } from '../settings/api';
 import { useCan, useModuleEnabled } from '../auth/useCurrentUser';
-import { SupervisorAuthDialog, supervisorAuthErrorMessage } from '../../components/SupervisorAuthDialog';
+import {
+  SupervisorAuthDialog,
+  supervisorAuthErrorMessage,
+} from '../../components/SupervisorAuthDialog';
 
 const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'efectivo', label: 'Efectivo' },
@@ -41,7 +44,13 @@ const METHOD_COLORS: Record<PaymentMethod, string> = {
 // ── Toast ─────────────────────────────────────────────────────────────────────
 type ToastItem = { id: number; text: string };
 
-function ToastList({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id: number) => void }) {
+function ToastList({
+  toasts,
+  onDismiss,
+}: {
+  toasts: ToastItem[];
+  onDismiss: (id: number) => void;
+}) {
   if (toasts.length === 0) return null;
   return (
     <div className="fixed bottom-6 right-4 z-50 flex flex-col gap-2 sm:right-6">
@@ -52,7 +61,12 @@ function ToastList({ toasts, onDismiss }: { toasts: ToastItem[]; onDismiss: (id:
           aria-live="polite"
           className="animate-slide-up-fade flex items-center gap-3 rounded-lg border border-brand-success/20 bg-surface-card px-4 py-3 shadow-lg"
         >
-          <CheckCircle size={16} strokeWidth={1.5} className="shrink-0 text-brand-success" aria-hidden />
+          <CheckCircle
+            size={16}
+            strokeWidth={1.5}
+            className="shrink-0 text-brand-success"
+            aria-hidden
+          />
           <span className="text-sm font-medium text-text-primary">{t.text}</span>
           <button
             type="button"
@@ -125,15 +139,22 @@ function ChangeCalcModal({
 
         <div className="mb-5 rounded-lg bg-surface-bg px-4 py-3 text-center">
           <p className="text-xs text-text-muted mb-1">Total a cobrar</p>
-          <p className="text-2xl font-semibold tabular-nums text-text-primary">{formatColones(amount)}</p>
+          <p className="text-2xl font-semibold tabular-nums text-text-primary">
+            {formatColones(amount)}
+          </p>
         </div>
 
         <div className="mb-5">
-          <label htmlFor="received" className="mb-1.5 block text-sm font-medium text-text-secondary">
+          <label
+            htmlFor="received"
+            className="mb-1.5 block text-sm font-medium text-text-secondary"
+          >
             Monto recibido
           </label>
           <div className="relative">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">₡</span>
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">
+              ₡
+            </span>
             <input
               id="received"
               ref={inputRef}
@@ -150,19 +171,25 @@ function ChangeCalcModal({
         </div>
 
         {receivedAmount > 0 && (
-          <div className={[
-            'mb-5 rounded-lg px-4 py-4 text-center',
-            canConfirm ? 'bg-brand-success/[0.08]' : 'bg-brand-error/[0.08]',
-          ].join(' ')}>
+          <div
+            className={[
+              'mb-5 rounded-lg px-4 py-4 text-center',
+              canConfirm ? 'bg-brand-success/[0.08]' : 'bg-brand-error/[0.08]',
+            ].join(' ')}
+          >
             <p className="text-xs text-text-muted mb-1">Vuelto</p>
-            <p className={[
-              'text-3xl font-bold tabular-nums',
-              canConfirm ? 'text-brand-success' : 'text-brand-error',
-            ].join(' ')}>
+            <p
+              className={[
+                'text-3xl font-bold tabular-nums',
+                canConfirm ? 'text-brand-success' : 'text-brand-error',
+              ].join(' ')}
+            >
               {canConfirm ? formatColones(change) : `−${formatColones(amount - receivedAmount)}`}
             </p>
             {!canConfirm && (
-              <p className="mt-1 text-xs text-brand-error" role="alert">Monto insuficiente</p>
+              <p className="mt-1 text-xs text-brand-error" role="alert">
+                Monto insuficiente
+              </p>
             )}
           </div>
         )}
@@ -181,7 +208,9 @@ function ChangeCalcModal({
             onClick={onConfirm}
             className="flex flex-1 h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-success text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoading && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+            {isLoading && (
+              <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
+            )}
             Confirmar cobro
           </button>
         </div>
@@ -212,10 +241,12 @@ function SaleRow({
       <span className="min-w-0 flex-1 truncate text-sm text-text-primary">
         {sale.description || <span className="text-text-muted italic">Sin descripción</span>}
       </span>
-      <span className={[
-        'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
-        METHOD_COLORS[sale.paymentMethod],
-      ].join(' ')}>
+      <span
+        className={[
+          'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
+          METHOD_COLORS[sale.paymentMethod],
+        ].join(' ')}
+      >
         {PAYMENT_METHOD_LABELS[sale.paymentMethod]}
       </span>
       <span className="shrink-0 text-sm font-semibold tabular-nums text-text-primary">
@@ -238,11 +269,16 @@ function SaleRow({
         <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
-            onClick={() => { onDelete(sale.id); setConfirming(false); }}
+            onClick={() => {
+              onDelete(sale.id);
+              setConfirming(false);
+            }}
             disabled={isDeleting}
             className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-brand-error bg-brand-error/10 hover:bg-brand-error/20 transition-colors disabled:opacity-50"
           >
-            {isDeleting ? <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden /> : null}
+            {isDeleting ? (
+              <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />
+            ) : null}
             Eliminar
           </button>
           <button
@@ -271,11 +307,14 @@ function SaleRow({
 // ── Sale print view (portal, only visible on print) ───────────────────────────
 function SalePrintView({ sale, settings }: { sale: Sale; settings: Settings | undefined }) {
   const date = new Date(sale.createdAt).toLocaleDateString('es-CR', {
-    year: 'numeric', month: 'short', day: 'numeric',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
     timeZone: 'America/Costa_Rica',
   });
   const time = new Date(sale.createdAt).toLocaleTimeString('es-CR', {
-    hour: '2-digit', minute: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
     timeZone: 'America/Costa_Rica',
   });
 
@@ -285,15 +324,29 @@ function SalePrintView({ sale, settings }: { sale: Sale; settings: Settings | un
   const footer = settings?.receipt_footer?.trim();
 
   const row = (label: string, value: string) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 1 }}>
-      <span>{label}</span><span>{value}</span>
+    <div
+      style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 1 }}
+    >
+      <span>{label}</span>
+      <span>{value}</span>
     </div>
   );
 
   return (
-    <div className="sale-print-overlay" style={{ fontFamily: '"Courier New", Courier, monospace', color: '#000' }}>
-      <div style={{ width: '100%', maxWidth: 270, margin: '0 auto', padding: '6px 2px', fontSize: 11, lineHeight: 1.45 }}>
-
+    <div
+      className="sale-print-overlay"
+      style={{ fontFamily: '"Courier New", Courier, monospace', color: '#000' }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 270,
+          margin: '0 auto',
+          padding: '6px 2px',
+          fontSize: 11,
+          lineHeight: 1.45,
+        }}
+      >
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 6 }}>
           <div style={{ fontSize: 14, fontWeight: 700 }}>{shopName}</div>
@@ -305,9 +358,13 @@ function SalePrintView({ sale, settings }: { sale: Sale; settings: Settings | un
 
         {/* Consecutive & date */}
         <div style={{ textAlign: 'center', marginBottom: 5 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em' }}>RECIBO DE VENTA</div>
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em' }}>
+            RECIBO DE VENTA
+          </div>
           <div style={{ fontSize: 10 }}>#{String(sale.consecutive).padStart(4, '0')}</div>
-          <div style={{ fontSize: 10 }}>{date} — {time}</div>
+          <div style={{ fontSize: 10 }}>
+            {date} — {time}
+          </div>
         </div>
 
         <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
@@ -319,16 +376,20 @@ function SalePrintView({ sale, settings }: { sale: Sale; settings: Settings | un
               <div key={i} style={{ fontSize: 10, marginBottom: 2 }}>
                 <div style={{ wordBreak: 'break-word' }}>{item.description}</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{item.quantity} x {formatColones(item.unitPrice)}</span>
+                  <span>
+                    {item.quantity} x {formatColones(item.unitPrice)}
+                  </span>
                   <span>{formatColones(item.total)}</span>
                 </div>
               </div>
             ))}
           </div>
-        ) : sale.description && (
-          <div style={{ fontSize: 10, marginBottom: 5, wordBreak: 'break-word' }}>
-            {sale.description}
-          </div>
+        ) : (
+          sale.description && (
+            <div style={{ fontSize: 10, marginBottom: 5, wordBreak: 'break-word' }}>
+              {sale.description}
+            </div>
+          )
         )}
 
         {/* Method */}
@@ -346,12 +407,12 @@ function SalePrintView({ sale, settings }: { sale: Sale; settings: Settings | un
 
         {/* Footer */}
         <div style={{ textAlign: 'center', fontSize: 10 }}>
-          {footer
-            ? <span style={{ whiteSpace: 'pre-wrap' }}>{footer}</span>
-            : <span>Gracias por su compra</span>
-          }
+          {footer ? (
+            <span style={{ whiteSpace: 'pre-wrap' }}>{footer}</span>
+          ) : (
+            <span>Gracias por su compra</span>
+          )}
         </div>
-
       </div>
     </div>
   );
@@ -397,7 +458,9 @@ export function POSPage() {
       ...usd,
       items: [
         ...cart.map((l) => ({ productId: l.product.id, quantity: l.quantity })),
-        ...(amount >= 1 ? [{ description: description.trim() || 'Monto libre', quantity: 1, unitPrice: amount }] : []),
+        ...(amount >= 1
+          ? [{ description: description.trim() || 'Monto libre', quantity: 1, unitPrice: amount }]
+          : []),
       ],
     };
   }
@@ -556,7 +619,12 @@ export function POSPage() {
       {/* No register warning */}
       {noRegister && (
         <div className="mb-6 flex items-start gap-3 rounded-lg border border-brand-warning/25 bg-brand-warning/[0.07] px-4 py-3">
-          <AlertTriangle size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-brand-warning" aria-hidden />
+          <AlertTriangle
+            size={16}
+            strokeWidth={1.5}
+            className="mt-0.5 shrink-0 text-brand-warning"
+            aria-hidden
+          />
           <div className="flex-1">
             <p className="text-sm font-medium text-text-primary">No hay caja abierta</p>
             <p className="mt-0.5 text-xs text-text-muted">
@@ -571,24 +639,37 @@ export function POSPage() {
 
       {/* POS Form */}
       <form onSubmit={handleSubmit} className="mb-8">
-        <fieldset disabled={noRegister || createMutation.isPending} className="space-y-4 disabled:opacity-60">
+        <fieldset
+          disabled={noRegister || createMutation.isPending}
+          className="space-y-4 disabled:opacity-60"
+        >
           {/* Catálogo: buscar / escanear y carrito (solo con el módulo de inventario activo) */}
-          {inventoryEnabled && <ProductSearch onAdd={addToCart} disabled={noRegister || createMutation.isPending} />}
+          {inventoryEnabled && (
+            <ProductSearch onAdd={addToCart} disabled={noRegister || createMutation.isPending} />
+          )}
           <CartLines
             lines={cart}
-            onChangeQty={(id, quantity) => setCart((prev) => prev.map((l) => (l.product.id === id ? { ...l, quantity } : l)))}
+            onChangeQty={(id, quantity) =>
+              setCart((prev) => prev.map((l) => (l.product.id === id ? { ...l, quantity } : l)))
+            }
             onRemove={(id) => setCart((prev) => prev.filter((l) => l.product.id !== id))}
           />
 
           {cart.length > 0 && (
             <p className="pt-1 text-xs font-medium uppercase tracking-wide text-text-muted">
-              Monto libre <span className="normal-case tracking-normal font-normal">(opcional: mano de obra, instalación…)</span>
+              Monto libre{' '}
+              <span className="normal-case tracking-normal font-normal">
+                (opcional: mano de obra, instalación…)
+              </span>
             </p>
           )}
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-text-secondary">
+            <label
+              htmlFor="description"
+              className="mb-1.5 block text-sm font-medium text-text-secondary"
+            >
               Descripción <span className="font-normal text-text-muted">(opcional)</span>
             </label>
             <input
@@ -610,11 +691,16 @@ export function POSPage() {
 
           {/* Amount */}
           <div>
-            <label htmlFor="pos-amount" className="mb-1.5 block text-sm font-medium text-text-secondary">
+            <label
+              htmlFor="pos-amount"
+              className="mb-1.5 block text-sm font-medium text-text-secondary"
+            >
               Monto
             </label>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">₡</span>
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">
+                ₡
+              </span>
               <input
                 id="pos-amount"
                 ref={amountInputRef}
@@ -631,8 +717,14 @@ export function POSPage() {
 
           {/* Payment method */}
           <div>
-            <p id="method-label" className="mb-2 text-sm font-medium text-text-secondary">Método de pago</p>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5" role="radiogroup" aria-labelledby="method-label">
+            <p id="method-label" className="mb-2 text-sm font-medium text-text-secondary">
+              Método de pago
+            </p>
+            <div
+              className="grid grid-cols-3 gap-2 sm:grid-cols-5"
+              role="radiogroup"
+              aria-labelledby="method-label"
+            >
               {METHODS.map(({ value, label }) => (
                 <button
                   key={value}
@@ -662,9 +754,14 @@ export function POSPage() {
             className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-brand-blue text-base font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createMutation.isPending ? (
-              <><Loader2 size={18} strokeWidth={1.5} className="animate-spin" aria-hidden /> Procesando...</>
+              <>
+                <Loader2 size={18} strokeWidth={1.5} className="animate-spin" aria-hidden />{' '}
+                Procesando...
+              </>
+            ) : total >= 1 ? (
+              `Cobrar ${formatColones(total)}`
             ) : (
-              total >= 1 ? `Cobrar ${formatColones(total)}` : 'Cobrar'
+              'Cobrar'
             )}
           </button>
 
@@ -687,7 +784,8 @@ export function POSPage() {
           </h2>
           {salesData && salesData.total > 0 && (
             <span className="text-xs text-text-muted">
-              Total: <span className="font-medium text-text-primary tabular-nums">
+              Total:{' '}
+              <span className="font-medium text-text-primary tabular-nums">
                 {formatColones(salesData.sales.reduce((sum, s) => sum + s.amount, 0))}
               </span>
             </span>
@@ -697,7 +795,10 @@ export function POSPage() {
         {salesLoading ? (
           <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
             {Array.from({ length: 4 }, (_, i) => (
-              <div key={i} className="flex animate-pulse items-center gap-3 border-b border-border px-4 py-2.5 last:border-0">
+              <div
+                key={i}
+                className="flex animate-pulse items-center gap-3 border-b border-border px-4 py-2.5 last:border-0"
+              >
                 <div className="h-3 w-6 rounded bg-border" />
                 <div className="h-3 flex-1 rounded bg-border" />
                 <div className="h-5 w-16 rounded-full bg-border/60" />
@@ -719,7 +820,10 @@ export function POSPage() {
                 key={sale.id}
                 sale={sale}
                 onDelete={handleDeleteRequest}
-                isDeleting={deleteMutation.isPending && (deleteMutation.variables as { id: number } | undefined)?.id === sale.id}
+                isDeleting={
+                  deleteMutation.isPending &&
+                  (deleteMutation.variables as { id: number } | undefined)?.id === sale.id
+                }
                 onPrint={handlePrint}
               />
             ))}
@@ -733,7 +837,10 @@ export function POSPage() {
           title="Autorizar eliminación"
           description="Eliminar una venta requiere que un administrador o el dueño lo autorice."
           onConfirm={handleAuthorize}
-          onClose={() => { setPendingDeleteId(null); setAuthError(null); }}
+          onClose={() => {
+            setPendingDeleteId(null);
+            setAuthError(null);
+          }}
           isLoading={deleteMutation.isPending}
           error={authError}
         />
@@ -761,13 +868,14 @@ export function POSPage() {
       )}
 
       {/* Toasts */}
-      <ToastList toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
+      <ToastList
+        toasts={toasts}
+        onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))}
+      />
 
       {/* Sale print portal — only visible during window.print() */}
-      {salePrintData && createPortal(
-        <SalePrintView sale={salePrintData} settings={settings} />,
-        document.body,
-      )}
+      {salePrintData &&
+        createPortal(<SalePrintView sale={salePrintData} settings={settings} />, document.body)}
     </div>
   );
 }

@@ -52,7 +52,10 @@ export function TenantDetailPage({ slug }: { slug: string }) {
 
   return (
     <div className="space-y-6">
-      <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-text-secondary transition-colors hover:text-text-primary">
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1.5 text-sm text-text-secondary transition-colors hover:text-text-primary"
+      >
         <ArrowLeft size={16} strokeWidth={1.5} aria-hidden />
         Negocios
       </Link>
@@ -101,29 +104,46 @@ function Detail({ detail }: { detail: PlatformTenantDetail }) {
         </Fact>
         <Fact label="Pagado hasta">
           {t.paidUntil ? fmtDate(t.paidUntil) : '—'}
-          <span className={`block text-xs font-normal ${t.subscription === 'vencido' ? 'text-brand-error' : 'text-text-muted'}`}>{dueText(t)}</span>
+          <span
+            className={`block text-xs font-normal ${t.subscription === 'vencido' ? 'text-brand-error' : 'text-text-muted'}`}
+          >
+            {dueText(t)}
+          </span>
         </Fact>
         <Fact label="Mensualidad">
           {t.subscription === 'sin_cobro' ? '—' : formatColones(t.effectivePrice)}
-          <span className="block text-xs font-normal text-text-muted">{t.monthlyPrice !== null ? 'Precio especial' : 'Precio por defecto'}</span>
+          <span className="block text-xs font-normal text-text-muted">
+            {t.monthlyPrice !== null ? 'Precio especial' : 'Precio por defecto'}
+          </span>
         </Fact>
         <Fact label="Uso">
           {detail.usage.users} {detail.usage.users === 1 ? 'usuario' : 'usuarios'}
           <span className="block text-xs font-normal text-text-muted">
-            {detail.usage.lastSaleAt ? `Última venta ${fmtDateTime(detail.usage.lastSaleAt)}` : 'Sin ventas'}
+            {detail.usage.lastSaleAt
+              ? `Última venta ${fmtDateTime(detail.usage.lastSaleAt)}`
+              : 'Sin ventas'}
           </span>
         </Fact>
       </dl>
 
       <div className="divide-y divide-border">
-        <Block title="Pagos" description="Cada pago extiende el vencimiento actual, aunque ya haya pasado: el atraso también se cobra.">
+        <Block
+          title="Pagos"
+          description="Cada pago extiende el vencimiento actual, aunque ya haya pasado: el atraso también se cobra."
+        >
           <Payments tenant={t} payments={detail.payments} />
         </Block>
-        <Block title="Datos" description="Contacto para el cobro, precio y vencimiento. Corregir la fecha a mano queda en la actividad.">
+        <Block
+          title="Datos"
+          description="Contacto para el cobro, precio y vencimiento. Corregir la fecha a mano queda en la actividad."
+        >
           {/* Se reinicia si un pago cambia el vencimiento: guardar con la fecha vieja lo desharía. */}
           <TenantForm key={t.paidUntil ?? 'sin-cobro'} tenant={t} />
         </Block>
-        <Block title="Acceso" description="Activación de la cuenta del dueño y suspensión del negocio.">
+        <Block
+          title="Acceso"
+          description="Activación de la cuenta del dueño y suspensión del negocio."
+        >
           <Access tenant={t} />
         </Block>
         <Block title="Actividad" description="Cambios hechos desde este panel.">
@@ -143,7 +163,15 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-function Block({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+function Block({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="py-8 lg:grid lg:grid-cols-3 lg:gap-8">
       <div>
@@ -187,7 +215,13 @@ function ReminderButton({ tenant: t }: { tenant: PlatformTenant }) {
 
 const MONTH_OPTIONS = [1, 2, 3, 6, 12];
 
-function Payments({ tenant, payments }: { tenant: PlatformTenant; payments: SubscriptionPayment[] }) {
+function Payments({
+  tenant,
+  payments,
+}: {
+  tenant: PlatformTenant;
+  payments: SubscriptionPayment[];
+}) {
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -198,17 +232,30 @@ function Payments({ tenant, payments }: { tenant: PlatformTenant; payments: Subs
           tenant={tenant}
           onDone={(paidUntil) => {
             setOpen(false);
-            setNotice(paidUntil ? `Pago registrado. Queda pagado hasta el ${fmtDate(paidUntil)}.` : null);
+            setNotice(
+              paidUntil ? `Pago registrado. Queda pagado hasta el ${fmtDate(paidUntil)}.` : null,
+            );
           }}
         />
       ) : (
-        <button type="button" onClick={() => { setOpen(true); setNotice(null); }} className={primaryButton}>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(true);
+            setNotice(null);
+          }}
+          className={primaryButton}
+        >
           <Plus size={16} strokeWidth={1.5} aria-hidden />
           Registrar pago
         </button>
       )}
 
-      {notice && <p role="status" className="text-sm text-brand-success">{notice}</p>}
+      {notice && (
+        <p role="status" className="text-sm text-brand-success">
+          {notice}
+        </p>
+      )}
 
       {payments.length === 0 ? (
         <p className="text-sm text-text-muted">Todavía no hay pagos registrados.</p>
@@ -223,7 +270,13 @@ function Payments({ tenant, payments }: { tenant: PlatformTenant; payments: Subs
   );
 }
 
-function PaymentForm({ tenant, onDone }: { tenant: PlatformTenant; onDone: (paidUntil: string | null) => void }) {
+function PaymentForm({
+  tenant,
+  onDone,
+}: {
+  tenant: PlatformTenant;
+  onDone: (paidUntil: string | null) => void;
+}) {
   const invalidate = useInvalidate(tenant.slug);
   const [months, setMonths] = useState(1);
   const [amount, setAmount] = useState(String(tenant.effectivePrice));
@@ -237,7 +290,8 @@ function PaymentForm({ tenant, onDone }: { tenant: PlatformTenant; onDone: (paid
   const newPaidUntil = addMonths(tenant.paidUntil ?? todayCR(), months);
 
   const mutation = useMutation({
-    mutationFn: (body: Parameters<typeof platformApi.recordPayment>[1]) => platformApi.recordPayment(tenant.slug, body),
+    mutationFn: (body: Parameters<typeof platformApi.recordPayment>[1]) =>
+      platformApi.recordPayment(tenant.slug, body),
     onSuccess: ({ tenant: updated }) => {
       invalidate();
       onDone(updated.paidUntil);
@@ -269,7 +323,11 @@ function PaymentForm({ tenant, onDone }: { tenant: PlatformTenant; onDone: (paid
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-4 rounded-xl border border-border bg-surface-card p-4">
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      className="space-y-4 rounded-xl border border-border bg-surface-card p-4"
+    >
       <div>
         <span className="mb-1.5 block text-sm font-medium text-text-secondary">Meses que paga</span>
         <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Meses que paga">
@@ -292,7 +350,8 @@ function PaymentForm({ tenant, onDone }: { tenant: PlatformTenant; onDone: (paid
           ))}
         </div>
         <p className="mt-2 text-sm text-text-secondary">
-          Queda pagado hasta el <span className="font-medium text-text-primary">{fmtDate(newPaidUntil)}</span>
+          Queda pagado hasta el{' '}
+          <span className="font-medium text-text-primary">{fmtDate(newPaidUntil)}</span>
         </p>
       </div>
 
@@ -312,7 +371,13 @@ function PaymentForm({ tenant, onDone }: { tenant: PlatformTenant; onDone: (paid
         </div>
         <div>
           <FieldLabel htmlFor="pay-date">Fecha del pago</FieldLabel>
-          <input id="pay-date" type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} className={inputClass} />
+          <input
+            id="pay-date"
+            type="date"
+            value={paidAt}
+            onChange={(e) => setPaidAt(e.target.value)}
+            className={inputClass}
+          />
         </div>
         <div>
           <FieldLabel htmlFor="pay-method">Medio</FieldLabel>
@@ -323,26 +388,46 @@ function PaymentForm({ tenant, onDone }: { tenant: PlatformTenant; onDone: (paid
             className={inputClass}
           >
             {SUBSCRIPTION_PAYMENT_METHODS.map((m) => (
-              <option key={m} value={m}>{SUBSCRIPTION_PAYMENT_METHOD_LABELS[m]}</option>
+              <option key={m} value={m}>
+                {SUBSCRIPTION_PAYMENT_METHOD_LABELS[m]}
+              </option>
             ))}
           </select>
         </div>
         <div>
           <FieldLabel htmlFor="pay-ref">Comprobante</FieldLabel>
-          <input id="pay-ref" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="N.º de SINPE o transferencia" className={inputClass} />
+          <input
+            id="pay-ref"
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+            placeholder="N.º de SINPE o transferencia"
+            className={inputClass}
+          />
         </div>
       </div>
       <div>
         <FieldLabel htmlFor="pay-notes">Nota</FieldLabel>
-        <input id="pay-notes" value={notes} onChange={(e) => setNotes(e.target.value)} className={inputClass} />
+        <input
+          id="pay-notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          className={inputClass}
+        />
       </div>
 
-      {error && <p role="alert" className="text-sm text-brand-error">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-brand-error">
+          {error}
+        </p>
+      )}
 
       <div className="flex gap-2">
         <button type="submit" disabled={mutation.isPending} className={primaryButton}>
-          {mutation.isPending && <Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden />}
-          Registrar {amount && /^\d/.test(amount) ? formatColones(Number(amount.replace(/\D/g, ''))) : 'pago'}
+          {mutation.isPending && (
+            <Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden />
+          )}
+          Registrar{' '}
+          {amount && /^\d/.test(amount) ? formatColones(Number(amount.replace(/\D/g, ''))) : 'pago'}
         </button>
         <button type="button" onClick={() => onDone(null)} className={secondaryButton}>
           Cancelar
@@ -352,7 +437,15 @@ function PaymentForm({ tenant, onDone }: { tenant: PlatformTenant; onDone: (paid
   );
 }
 
-function PaymentRow({ slug, payment: p, onVoided }: { slug: string; payment: SubscriptionPayment; onVoided: (msg: string) => void }) {
+function PaymentRow({
+  slug,
+  payment: p,
+  onVoided,
+}: {
+  slug: string;
+  payment: SubscriptionPayment;
+  onVoided: (msg: string) => void;
+}) {
   const invalidate = useInvalidate(slug);
   const [confirming, setConfirming] = useState(false);
   const mutation = useMutation({
@@ -371,10 +464,13 @@ function PaymentRow({ slug, payment: p, onVoided }: { slug: string; payment: Sub
   return (
     <li className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3">
       <div className="min-w-0 flex-1">
-        <p className={`text-sm font-medium tabular-nums ${voided ? 'text-text-muted line-through' : 'text-text-primary'}`}>
+        <p
+          className={`text-sm font-medium tabular-nums ${voided ? 'text-text-muted line-through' : 'text-text-primary'}`}
+        >
           {formatColones(p.amount)}
           <span className="ml-2 font-normal text-text-secondary no-underline">
-            {p.months} {p.months === 1 ? 'mes' : 'meses'} · {SUBSCRIPTION_PAYMENT_METHOD_LABELS[p.method]}
+            {p.months} {p.months === 1 ? 'mes' : 'meses'} ·{' '}
+            {SUBSCRIPTION_PAYMENT_METHOD_LABELS[p.method]}
           </span>
         </p>
         <p className="text-xs text-text-muted">
@@ -389,15 +485,28 @@ function PaymentRow({ slug, payment: p, onVoided }: { slug: string; payment: Sub
       ) : confirming ? (
         <div className="flex items-center gap-2">
           <span className="text-xs text-text-secondary">¿Anular?</span>
-          <button type="button" onClick={() => mutation.mutate()} disabled={mutation.isPending} className={`${dangerButton} h-8 px-3`}>
+          <button
+            type="button"
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending}
+            className={`${dangerButton} h-8 px-3`}
+          >
             Anular
           </button>
-          <button type="button" onClick={() => setConfirming(false)} className={`${secondaryButton} h-8 px-3`}>
+          <button
+            type="button"
+            onClick={() => setConfirming(false)}
+            className={`${secondaryButton} h-8 px-3`}
+          >
             No
           </button>
         </div>
       ) : (
-        <button type="button" onClick={() => setConfirming(true)} className="h-8 rounded-lg px-2 text-xs text-text-muted transition-colors hover:text-brand-error">
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          className="h-8 rounded-lg px-2 text-xs text-text-muted transition-colors hover:text-brand-error"
+        >
           Anular
         </button>
       )}
@@ -419,7 +528,8 @@ function TenantForm({ tenant: t }: { tenant: PlatformTenant }) {
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   const mutation = useMutation({
-    mutationFn: (body: Parameters<typeof platformApi.updateTenant>[1]) => platformApi.updateTenant(t.slug, body),
+    mutationFn: (body: Parameters<typeof platformApi.updateTenant>[1]) =>
+      platformApi.updateTenant(t.slug, body),
     onSuccess: () => {
       invalidate();
       setMessage({ ok: true, text: 'Guardado.' });
@@ -457,43 +567,94 @@ function TenantForm({ tenant: t }: { tenant: PlatformTenant }) {
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
       <div>
         <FieldLabel htmlFor="td-name">Nombre</FieldLabel>
-        <input id="td-name" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+        <input
+          id="td-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className={inputClass}
+        />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <FieldLabel htmlFor="td-contact">Contacto</FieldLabel>
-          <input id="td-contact" value={contactName} onChange={(e) => setContactName(e.target.value)} className={inputClass} />
+          <input
+            id="td-contact"
+            value={contactName}
+            onChange={(e) => setContactName(e.target.value)}
+            className={inputClass}
+          />
         </div>
         <div>
           <FieldLabel htmlFor="td-phone">Celular (WhatsApp)</FieldLabel>
-          <input id="td-phone" inputMode="numeric" maxLength={9} value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className={`${inputClass} tabular-nums`} />
+          <input
+            id="td-phone"
+            inputMode="numeric"
+            maxLength={9}
+            value={contactPhone}
+            onChange={(e) => setContactPhone(e.target.value)}
+            className={`${inputClass} tabular-nums`}
+          />
         </div>
         <div>
           <FieldLabel htmlFor="td-price">Precio especial</FieldLabel>
-          <input id="td-price" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Vacío = precio por defecto" className={`${inputClass} tabular-nums`} />
+          <input
+            id="td-price"
+            inputMode="numeric"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            placeholder="Vacío = precio por defecto"
+            className={`${inputClass} tabular-nums`}
+          />
         </div>
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <label htmlFor="td-until" className="text-sm font-medium text-text-secondary">Pagado hasta</label>
+            <label htmlFor="td-until" className="text-sm font-medium text-text-secondary">
+              Pagado hasta
+            </label>
             <label className="flex items-center gap-1.5 text-xs text-text-secondary">
-              <input type="checkbox" checked={!billed} onChange={(e) => setBilled(!e.target.checked)} className="accent-[var(--color-brand-blue)]" />
+              <input
+                type="checkbox"
+                checked={!billed}
+                onChange={(e) => setBilled(!e.target.checked)}
+                className="accent-[var(--color-brand-blue)]"
+              />
               Sin cobro
             </label>
           </div>
-          <input id="td-until" type="date" disabled={!billed} value={paidUntil} onChange={(e) => setPaidUntil(e.target.value)} className={`${inputClass} disabled:opacity-50`} />
+          <input
+            id="td-until"
+            type="date"
+            disabled={!billed}
+            value={paidUntil}
+            onChange={(e) => setPaidUntil(e.target.value)}
+            className={`${inputClass} disabled:opacity-50`}
+          />
         </div>
       </div>
       <div>
         <FieldLabel htmlFor="td-notes">Notas internas</FieldLabel>
-        <textarea id="td-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} className={textareaClass} />
+        <textarea
+          id="td-notes"
+          rows={3}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          className={textareaClass}
+        />
       </div>
       <div className="flex items-center gap-3">
         <button type="submit" disabled={mutation.isPending} className={primaryButton}>
-          {mutation.isPending && <Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+          {mutation.isPending && (
+            <Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden />
+          )}
           Guardar
         </button>
         {message && (
-          <p role="status" className={`text-sm ${message.ok ? 'text-text-secondary' : 'text-brand-error'}`}>{message.text}</p>
+          <p
+            role="status"
+            className={`text-sm ${message.ok ? 'text-text-secondary' : 'text-brand-error'}`}
+          >
+            {message.text}
+          </p>
         )}
       </div>
     </form>
@@ -531,12 +692,19 @@ function Access({ tenant: t }: { tenant: PlatformTenant }) {
             {code ? (
               <SetupCodePanel tenant={t} code={code} />
             ) : (
-              <button type="button" onClick={() => codeMutation.mutate()} disabled={codeMutation.isPending} className={secondaryButton}>
+              <button
+                type="button"
+                onClick={() => codeMutation.mutate()}
+                disabled={codeMutation.isPending}
+                className={secondaryButton}
+              >
                 <KeyRound size={16} strokeWidth={1.5} aria-hidden />
                 Generar código nuevo
               </button>
             )}
-            {codeMutation.error && <p className="text-sm text-brand-error">{errorText(codeMutation.error)}</p>}
+            {codeMutation.error && (
+              <p className="text-sm text-brand-error">{errorText(codeMutation.error)}</p>
+            )}
             {!code && <p className="text-xs text-text-muted">El código anterior deja de servir.</p>}
           </div>
         )}
@@ -550,25 +718,45 @@ function Access({ tenant: t }: { tenant: PlatformTenant }) {
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {suspended ? (
-            <button type="button" onClick={() => statusMutation.mutate('active')} disabled={statusMutation.isPending} className={primaryButton}>
+            <button
+              type="button"
+              onClick={() => statusMutation.mutate('active')}
+              disabled={statusMutation.isPending}
+              className={primaryButton}
+            >
               Reactivar
             </button>
           ) : confirming ? (
             <>
-              <button type="button" onClick={() => statusMutation.mutate('suspended')} disabled={statusMutation.isPending} className={dangerButton}>
+              <button
+                type="button"
+                onClick={() => statusMutation.mutate('suspended')}
+                disabled={statusMutation.isPending}
+                className={dangerButton}
+              >
                 Sí, suspender {t.name}
               </button>
-              <button type="button" onClick={() => setConfirming(false)} className={secondaryButton}>
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                className={secondaryButton}
+              >
                 Cancelar
               </button>
             </>
           ) : (
-            <button type="button" onClick={() => setConfirming(true)} className={`${secondaryButton} text-brand-error`}>
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              className={`${secondaryButton} text-brand-error`}
+            >
               Suspender
             </button>
           )}
         </div>
-        {statusMutation.error && <p className="mt-2 text-sm text-brand-error">{errorText(statusMutation.error)}</p>}
+        {statusMutation.error && (
+          <p className="mt-2 text-sm text-brand-error">{errorText(statusMutation.error)}</p>
+        )}
       </div>
     </div>
   );
@@ -602,7 +790,9 @@ function activityDetail(entry: PlatformAuditEntry): string | null {
     return typeof p['amount'] === 'number' ? formatColones(p['amount']) : null;
   }
   if (entry.action === 'TENANT_UPDATED') {
-    return Object.keys(p).map((k) => FIELD_LABELS[k] ?? k).join(', ');
+    return Object.keys(p)
+      .map((k) => FIELD_LABELS[k] ?? k)
+      .join(', ');
   }
   return null;
 }

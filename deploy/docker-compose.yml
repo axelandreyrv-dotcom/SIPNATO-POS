@@ -10,7 +10,7 @@ services:
       # control.db + tenants/<slug>.db + backups/<slug>/
       DATA_DIR: /app/data
       TENANT_BASE_DOMAIN: dosuxsoft.com
-      PORT: "3000"
+      PORT: '3000'
     volumes:
       - dosuxsoft-data:/app/data
     restart: unless-stopped
@@ -19,8 +19,8 @@ services:
     logging:
       driver: json-file
       options:
-        max-size: "20m"
-        max-file: "5"
+        max-size: '20m'
+        max-file: '5'
     healthcheck:
       test:
         - CMD
@@ -38,9 +38,9 @@ services:
       dockerfile: Dockerfile
       target: caddy
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
     volumes:
       - caddy-data:/data
       - caddy-config:/config
@@ -51,8 +51,8 @@ services:
     logging:
       driver: json-file
       options:
-        max-size: "20m"
-        max-file: "5"
+        max-size: '20m'
+        max-file: '5'
 
 volumes:
   dosuxsoft-data:

@@ -29,7 +29,9 @@ export interface SuperadminRow {
 const selectSuperadminByUsername = controlDb.prepare<[string], SuperadminRow>(
   'SELECT * FROM superadmins WHERE username = ?',
 );
-const selectSuperadminById = controlDb.prepare<[number], SuperadminRow>('SELECT * FROM superadmins WHERE id = ?');
+const selectSuperadminById = controlDb.prepare<[number], SuperadminRow>(
+  'SELECT * FROM superadmins WHERE id = ?',
+);
 
 export function findSuperadminByUsername(username: string): SuperadminRow | undefined {
   return selectSuperadminByUsername.get(username);
@@ -51,7 +53,9 @@ export function insertSuperadmin(username: string, passwordHash: string): void {
 
 export function updateSuperadminPassword(id: number, passwordHash: string): void {
   controlDb
-    .prepare('UPDATE superadmins SET password_hash = ?, failed_attempts = 0, locked_until = NULL WHERE id = ?')
+    .prepare(
+      'UPDATE superadmins SET password_hash = ?, failed_attempts = 0, locked_until = NULL WHERE id = ?',
+    )
     .run(passwordHash, id);
 }
 
@@ -59,12 +63,20 @@ export function setSuperadminActive(id: number, active: boolean): void {
   controlDb.prepare('UPDATE superadmins SET active = ? WHERE id = ?').run(active ? 1 : 0, id);
 }
 
-export function recordSuperadminFailure(id: number, attempts: number, lockedUntil: string | null): void {
-  controlDb.prepare('UPDATE superadmins SET failed_attempts = ?, locked_until = ? WHERE id = ?').run(attempts, lockedUntil, id);
+export function recordSuperadminFailure(
+  id: number,
+  attempts: number,
+  lockedUntil: string | null,
+): void {
+  controlDb
+    .prepare('UPDATE superadmins SET failed_attempts = ?, locked_until = ? WHERE id = ?')
+    .run(attempts, lockedUntil, id);
 }
 
 export function resetSuperadminFailures(id: number): void {
-  controlDb.prepare('UPDATE superadmins SET failed_attempts = 0, locked_until = NULL WHERE id = ?').run(id);
+  controlDb
+    .prepare('UPDATE superadmins SET failed_attempts = 0, locked_until = NULL WHERE id = ?')
+    .run(id);
 }
 
 // ─── Sesiones del panel ───────────────────────────────────────────────────────
@@ -90,7 +102,16 @@ export function insertPlatformSession(row: {
       `INSERT INTO platform_sessions (id, superadmin_id, token_hash, expires_at, last_active_at, ip, user_agent, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run(row.id, row.superadminId, row.tokenHash, row.expiresAt, now, row.meta.ip, row.meta.userAgent, now);
+    .run(
+      row.id,
+      row.superadminId,
+      row.tokenHash,
+      row.expiresAt,
+      now,
+      row.meta.ip,
+      row.meta.userAgent,
+      now,
+    );
 }
 
 export function findPlatformSession(tokenHash: string): PlatformSessionRow | undefined {
@@ -100,7 +121,9 @@ export function findPlatformSession(tokenHash: string): PlatformSessionRow | und
 }
 
 export function touchPlatformSession(id: string): void {
-  controlDb.prepare('UPDATE platform_sessions SET last_active_at = ? WHERE id = ?').run(new Date().toISOString(), id);
+  controlDb
+    .prepare('UPDATE platform_sessions SET last_active_at = ? WHERE id = ?')
+    .run(new Date().toISOString(), id);
 }
 
 export function deletePlatformSession(id: string): void {
@@ -128,14 +151,21 @@ const TENANT_FIELD_COLUMNS = {
   paidUntil: 'paid_until',
 } as const;
 
-export type TenantFields = { [K in keyof typeof TENANT_FIELD_COLUMNS]?: string | number | null | undefined };
+export type TenantFields = {
+  [K in keyof typeof TENANT_FIELD_COLUMNS]?: string | number | null | undefined;
+};
 
 export function updateTenantFields(slug: string, fields: TenantFields): void {
-  const entries = Object.entries(fields).filter(([, v]) => v !== undefined) as [keyof typeof TENANT_FIELD_COLUMNS, unknown][];
+  const entries = Object.entries(fields).filter(([, v]) => v !== undefined) as [
+    keyof typeof TENANT_FIELD_COLUMNS,
+    unknown,
+  ][];
   if (entries.length === 0) return;
   // Las columnas salen de la lista fija de arriba, nunca del cliente.
   const sets = entries.map(([k]) => `${TENANT_FIELD_COLUMNS[k]} = ?`).join(', ');
-  controlDb.prepare(`UPDATE tenants SET ${sets} WHERE slug = ?`).run(...entries.map(([, v]) => v), slug);
+  controlDb
+    .prepare(`UPDATE tenants SET ${sets} WHERE slug = ?`)
+    .run(...entries.map(([, v]) => v), slug);
 }
 
 // ─── Pagos ────────────────────────────────────────────────────────────────────
@@ -205,8 +235,18 @@ export function insertPayment(row: {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
-      row.tenantSlug, row.amount, row.months, row.method, row.reference, row.paidAt, row.periodFrom,
-      row.periodTo, row.previousPaidUntil, row.notes, row.superadminId, new Date().toISOString(),
+      row.tenantSlug,
+      row.amount,
+      row.months,
+      row.method,
+      row.reference,
+      row.paidAt,
+      row.periodFrom,
+      row.periodTo,
+      row.previousPaidUntil,
+      row.notes,
+      row.superadminId,
+      new Date().toISOString(),
     );
   return Number(result.lastInsertRowid);
 }
@@ -218,33 +258,43 @@ export function findPayment(slug: string, id: number): PaymentRecord | null {
   return row ? toPayment(row) : null;
 }
 
-export function listPayments(slug: string, opts: { includeVoided: boolean; limit: number }): PaymentRecord[] {
+export function listPayments(
+  slug: string,
+  opts: { includeVoided: boolean; limit: number },
+): PaymentRecord[] {
   const voided = opts.includeVoided ? '' : 'AND p.voided_at IS NULL';
   return controlDb
-    .prepare<[string, number], PaymentRow>(`${PAYMENT_SELECT} WHERE p.tenant_slug = ? ${voided} ORDER BY p.id DESC LIMIT ?`)
+    .prepare<
+      [string, number],
+      PaymentRow
+    >(`${PAYMENT_SELECT} WHERE p.tenant_slug = ? ${voided} ORDER BY p.id DESC LIMIT ?`)
     .all(slug, opts.limit)
     .map(toPayment);
 }
 
 export function latestActivePaymentId(slug: string): number | null {
   const row = controlDb
-    .prepare<[string], { id: number }>(
-      'SELECT id FROM subscription_payments WHERE tenant_slug = ? AND voided_at IS NULL ORDER BY id DESC LIMIT 1',
-    )
+    .prepare<
+      [string],
+      { id: number }
+    >('SELECT id FROM subscription_payments WHERE tenant_slug = ? AND voided_at IS NULL ORDER BY id DESC LIMIT 1')
     .get(slug);
   return row?.id ?? null;
 }
 
 export function markPaymentVoided(id: number): void {
-  controlDb.prepare('UPDATE subscription_payments SET voided_at = ? WHERE id = ?').run(new Date().toISOString(), id);
+  controlDb
+    .prepare('UPDATE subscription_payments SET voided_at = ? WHERE id = ?')
+    .run(new Date().toISOString(), id);
 }
 
 // paid_at es una fecha (YYYY-MM-DD) del calendario de CR: se compara como texto.
 export function sumPaymentsBetween(from: string, to: string): number {
   const row = controlDb
-    .prepare<[string, string], { total: number }>(
-      'SELECT COALESCE(SUM(amount), 0) AS total FROM subscription_payments WHERE voided_at IS NULL AND paid_at BETWEEN ? AND ?',
-    )
+    .prepare<
+      [string, string],
+      { total: number }
+    >('SELECT COALESCE(SUM(amount), 0) AS total FROM subscription_payments WHERE voided_at IS NULL AND paid_at BETWEEN ? AND ?')
     .get(from, to);
   return row?.total ?? 0;
 }
@@ -258,10 +308,15 @@ const PLATFORM_SETTING_KEYS = {
 } as const satisfies Record<keyof PlatformSettings, string>;
 
 export function readPlatformSettings(): Partial<Record<keyof PlatformSettings, string>> {
-  const rows = controlDb.prepare<[], { key: string; value: string }>('SELECT key, value FROM platform_settings').all();
+  const rows = controlDb
+    .prepare<[], { key: string; value: string }>('SELECT key, value FROM platform_settings')
+    .all();
   const byKey = new Map(rows.map((r) => [r.key, r.value]));
   const out: Partial<Record<keyof PlatformSettings, string>> = {};
-  for (const [field, key] of Object.entries(PLATFORM_SETTING_KEYS) as [keyof PlatformSettings, string][]) {
+  for (const [field, key] of Object.entries(PLATFORM_SETTING_KEYS) as [
+    keyof PlatformSettings,
+    string,
+  ][]) {
     const value = byKey.get(key);
     if (value !== undefined) out[field] = value;
   }
@@ -272,7 +327,10 @@ export function writePlatformSettings(settings: PlatformSettings): void {
   const upsert = controlDb.prepare(
     'INSERT INTO platform_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
   );
-  for (const [field, key] of Object.entries(PLATFORM_SETTING_KEYS) as [keyof PlatformSettings, string][]) {
+  for (const [field, key] of Object.entries(PLATFORM_SETTING_KEYS) as [
+    keyof PlatformSettings,
+    string,
+  ][]) {
     upsert.run(key, String(settings[field]));
   }
 }
@@ -304,7 +362,16 @@ export function insertPlatformAudit(entry: {
 
 export function listPlatformAudit(slug: string, limit: number): PlatformAuditEntry[] {
   return controlDb
-    .prepare<[string, number], { id: number; action: string; payload: string | null; username: string | null; created_at: string }>(
+    .prepare<
+      [string, number],
+      {
+        id: number;
+        action: string;
+        payload: string | null;
+        username: string | null;
+        created_at: string;
+      }
+    >(
       `SELECT a.id, a.action, a.payload, s.username, a.created_at
        FROM platform_audit_log a LEFT JOIN superadmins s ON s.id = a.superadmin_id
        WHERE a.tenant_slug = ? ORDER BY a.id DESC LIMIT ?`,

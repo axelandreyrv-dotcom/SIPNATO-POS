@@ -13,7 +13,8 @@ delete process.env['DEV_TENANT'];
 
 const { buildApp } = await import('../app.js');
 const { closeAllTenantDbs, db } = await import('../db/client.js');
-const { closeControlDb, getSetupCodeHash, insertTenant, setSetupCodeHash, setTenantStatus } = await import('../db/control.js');
+const { closeControlDb, getSetupCodeHash, insertTenant, setSetupCodeHash, setTenantStatus } =
+  await import('../db/control.js');
 const { COOKIE_NAME } = await import('../lib/constants.js');
 const { generateSetupCode, hashSetupCode } = await import('../lib/crypto.js');
 
@@ -35,7 +36,13 @@ function postSetup(app: App, slug: string, setupCode: string) {
     method: 'POST',
     url: '/auth/setup',
     headers: { host: host(slug) },
-    payload: { setupCode, username: 'dueno', displayName: 'Dueño', password: PASSWORD, confirmPassword: PASSWORD },
+    payload: {
+      setupCode,
+      username: 'dueno',
+      displayName: 'Dueño',
+      password: PASSWORD,
+      confirmPassword: PASSWORD,
+    },
   });
 }
 
@@ -74,7 +81,11 @@ describe('aislamiento entre negocios', () => {
   });
 
   it('configurar el admin de A no configura a B', async () => {
-    const res = await app.inject({ method: 'GET', url: '/auth/status', headers: { host: host('tienda-b') } });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/auth/status',
+      headers: { host: host('tienda-b') },
+    });
     assert.deepEqual(res.json(), { setup: false });
   });
 
@@ -88,7 +99,11 @@ describe('aislamiento entre negocios', () => {
     assert.equal((await postSetup(app, 'tienda-b', '0000-0000-0000-0000')).statusCode, 403);
     // El código de A ya se consumió y además pertenece a otro negocio.
     assert.equal((await postSetup(app, 'tienda-b', setupCodes.get('taller-a')!)).statusCode, 403);
-    const status = await app.inject({ method: 'GET', url: '/auth/status', headers: { host: host('tienda-b') } });
+    const status = await app.inject({
+      method: 'GET',
+      url: '/auth/status',
+      headers: { host: host('tienda-b') },
+    });
     assert.deepEqual(status.json(), { setup: false });
   });
 
@@ -98,7 +113,11 @@ describe('aislamiento entre negocios', () => {
   });
 
   it('la sesión de A no sirve en B', async () => {
-    const res = await app.inject({ method: 'GET', url: '/auth/me', headers: authed('tienda-b', tokenA) });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/auth/me',
+      headers: authed('tienda-b', tokenA),
+    });
     assert.equal(res.statusCode, 401);
   });
 
@@ -123,27 +142,49 @@ describe('aislamiento entre negocios', () => {
     });
     assert.equal(created.statusCode, 201, created.body);
 
-    const listA = await app.inject({ method: 'GET', url: '/api/notes', headers: authed('taller-a', tokenA) });
-    const listB = await app.inject({ method: 'GET', url: '/api/notes', headers: authed('tienda-b', tokenB) });
+    const listA = await app.inject({
+      method: 'GET',
+      url: '/api/notes',
+      headers: authed('taller-a', tokenA),
+    });
+    const listB = await app.inject({
+      method: 'GET',
+      url: '/api/notes',
+      headers: authed('tienda-b', tokenB),
+    });
     assert.match(listA.body, /Nota privada de A/);
     assert.doesNotMatch(listB.body, /Nota privada de A/);
   });
 
   it('negocio inexistente → 404', async () => {
-    const res = await app.inject({ method: 'GET', url: '/auth/status', headers: { host: host('no-existe') } });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/auth/status',
+      headers: { host: host('no-existe') },
+    });
     assert.equal(res.statusCode, 404);
     assert.equal(res.json().error.code, 'NEGOCIO_NO_ENCONTRADO');
   });
 
   it('dominio base, subdominios anidados y slugs maliciosos → 404', async () => {
-    for (const h of ['dosuxsoft.test', 'a.taller-a.dosuxsoft.test', 'www.dosuxsoft.test', '..dosuxsoft.test', 'otro-dominio.com']) {
+    for (const h of [
+      'dosuxsoft.test',
+      'a.taller-a.dosuxsoft.test',
+      'www.dosuxsoft.test',
+      '..dosuxsoft.test',
+      'otro-dominio.com',
+    ]) {
       const res = await app.inject({ method: 'GET', url: '/auth/status', headers: { host: h } });
       assert.equal(res.statusCode, 404, `host ${h} debería ser rechazado`);
     }
   });
 
   it('negocio suspendido → 403', async () => {
-    const res = await app.inject({ method: 'GET', url: '/auth/status', headers: { host: host('suspendido') } });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/auth/status',
+      headers: { host: host('suspendido') },
+    });
     assert.equal(res.statusCode, 403);
     assert.equal(res.json().error.code, 'NEGOCIO_SUSPENDIDO');
   });
@@ -155,7 +196,11 @@ describe('aislamiento entre negocios', () => {
 
   it('tls-check solo aprueba negocios activos', async () => {
     const check = (domain: string) =>
-      app.inject({ method: 'GET', url: `/internal/tls-check?domain=${domain}`, headers: { host: 'server:3000' } });
+      app.inject({
+        method: 'GET',
+        url: `/internal/tls-check?domain=${domain}`,
+        headers: { host: 'server:3000' },
+      });
     assert.equal((await check('taller-a.dosuxsoft.test')).statusCode, 200);
     assert.equal((await check('suspendido.dosuxsoft.test')).statusCode, 404);
     assert.equal((await check('no-existe.dosuxsoft.test')).statusCode, 404);

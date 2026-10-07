@@ -35,10 +35,13 @@ async function backupInto(
 
   const cutoff = Date.now() - THIRTY_DAYS_MS;
   readdirSync(dir)
-    .filter(f => DATED_BACKUP_RE.test(f))
-    .map(f => join(dir, f))
-    .filter(p => statSync(p).mtimeMs < cutoff)
-    .forEach(p => { unlinkSync(p); log.info({ file: p }, 'backup rotado'); });
+    .filter((f) => DATED_BACKUP_RE.test(f))
+    .map((f) => join(dir, f))
+    .filter((p) => statSync(p).mtimeMs < cutoff)
+    .forEach((p) => {
+      unlinkSync(p);
+      log.info({ file: p }, 'backup rotado');
+    });
 
   log.info({ dst }, 'backup diario completado');
 }
@@ -50,7 +53,11 @@ function backupCurrentTenant(slug: string, log: FastifyBaseLogger): Promise<void
 
 async function backupControl(log: FastifyBaseLogger): Promise<void> {
   try {
-    await backupInto(CONTROL_BACKUP_DIR, (dst) => controlDb.backup(dst), log.child({ db: 'control' }));
+    await backupInto(
+      CONTROL_BACKUP_DIR,
+      (dst) => controlDb.backup(dst),
+      log.child({ db: 'control' }),
+    );
   } catch (err) {
     log.error({ err }, 'backup de control.db falló');
   }
@@ -69,6 +76,8 @@ export function startBackupCron(log: FastifyBaseLogger): void {
     if (!existsSync(latestBackupPath(slug))) await backupCurrentTenant(slug, tenantLog);
   });
 
-  cron.schedule('0 9 * * *', () => { void runDailyBackup(log); });
+  cron.schedule('0 9 * * *', () => {
+    void runDailyBackup(log);
+  });
   log.info('backup cron iniciado (03:00 AM CR diario)');
 }

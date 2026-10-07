@@ -12,11 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { formatColones } from '@sipnato/shared';
-import type {
-  Apartado,
-  ApartadoPaymentMethod,
-  ApartadoWithPayments,
-} from '@sipnato/shared';
+import type { Apartado, ApartadoPaymentMethod, ApartadoWithPayments } from '@sipnato/shared';
 import { apartadosApi } from './api';
 import { useCan } from '../auth/useCurrentUser';
 import { WhatsAppNotify } from '../../components/WhatsAppNotify';
@@ -82,7 +78,9 @@ function StatusBadge({ status }: { status: Apartado['status'] }) {
   };
   const labels = { activo: 'Activo', completado: 'Completado', cancelado: 'Cancelado' };
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${styles[status]}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${styles[status]}`}
+    >
       {labels[status]}
     </span>
   );
@@ -92,7 +90,10 @@ function StatusBadge({ status }: { status: Apartado['status'] }) {
 
 function PaymentRow({ payment }: { payment: ApartadoWithPayments['payments'][number] }) {
   const date = new Date(payment.createdAt).toLocaleDateString('es-CR', {
-    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Costa_Rica',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'America/Costa_Rica',
   });
   return (
     <div className="flex items-center justify-between py-1.5 text-sm">
@@ -102,14 +103,22 @@ function PaymentRow({ payment }: { payment: ApartadoWithPayments['payments'][num
         <span className="capitalize">{payment.paymentMethod}</span>
         {payment.note && <span className="text-text-muted">— {payment.note}</span>}
       </div>
-      <span className="font-medium text-text-primary tabular-nums">{formatColones(payment.amount)}</span>
+      <span className="font-medium text-text-primary tabular-nums">
+        {formatColones(payment.amount)}
+      </span>
     </div>
   );
 }
 
 // ─── Add payment form ─────────────────────────────────────────────────────────
 
-function AddPaymentForm({ apartadoId, onSuccess }: { apartadoId: number; onSuccess: (amount: number) => void }) {
+function AddPaymentForm({
+  apartadoId,
+  onSuccess,
+}: {
+  apartadoId: number;
+  onSuccess: (amount: number) => void;
+}) {
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<ApartadoPaymentMethod>('efectivo');
@@ -137,13 +146,19 @@ function AddPaymentForm({ apartadoId, onSuccess }: { apartadoId: number; onSucce
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const num = parseInt(amount.replace(/\D/g, ''), 10);
-    if (!num || num <= 0) { setError('Ingrese un monto válido'); return; }
+    if (!num || num <= 0) {
+      setError('Ingrese un monto válido');
+      return;
+    }
     setError(null);
     mutation.mutate();
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-3 rounded-lg border border-brand-blue/20 bg-brand-blue/5 p-3 space-y-2">
+    <form
+      onSubmit={handleSubmit}
+      className="mt-3 rounded-lg border border-brand-blue/20 bg-brand-blue/5 p-3 space-y-2"
+    >
       <p className="text-xs font-medium text-text-secondary">Agregar abono</p>
       <div className="flex gap-2">
         <input
@@ -154,9 +169,15 @@ function AddPaymentForm({ apartadoId, onSuccess }: { apartadoId: number; onSucce
           onChange={(e) => setAmount(e.target.value)}
           className={inputClass + ' flex-1'}
         />
-        <select value={method} onChange={(e) => setMethod(e.target.value as ApartadoPaymentMethod)} className={selectClass + ' w-36'}>
+        <select
+          value={method}
+          onChange={(e) => setMethod(e.target.value as ApartadoPaymentMethod)}
+          className={selectClass + ' w-36'}
+        >
           {PAYMENT_METHODS.map((m) => (
-            <option key={m.value} value={m.value}>{m.label}</option>
+            <option key={m.value} value={m.value}>
+              {m.label}
+            </option>
           ))}
         </select>
       </div>
@@ -174,7 +195,11 @@ function AddPaymentForm({ apartadoId, onSuccess }: { apartadoId: number; onSucce
         disabled={mutation.isPending}
         className="flex h-8 items-center gap-1.5 rounded-lg bg-brand-blue px-3 text-xs font-medium text-white transition-all hover:brightness-110 disabled:opacity-60"
       >
-        {mutation.isPending ? <Loader2 size={12} strokeWidth={1.5} className="animate-spin" aria-hidden /> : <Plus size={12} strokeWidth={1.5} aria-hidden />}
+        {mutation.isPending ? (
+          <Loader2 size={12} strokeWidth={1.5} className="animate-spin" aria-hidden />
+        ) : (
+          <Plus size={12} strokeWidth={1.5} aria-hidden />
+        )}
         Registrar abono
       </button>
     </form>
@@ -210,7 +235,10 @@ function ApartadoRow({ ap }: { ap: Apartado }) {
 
   const pending = ap.totalAmount - ap.paidAmount;
   const date = new Date(ap.createdAt).toLocaleDateString('es-CR', {
-    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Costa_Rica',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'America/Costa_Rica',
   });
 
   return (
@@ -241,9 +269,11 @@ function ApartadoRow({ ap }: { ap: Apartado }) {
           </div>
         </div>
         <div className="ml-2 shrink-0 text-text-muted">
-          {expanded
-            ? <ChevronUp size={16} strokeWidth={1.5} aria-hidden />
-            : <ChevronDown size={16} strokeWidth={1.5} aria-hidden />}
+          {expanded ? (
+            <ChevronUp size={16} strokeWidth={1.5} aria-hidden />
+          ) : (
+            <ChevronDown size={16} strokeWidth={1.5} aria-hidden />
+          )}
         </div>
       </button>
 
@@ -257,11 +287,15 @@ function ApartadoRow({ ap }: { ap: Apartado }) {
               {ap.customerPhone}
             </span>
             {ap.status === 'activo' && (
-              <span className="text-brand-warning font-medium">Pendiente: {formatColones(pending)}</span>
+              <span className="text-brand-warning font-medium">
+                Pendiente: {formatColones(pending)}
+              </span>
             )}
           </div>
           {ap.notes && (
-            <p className="mb-3 text-xs text-text-muted italic rounded-lg bg-border/30 px-3 py-2">{ap.notes}</p>
+            <p className="mb-3 text-xs text-text-muted italic rounded-lg bg-border/30 px-3 py-2">
+              {ap.notes}
+            </p>
           )}
 
           {/* Payment history */}
@@ -315,9 +349,11 @@ function ApartadoRow({ ap }: { ap: Apartado }) {
                       className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-error/10 text-brand-error hover:bg-brand-error/20 transition-colors"
                       aria-label="Confirmar cancelación"
                     >
-                      {cancelMutation.isPending
-                        ? <Loader2 size={13} strokeWidth={1.5} className="animate-spin" aria-hidden />
-                        : <X size={13} strokeWidth={1.5} aria-hidden />}
+                      {cancelMutation.isPending ? (
+                        <Loader2 size={13} strokeWidth={1.5} className="animate-spin" aria-hidden />
+                      ) : (
+                        <X size={13} strokeWidth={1.5} aria-hidden />
+                      )}
                     </button>
                     <button
                       type="button"
@@ -381,13 +417,28 @@ function CreateModal({ onClose }: { onClose: () => void }) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.customerName.trim()) { setError('El nombre es requerido'); return; }
-    if (!/^\d{8}$/.test(form.customerPhone.trim())) { setError('El teléfono debe tener 8 dígitos'); return; }
-    if (!form.description.trim()) { setError('La descripción es requerida'); return; }
+    if (!form.customerName.trim()) {
+      setError('El nombre es requerido');
+      return;
+    }
+    if (!/^\d{8}$/.test(form.customerPhone.trim())) {
+      setError('El teléfono debe tener 8 dígitos');
+      return;
+    }
+    if (!form.description.trim()) {
+      setError('La descripción es requerida');
+      return;
+    }
     const total = parseInt(form.totalAmount.replace(/\D/g, ''), 10);
-    if (!total || total <= 0) { setError('Ingrese un monto total válido'); return; }
+    if (!total || total <= 0) {
+      setError('Ingrese un monto total válido');
+      return;
+    }
     const deposit = parseInt(form.depositAmount.replace(/\D/g, '') || '0', 10);
-    if (deposit < 0) { setError('El depósito no puede ser negativo'); return; }
+    if (deposit < 0) {
+      setError('El depósito no puede ser negativo');
+      return;
+    }
     setError(null);
     mutation.mutate();
   }
@@ -423,7 +474,10 @@ function CreateModal({ onClose }: { onClose: () => void }) {
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1.5" htmlFor="ap-name">
+              <label
+                className="block text-xs font-medium text-text-secondary mb-1.5"
+                htmlFor="ap-name"
+              >
                 Nombre del cliente
               </label>
               <input
@@ -438,7 +492,10 @@ function CreateModal({ onClose }: { onClose: () => void }) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1.5" htmlFor="ap-phone">
+              <label
+                className="block text-xs font-medium text-text-secondary mb-1.5"
+                htmlFor="ap-phone"
+              >
                 Teléfono (8 dígitos)
               </label>
               <input
@@ -447,14 +504,19 @@ function CreateModal({ onClose }: { onClose: () => void }) {
                 inputMode="numeric"
                 placeholder="88888888"
                 value={form.customerPhone}
-                onChange={(e) => patch({ customerPhone: e.target.value.replace(/\D/g, '').slice(0, 8) })}
+                onChange={(e) =>
+                  patch({ customerPhone: e.target.value.replace(/\D/g, '').slice(0, 8) })
+                }
                 className={inputClass}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-text-secondary mb-1.5" htmlFor="ap-desc">
+            <label
+              className="block text-xs font-medium text-text-secondary mb-1.5"
+              htmlFor="ap-desc"
+            >
               Artículo / descripción
             </label>
             <input
@@ -470,7 +532,10 @@ function CreateModal({ onClose }: { onClose: () => void }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1.5" htmlFor="ap-total">
+              <label
+                className="block text-xs font-medium text-text-secondary mb-1.5"
+                htmlFor="ap-total"
+              >
                 Precio total (₡)
               </label>
               <input
@@ -484,7 +549,10 @@ function CreateModal({ onClose }: { onClose: () => void }) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1.5" htmlFor="ap-deposit">
+              <label
+                className="block text-xs font-medium text-text-secondary mb-1.5"
+                htmlFor="ap-deposit"
+              >
                 Depósito inicial (₡)
               </label>
               <input
@@ -500,7 +568,10 @@ function CreateModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-text-secondary mb-1.5" htmlFor="ap-method">
+            <label
+              className="block text-xs font-medium text-text-secondary mb-1.5"
+              htmlFor="ap-method"
+            >
               Método del depósito
             </label>
             <select
@@ -510,13 +581,18 @@ function CreateModal({ onClose }: { onClose: () => void }) {
               className={selectClass}
             >
               {PAYMENT_METHODS.map((m) => (
-                <option key={m.value} value={m.value}>{m.label}</option>
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-text-secondary mb-1.5" htmlFor="ap-notes">
+            <label
+              className="block text-xs font-medium text-text-secondary mb-1.5"
+              htmlFor="ap-notes"
+            >
               Notas (opcional)
             </label>
             <textarea
@@ -550,9 +626,11 @@ function CreateModal({ onClose }: { onClose: () => void }) {
               disabled={mutation.isPending}
               className="flex h-9 items-center gap-2 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 disabled:opacity-60"
             >
-              {mutation.isPending
-                ? <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
-                : <Plus size={14} strokeWidth={1.5} aria-hidden />}
+              {mutation.isPending ? (
+                <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
+              ) : (
+                <Plus size={14} strokeWidth={1.5} aria-hidden />
+              )}
               Crear apartado
             </button>
           </div>
@@ -571,10 +649,11 @@ export function ApartadosPage() {
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['apartados', statusFilter, search],
-    queryFn: () => apartadosApi.list({
-      status: statusFilter,
-      ...(search ? { search } : {}),
-    }),
+    queryFn: () =>
+      apartadosApi.list({
+        status: statusFilter,
+        ...(search ? { search } : {}),
+      }),
     staleTime: 30_000,
   });
 
@@ -600,7 +679,12 @@ export function ApartadosPage() {
       <div className="mb-4 space-y-3">
         {/* Search */}
         <div className="relative">
-          <Search size={15} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" aria-hidden />
+          <Search
+            size={15}
+            strokeWidth={1.5}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+            aria-hidden
+          />
           <input
             type="search"
             placeholder="Buscar por nombre, teléfono o artículo…"
@@ -634,7 +718,10 @@ export function ApartadosPage() {
       {isLoading && (
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-28 rounded-xl border border-border bg-surface-card animate-pulse" />
+            <div
+              key={i}
+              className="h-28 rounded-xl border border-border bg-surface-card animate-pulse"
+            />
           ))}
         </div>
       )}

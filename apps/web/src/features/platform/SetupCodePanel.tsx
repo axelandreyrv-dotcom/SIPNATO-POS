@@ -27,16 +27,28 @@ export function SetupCodePanel({ tenant, code }: { tenant: PlatformTenant; code:
   return (
     <div className="rounded-xl border border-border bg-surface-card p-4">
       <p className="text-xs font-medium text-text-muted">Código de activación</p>
-      <p className="mt-1 select-all font-mono text-2xl font-semibold tracking-wider text-text-primary">{code}</p>
+      <p className="mt-1 select-all font-mono text-2xl font-semibold tracking-wider text-text-primary">
+        {code}
+      </p>
       <p className="mt-2 text-xs text-text-muted">
-        Se usa en <span className="text-text-secondary">{url}/setup</span>. No se vuelve a mostrar; si se pierde, genera otro.
+        Se usa en <span className="text-text-secondary">{url}/setup</span>. No se vuelve a mostrar;
+        si se pierde, genera otro.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <button type="button" onClick={() => void copy()} className={secondaryButton}>
-          {copied ? <Check size={16} strokeWidth={1.5} aria-hidden /> : <Copy size={16} strokeWidth={1.5} aria-hidden />}
+          {copied ? (
+            <Check size={16} strokeWidth={1.5} aria-hidden />
+          ) : (
+            <Copy size={16} strokeWidth={1.5} aria-hidden />
+          )}
           {copied ? 'Copiado' : 'Copiar código'}
         </button>
-        <a href={whatsappLink(tenant.contactPhone, message)} target="_blank" rel="noopener noreferrer" className={secondaryButton}>
+        <a
+          href={whatsappLink(tenant.contactPhone, message)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={secondaryButton}
+        >
           <MessageCircle size={16} strokeWidth={1.5} aria-hidden />
           Enviar por WhatsApp
         </a>

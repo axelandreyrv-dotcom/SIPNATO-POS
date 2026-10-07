@@ -20,9 +20,12 @@ export function useSubscription(enabled: boolean) {
 
 function dueLine(info: SubscriptionInfo): string {
   const date = info.paidUntil ? fmtDate(info.paidUntil) : '';
-  if (info.status === 'vencido') return `La mensualidad de ${formatColones(info.monthlyPrice)} venció el ${date}.`;
-  if (info.daysLeft === 0) return `La mensualidad de ${formatColones(info.monthlyPrice)} vence hoy.`;
-  if (info.daysLeft === 1) return `La mensualidad de ${formatColones(info.monthlyPrice)} vence mañana.`;
+  if (info.status === 'vencido')
+    return `La mensualidad de ${formatColones(info.monthlyPrice)} venció el ${date}.`;
+  if (info.daysLeft === 0)
+    return `La mensualidad de ${formatColones(info.monthlyPrice)} vence hoy.`;
+  if (info.daysLeft === 1)
+    return `La mensualidad de ${formatColones(info.monthlyPrice)} vence mañana.`;
   return `La mensualidad de ${formatColones(info.monthlyPrice)} vence el ${date}.`;
 }
 
@@ -72,7 +75,9 @@ export function SubscriptionNotice() {
             )}
           </p>
           {showHow && (
-            <p className="mt-1.5 whitespace-pre-line text-text-secondary">{data.paymentInstructions}</p>
+            <p className="mt-1.5 whitespace-pre-line text-text-secondary">
+              {data.paymentInstructions}
+            </p>
           )}
         </div>
         <button

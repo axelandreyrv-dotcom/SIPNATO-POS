@@ -86,16 +86,18 @@ export function createSaleRow(
     // Líneas + descuento de stock en la misma transacción que la venta: o pasa todo o nada.
     const stockWarnings: CreateSaleResult['stockWarnings'] = [];
     input.items.forEach((item, sortOrder) => {
-      tx.insert(saleItems).values({
-        saleId: row.id,
-        productId: item.productId,
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        unitCost: item.unitCost,
-        total: item.total,
-        sortOrder,
-      }).run();
+      tx.insert(saleItems)
+        .values({
+          saleId: row.id,
+          productId: item.productId,
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          unitCost: item.unitCost,
+          total: item.total,
+          sortOrder,
+        })
+        .run();
 
       if (item.productId !== null && item.trackStock) {
         const stock = applyStockChange(tx, {
@@ -105,25 +107,28 @@ export function createSaleRow(
           saleId: row.id,
         });
         // Vender sin stock registrado se permite pero se avisa.
-        if (stock < 0) stockWarnings.push({ productId: item.productId, name: item.description, stock });
+        if (stock < 0)
+          stockWarnings.push({ productId: item.productId, name: item.description, stock });
       }
     });
 
-    tx.insert(auditLog).values({
-      action: 'SALE_CREATED',
-      entityType: 'sale',
-      entityId: String(row.id),
-      payloadSnapshot: JSON.stringify({
-        consecutive,
-        amount: input.amount,
-        paymentMethod: input.paymentMethod,
-        ...(input.items.length > 0 ? { items: input.items.length } : {}),
-        ...(input.usd ? { usd: input.usd } : {}),
-      }),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'SALE_CREATED',
+        entityType: 'sale',
+        entityId: String(row.id),
+        payloadSnapshot: JSON.stringify({
+          consecutive,
+          amount: input.amount,
+          paymentMethod: input.paymentMethod,
+          ...(input.items.length > 0 ? { items: input.items.length } : {}),
+          ...(input.usd ? { usd: input.usd } : {}),
+        }),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
 
     const items: SaleItem[] = input.items.map((i) => ({
       productId: i.productId,
@@ -150,16 +155,19 @@ export function softDeleteSaleRow(
   const deletedAt = new Date().toISOString();
 
   db.transaction((tx) => {
-    tx.update(sales)
-      .set({ deletedAt })
-      .where(eq(sales.id, id))
-      .run();
+    tx.update(sales).set({ deletedAt }).where(eq(sales.id, id)).run();
 
     const stockLines = tx
       .select({ productId: saleItems.productId, quantity: saleItems.quantity })
       .from(saleItems)
       .innerJoin(products, eq(products.id, saleItems.productId))
-      .where(and(eq(saleItems.saleId, id), isNotNull(saleItems.productId), eq(products.trackStock, true)))
+      .where(
+        and(
+          eq(saleItems.saleId, id),
+          isNotNull(saleItems.productId),
+          eq(products.trackStock, true),
+        ),
+      )
       .all();
 
     for (const line of stockLines) {
@@ -171,15 +179,17 @@ export function softDeleteSaleRow(
       });
     }
 
-    tx.insert(auditLog).values({
-      action: 'SALE_DELETED',
-      entityType: 'sale',
-      entityId: String(id),
-      payloadSnapshot: JSON.stringify(snapshot),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'SALE_DELETED',
+        entityType: 'sale',
+        entityId: String(id),
+        payloadSnapshot: JSON.stringify(snapshot),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
   });
 }
 

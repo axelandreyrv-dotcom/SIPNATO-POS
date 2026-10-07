@@ -12,7 +12,9 @@ export const settingsSchema = z.object({
   boleta_footer: z.string().max(500),
   quote_footer: z.string().max(500),
   auto_close_enabled: z.boolean(),
-  auto_close_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Formato HH:MM requerido (00:00–23:59)'),
+  auto_close_time: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Formato HH:MM requerido (00:00–23:59)'),
   // Tipo de cambio de respaldo (₡ por dólar, p. ej. "505.50") cuando no hay dato del BCCR.
   usd_manual_rate: z
     .string()

@@ -14,7 +14,9 @@ export default async function notesRoutes(app: FastifyInstance) {
   app.post('/', { preHandler: [requireAuth] }, async (request, reply) => {
     const body = createNoteSchema.safeParse(request.body);
     if (!body.success) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
+      return reply
+        .status(400)
+        .send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
     }
 
     try {
@@ -25,7 +27,9 @@ export default async function notesRoutes(app: FastifyInstance) {
       return reply.status(201).send(note);
     } catch (err) {
       if (err instanceof AppError) {
-        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+        return reply
+          .status(err.statusCode)
+          .send({ error: { code: err.code, message: err.message } });
       }
       throw err;
     }
@@ -36,12 +40,16 @@ export default async function notesRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const parsed = parseInt(id, 10);
     if (isNaN(parsed)) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
+      return reply
+        .status(400)
+        .send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
     }
 
     const body = updateNoteSchema.safeParse(request.body);
     if (!body.success) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
+      return reply
+        .status(400)
+        .send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
     }
 
     try {
@@ -51,7 +59,9 @@ export default async function notesRoutes(app: FastifyInstance) {
       });
     } catch (err) {
       if (err instanceof AppError) {
-        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+        return reply
+          .status(err.statusCode)
+          .send({ error: { code: err.code, message: err.message } });
       }
       throw err;
     }
@@ -62,7 +72,9 @@ export default async function notesRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const parsed = parseInt(id, 10);
     if (isNaN(parsed)) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
+      return reply
+        .status(400)
+        .send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
     }
 
     try {
@@ -73,7 +85,9 @@ export default async function notesRoutes(app: FastifyInstance) {
       return reply.send({ ok: true });
     } catch (err) {
       if (err instanceof AppError) {
-        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+        return reply
+          .status(err.statusCode)
+          .send({ error: { code: err.code, message: err.message } });
       }
       throw err;
     }

@@ -79,13 +79,17 @@ const LOCK_DURATION_MS = 15 * 60 * 1000;
 
 async function verifySuperadminCredentials(username: string, password: string) {
   const admin = findSuperadminByUsername(username);
-  if (admin?.locked_until && new Date(admin.locked_until).getTime() > Date.now()) throw new UsuarioBloqueado();
+  if (admin?.locked_until && new Date(admin.locked_until).getTime() > Date.now())
+    throw new UsuarioBloqueado();
 
   const valid = await verifyPassword(password, admin?.password_hash ?? DUMMY_HASH);
   if (!admin || !admin.active || !valid) {
     if (admin && admin.active && !valid) {
       const attempts = admin.failed_attempts + 1;
-      const lockedUntil = attempts >= MAX_FAILED_ATTEMPTS ? new Date(Date.now() + LOCK_DURATION_MS).toISOString() : null;
+      const lockedUntil =
+        attempts >= MAX_FAILED_ATTEMPTS
+          ? new Date(Date.now() + LOCK_DURATION_MS).toISOString()
+          : null;
       recordSuperadminFailure(admin.id, lockedUntil ? 0 : attempts, lockedUntil);
       if (lockedUntil) throw new UsuarioBloqueado();
     }
@@ -107,19 +111,30 @@ function openSession(superadminId: number, meta: Meta): string {
   return token;
 }
 
-export async function loginSuperadmin(username: string, password: string, meta: Meta): Promise<string> {
+export async function loginSuperadmin(
+  username: string,
+  password: string,
+  meta: Meta,
+): Promise<string> {
   let admin;
   try {
     admin = await verifySuperadminCredentials(username, password);
   } catch (err) {
-    insertPlatformAudit({ action: 'PLATFORM_LOGIN_FAILED', payload: { username }, superadminId: null, meta });
+    insertPlatformAudit({
+      action: 'PLATFORM_LOGIN_FAILED',
+      payload: { username },
+      superadminId: null,
+      meta,
+    });
     throw err;
   }
   insertPlatformAudit({ action: 'PLATFORM_LOGIN', superadminId: admin.id, meta });
   return openSession(admin.id, meta);
 }
 
-export function verifyPlatformSession(token: string): { sessionId: string; admin: Superadmin } | null {
+export function verifyPlatformSession(
+  token: string,
+): { sessionId: string; admin: Superadmin } | null {
   const session = findPlatformSession(hashSessionToken(token));
   if (!session) return null;
 
@@ -167,10 +182,19 @@ export function getPlatformSettings(): PlatformSettings {
   };
 }
 
-export function updatePlatformSettings(admin: Superadmin, settings: PlatformSettings, meta: Meta): PlatformSettings {
+export function updatePlatformSettings(
+  admin: Superadmin,
+  settings: PlatformSettings,
+  meta: Meta,
+): PlatformSettings {
   controlTransaction(() => {
     writePlatformSettings(settings);
-    insertPlatformAudit({ action: 'PLATFORM_SETTINGS_UPDATED', payload: { ...settings }, superadminId: admin.id, meta });
+    insertPlatformAudit({
+      action: 'PLATFORM_SETTINGS_UPDATED',
+      payload: { ...settings },
+      superadminId: admin.id,
+      meta,
+    });
   });
   return getPlatformSettings();
 }
@@ -180,10 +204,18 @@ export function updatePlatformSettings(admin: Superadmin, settings: PlatformSett
 // Se mira la BD del negocio y no el código de activación: una BD migrada de la versión anterior
 // ya trae dueño aunque nunca se haya usado un código.
 function hasOwner(slug: string): boolean {
-  return runWithTenant(slug, () => db.select({ id: users.id }).from(users).limit(1).get() !== undefined);
+  return runWithTenant(
+    slug,
+    () => db.select({ id: users.id }).from(users).limit(1).get() !== undefined,
+  );
 }
 
-function toPlatformTenant(t: TenantRecord, defaultPrice: number, activated: boolean, today: string): PlatformTenant {
+function toPlatformTenant(
+  t: TenantRecord,
+  defaultPrice: number,
+  activated: boolean,
+  today: string,
+): PlatformTenant {
   const { status: subscription, daysLeft } = subscriptionStatus(t.paidUntil, today);
   return {
     slug: t.slug,
@@ -210,13 +242,20 @@ function requireTenant(slug: string): TenantRecord {
 
 function platformTenant(slug: string): PlatformTenant {
   const tenant = requireTenant(slug);
-  return toPlatformTenant(tenant, getPlatformSettings().defaultMonthlyPrice, hasOwner(slug), todayCR());
+  return toPlatformTenant(
+    tenant,
+    getPlatformSettings().defaultMonthlyPrice,
+    hasOwner(slug),
+    todayCR(),
+  );
 }
 
 export function listPlatformTenants(): { tenants: PlatformTenant[]; summary: PlatformSummary } {
   const today = todayCR();
   const { defaultMonthlyPrice } = getPlatformSettings();
-  const tenants = listTenants().map((t) => toPlatformTenant(t, defaultMonthlyPrice, hasOwner(t.slug), today));
+  const tenants = listTenants().map((t) =>
+    toPlatformTenant(t, defaultMonthlyPrice, hasOwner(t.slug), today),
+  );
 
   const active = tenants.filter((t) => t.status === 'active');
   const billed = active.filter((t) => t.subscription !== 'sin_cobro');
@@ -269,7 +308,6 @@ export async function issueSetupCode(slug: string): Promise<string> {
   return code;
 }
 
-
 export async function createTenant(
   admin: Superadmin,
   input: CreateTenantInput,
@@ -307,7 +345,12 @@ export async function createTenant(
   return { tenant: platformTenant(input.slug), setupCode: code };
 }
 
-export function updateTenant(admin: Superadmin, slug: string, input: UpdateTenantInput, meta: Meta): PlatformTenant {
+export function updateTenant(
+  admin: Superadmin,
+  slug: string,
+  input: UpdateTenantInput,
+  meta: Meta,
+): PlatformTenant {
   const before = requireTenant(slug);
   controlTransaction(() => {
     updateTenantFields(slug, input);
@@ -315,12 +358,23 @@ export function updateTenant(admin: Superadmin, slug: string, input: UpdateTenan
     const changes = Object.fromEntries(
       Object.entries(input).map(([k, v]) => [k, { from: before[k as keyof TenantRecord], to: v }]),
     );
-    insertPlatformAudit({ action: 'TENANT_UPDATED', tenantSlug: slug, payload: changes, superadminId: admin.id, meta });
+    insertPlatformAudit({
+      action: 'TENANT_UPDATED',
+      tenantSlug: slug,
+      payload: changes,
+      superadminId: admin.id,
+      meta,
+    });
   });
   return platformTenant(slug);
 }
 
-export function changeTenantStatus(admin: Superadmin, slug: string, status: TenantStatus, meta: Meta): PlatformTenant {
+export function changeTenantStatus(
+  admin: Superadmin,
+  slug: string,
+  status: TenantStatus,
+  meta: Meta,
+): PlatformTenant {
   requireTenant(slug);
   controlTransaction(() => {
     setTenantStatus(slug, status);
@@ -334,11 +388,20 @@ export function changeTenantStatus(admin: Superadmin, slug: string, status: Tena
   return platformTenant(slug);
 }
 
-export async function regenerateSetupCode(admin: Superadmin, slug: string, meta: Meta): Promise<string> {
+export async function regenerateSetupCode(
+  admin: Superadmin,
+  slug: string,
+  meta: Meta,
+): Promise<string> {
   requireTenant(slug);
   if (hasOwner(slug)) throw new NegocioYaActivado();
   const code = await issueSetupCode(slug);
-  insertPlatformAudit({ action: 'TENANT_SETUP_CODE_ISSUED', tenantSlug: slug, superadminId: admin.id, meta });
+  insertPlatformAudit({
+    action: 'TENANT_SETUP_CODE_ISSUED',
+    tenantSlug: slug,
+    superadminId: admin.id,
+    meta,
+  });
   return code;
 }
 
@@ -396,7 +459,8 @@ export function voidPayment(
   if (!payment) throw new PagoNoEncontrado();
   if (payment.voidedAt) throw new PagoYaAnulado();
 
-  const revert = latestActivePaymentId(slug) === payment.id && tenant.paidUntil === payment.periodTo;
+  const revert =
+    latestActivePaymentId(slug) === payment.id && tenant.paidUntil === payment.periodTo;
 
   controlTransaction(() => {
     markPaymentVoided(payment.id);

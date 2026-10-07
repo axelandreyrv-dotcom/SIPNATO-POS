@@ -47,10 +47,18 @@ describe('panel de superadministrador', () => {
   let setupCode: string;
 
   const asAdmin = () => ({ host: ADMIN_HOST, cookie: `${PLATFORM_COOKIE_NAME}=${platformToken}` });
-  const asOwner = (slug = 'tienda-nueva') => ({ host: host(slug), cookie: `${COOKIE_NAME}=${ownerToken}` });
+  const asOwner = (slug = 'tienda-nueva') => ({
+    host: host(slug),
+    cookie: `${COOKIE_NAME}=${ownerToken}`,
+  });
 
   function patchTenant(slug: string, payload: Record<string, unknown>) {
-    return app.inject({ method: 'PATCH', url: `/platform/tenants/${slug}`, headers: asAdmin(), payload });
+    return app.inject({
+      method: 'PATCH',
+      url: `/platform/tenants/${slug}`,
+      headers: asAdmin(),
+      payload,
+    });
   }
 
   function pay(slug: string, months: number, amount = 15000) {
@@ -58,7 +66,14 @@ describe('panel de superadministrador', () => {
       method: 'POST',
       url: `/platform/tenants/${slug}/payments`,
       headers: asAdmin(),
-      payload: { amount, months, method: 'sinpe', reference: 'SINPE 123', paidAt: todayCR(), notes: '' },
+      payload: {
+        amount,
+        months,
+        method: 'sinpe',
+        reference: 'SINPE 123',
+        paidAt: todayCR(),
+        notes: '',
+      },
     });
   }
 
@@ -79,11 +94,26 @@ describe('panel de superadministrador', () => {
     assert.equal(addMonths('2026-01-31', 1), '2026-02-28');
     assert.equal(addMonths('2028-01-31', 1), '2028-02-29');
     assert.equal(addMonths('2026-11-15', 3), '2027-02-15');
-    assert.deepEqual(subscriptionStatus(null, '2026-10-07'), { status: 'sin_cobro', daysLeft: null });
-    assert.deepEqual(subscriptionStatus('2026-10-07', '2026-10-07'), { status: 'por_vencer', daysLeft: 0 });
-    assert.deepEqual(subscriptionStatus('2026-10-12', '2026-10-07'), { status: 'por_vencer', daysLeft: 5 });
-    assert.deepEqual(subscriptionStatus('2026-10-13', '2026-10-07'), { status: 'al_dia', daysLeft: 6 });
-    assert.deepEqual(subscriptionStatus('2026-10-06', '2026-10-07'), { status: 'vencido', daysLeft: -1 });
+    assert.deepEqual(subscriptionStatus(null, '2026-10-07'), {
+      status: 'sin_cobro',
+      daysLeft: null,
+    });
+    assert.deepEqual(subscriptionStatus('2026-10-07', '2026-10-07'), {
+      status: 'por_vencer',
+      daysLeft: 0,
+    });
+    assert.deepEqual(subscriptionStatus('2026-10-12', '2026-10-07'), {
+      status: 'por_vencer',
+      daysLeft: 5,
+    });
+    assert.deepEqual(subscriptionStatus('2026-10-13', '2026-10-07'), {
+      status: 'al_dia',
+      daysLeft: 6,
+    });
+    assert.deepEqual(subscriptionStatus('2026-10-06', '2026-10-07'), {
+      status: 'vencido',
+      daysLeft: -1,
+    });
   });
 
   it('credenciales incorrectas → 401; correctas abren sesión', async () => {
@@ -99,7 +129,8 @@ describe('panel de superadministrador', () => {
   });
 
   it('5 intentos fallidos bloquean la cuenta aunque luego la clave sea correcta', async () => {
-    for (let i = 0; i < 4; i++) assert.equal((await platformLogin(app, 'otro', 'mala-clave-123')).statusCode, 401);
+    for (let i = 0; i < 4; i++)
+      assert.equal((await platformLogin(app, 'otro', 'mala-clave-123')).statusCode, 401);
     assert.equal((await platformLogin(app, 'otro', 'mala-clave-123')).statusCode, 429);
     assert.equal((await platformLogin(app, 'otro', PASSWORD)).statusCode, 429);
   });
@@ -109,7 +140,13 @@ describe('panel de superadministrador', () => {
       method: 'POST',
       url: '/platform/tenants',
       headers: asAdmin(),
-      payload: { slug: 'tienda-nueva', name: 'Tienda Nueva', contactName: 'Ana', contactPhone: '88887777', paidUntil: null },
+      payload: {
+        slug: 'tienda-nueva',
+        name: 'Tienda Nueva',
+        contactName: 'Ana',
+        contactPhone: '88887777',
+        paidUntil: null,
+      },
     });
     assert.equal(created.statusCode, 201, created.body);
     setupCode = created.json().setupCode;
@@ -136,7 +173,13 @@ describe('panel de superadministrador', () => {
       method: 'POST',
       url: '/auth/setup',
       headers: { host: host('tienda-nueva') },
-      payload: { setupCode, username: 'dueno', displayName: 'Ana', password: PASSWORD, confirmPassword: PASSWORD },
+      payload: {
+        setupCode,
+        username: 'dueno',
+        displayName: 'Ana',
+        password: PASSWORD,
+        confirmPassword: PASSWORD,
+      },
     });
     assert.equal(setup.statusCode, 201, setup.body);
     ownerToken = setup.cookies.find((c) => c.name === COOKIE_NAME)!.value;
@@ -147,7 +190,11 @@ describe('panel de superadministrador', () => {
     assert.equal(tenant.subscription, 'sin_cobro');
 
     // Ya tiene dueño: no se emite otro código.
-    const again = await app.inject({ method: 'POST', url: '/platform/tenants/tienda-nueva/setup-code', headers: asAdmin() });
+    const again = await app.inject({
+      method: 'POST',
+      url: '/platform/tenants/tienda-nueva/setup-code',
+      headers: asAdmin(),
+    });
     assert.equal(again.statusCode, 409);
   });
 
@@ -161,12 +208,17 @@ describe('panel de superadministrador', () => {
     assert.equal(res.statusCode, 201);
     // Como al copiar el dosuxsoft.db de la versión anterior sobre tenants/<slug>.db.
     runWithTenant('migrado', () =>
-      currentTenant().sqlite
-        .prepare("INSERT INTO users (username, display_name, role, secret_hash) VALUES ('dueno', 'Dueño', 'dueno', 'x')")
+      currentTenant()
+        .sqlite.prepare(
+          "INSERT INTO users (username, display_name, role, secret_hash) VALUES ('dueno', 'Dueño', 'dueno', 'x')",
+        )
         .run(),
     );
     const list = await app.inject({ method: 'GET', url: '/platform/tenants', headers: asAdmin() });
-    assert.equal(list.json().tenants.find((t: { slug: string }) => t.slug === 'migrado').activated, true);
+    assert.equal(
+      list.json().tenants.find((t: { slug: string }) => t.slug === 'migrado').activated,
+      true,
+    );
   });
 
   it('la sesión de un negocio no abre el panel', async () => {
@@ -179,7 +231,13 @@ describe('panel de superadministrador', () => {
   });
 
   it('rechaza subdominios repetidos, reservados o inválidos', async () => {
-    for (const [slug, code] of [['tienda-nueva', 409], ['admin', 400], ['www', 400], ['Mal_Slug', 400], ['-x', 400]] as const) {
+    for (const [slug, code] of [
+      ['tienda-nueva', 409],
+      ['admin', 400],
+      ['www', 400],
+      ['Mal_Slug', 400],
+      ['-x', 400],
+    ] as const) {
       const res = await app.inject({
         method: 'POST',
         url: '/platform/tenants',
@@ -199,7 +257,9 @@ describe('panel de superadministrador', () => {
   });
 
   it('anular el último pago devuelve el vencimiento; uno anterior no', async () => {
-    const detail = (await app.inject({ method: 'GET', url: '/platform/tenants/tienda-nueva', headers: asAdmin() })).json();
+    const detail = (
+      await app.inject({ method: 'GET', url: '/platform/tenants/tienda-nueva', headers: asAdmin() })
+    ).json();
     const [latest, older] = detail.payments as { id: number }[];
 
     const voidOlder = await app.inject({
@@ -226,7 +286,12 @@ describe('panel de superadministrador', () => {
     assert.equal(twice.statusCode, 409);
 
     // Los pagos de un negocio no se anulan desde la URL de otro.
-    await app.inject({ method: 'POST', url: '/platform/tenants', headers: asAdmin(), payload: { slug: 'otro-negocio', name: 'Otro', paidUntil: null } });
+    await app.inject({
+      method: 'POST',
+      url: '/platform/tenants',
+      headers: asAdmin(),
+      payload: { slug: 'otro-negocio', name: 'Otro', paidUntil: null },
+    });
     const cross = await app.inject({
       method: 'POST',
       url: `/platform/tenants/otro-negocio/payments/${older!.id}/void`,
@@ -240,7 +305,11 @@ describe('panel de superadministrador', () => {
       method: 'PUT',
       url: '/platform/settings',
       headers: asAdmin(),
-      payload: { defaultMonthlyPrice: 15000, paymentInstructions: 'SINPE 8888-0000', reminderMessage: '' },
+      payload: {
+        defaultMonthlyPrice: 15000,
+        paymentInstructions: 'SINPE 8888-0000',
+        reminderMessage: '',
+      },
     });
 
     const notes = await app.inject({ method: 'GET', url: '/api/notes', headers: asOwner() });
@@ -295,16 +364,35 @@ describe('panel de superadministrador', () => {
     });
     assert.equal(suspend.statusCode, 200);
     assert.equal(findTenant('tienda-nueva')!.status, 'suspended');
-    assert.equal((await app.inject({ method: 'GET', url: '/api/notes', headers: asOwner() })).statusCode, 403);
+    assert.equal(
+      (await app.inject({ method: 'GET', url: '/api/notes', headers: asOwner() })).statusCode,
+      403,
+    );
 
-    await app.inject({ method: 'POST', url: '/platform/tenants/tienda-nueva/status', headers: asAdmin(), payload: { status: 'active' } });
-    assert.equal((await app.inject({ method: 'GET', url: '/api/notes', headers: asOwner() })).statusCode, 200);
+    await app.inject({
+      method: 'POST',
+      url: '/platform/tenants/tienda-nueva/status',
+      headers: asAdmin(),
+      payload: { status: 'active' },
+    });
+    assert.equal(
+      (await app.inject({ method: 'GET', url: '/api/notes', headers: asOwner() })).statusCode,
+      200,
+    );
   });
 
   it('la actividad registra quién hizo cada cambio', async () => {
-    const detail = (await app.inject({ method: 'GET', url: '/platform/tenants/tienda-nueva', headers: asAdmin() })).json();
+    const detail = (
+      await app.inject({ method: 'GET', url: '/platform/tenants/tienda-nueva', headers: asAdmin() })
+    ).json();
     const actions = detail.activity.map((a: { action: string }) => a.action);
-    for (const action of ['TENANT_CREATED', 'PAYMENT_RECORDED', 'PAYMENT_VOIDED', 'TENANT_SUSPENDED', 'TENANT_ACTIVATED']) {
+    for (const action of [
+      'TENANT_CREATED',
+      'PAYMENT_RECORDED',
+      'PAYMENT_VOIDED',
+      'TENANT_SUSPENDED',
+      'TENANT_ACTIVATED',
+    ]) {
       assert.ok(actions.includes(action), action);
     }
     assert.ok(detail.activity.every((a: { superadmin: string }) => a.superadmin === 'root'));
@@ -312,7 +400,10 @@ describe('panel de superadministrador', () => {
   });
 
   it('Caddy puede emitir el certificado del panel', async () => {
-    const res = await app.inject({ method: 'GET', url: `/internal/tls-check?domain=${ADMIN_HOST}` });
+    const res = await app.inject({
+      method: 'GET',
+      url: `/internal/tls-check?domain=${ADMIN_HOST}`,
+    });
     assert.equal(res.statusCode, 200);
   });
 
@@ -324,7 +415,11 @@ describe('panel de superadministrador', () => {
       method: 'POST',
       url: '/platform/auth/password',
       headers: asAdmin(),
-      payload: { currentPassword: PASSWORD, newPassword: 'otra-clave-456', confirmPassword: 'otra-clave-456' },
+      payload: {
+        currentPassword: PASSWORD,
+        newPassword: 'otra-clave-456',
+        confirmPassword: 'otra-clave-456',
+      },
     });
     assert.equal(change.statusCode, 200, change.body);
     platformToken = change.cookies.find((c) => c.name === PLATFORM_COOKIE_NAME)!.value;
@@ -335,6 +430,10 @@ describe('panel de superadministrador', () => {
       headers: { host: ADMIN_HOST, cookie: `${PLATFORM_COOKIE_NAME}=${secondToken}` },
     });
     assert.equal(old.statusCode, 401);
-    assert.equal((await app.inject({ method: 'GET', url: '/platform/auth/me', headers: asAdmin() })).statusCode, 200);
+    assert.equal(
+      (await app.inject({ method: 'GET', url: '/platform/auth/me', headers: asAdmin() }))
+        .statusCode,
+      200,
+    );
   });
 });

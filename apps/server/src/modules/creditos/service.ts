@@ -1,4 +1,9 @@
-import type { CreateCredito, AddCreditoPayment, Credito, CreditoWithPayments } from '@sipnato/shared';
+import type {
+  CreateCredito,
+  AddCreditoPayment,
+  Credito,
+  CreditoWithPayments,
+} from '@sipnato/shared';
 import { CreditoNoEncontrado, CreditoNoActivo, AbonoPagoExcede } from '../../lib/errors.js';
 import {
   insertCreditoRow,

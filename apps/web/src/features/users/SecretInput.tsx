@@ -29,7 +29,9 @@ export function SecretInput({
         autoComplete={autoComplete}
         {...(isPin ? { inputMode: 'numeric' as const, maxLength: 6 } : {})}
         value={value}
-        onChange={(e) => onChange(isPin ? e.target.value.replace(/\D/g, '').slice(0, 6) : e.target.value)}
+        onChange={(e) =>
+          onChange(isPin ? e.target.value.replace(/\D/g, '').slice(0, 6) : e.target.value)
+        }
         placeholder={isPin ? '6 dígitos' : 'Mínimo 8 caracteres'}
         className={[
           'h-10 w-full rounded-lg border bg-surface-input px-3 pr-10 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted',
@@ -45,7 +47,11 @@ export function SecretInput({
         className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-text-muted transition-colors hover:text-text-secondary"
         aria-label={visible ? 'Ocultar' : 'Mostrar'}
       >
-        {visible ? <EyeOff size={16} strokeWidth={1.5} aria-hidden /> : <Eye size={16} strokeWidth={1.5} aria-hidden />}
+        {visible ? (
+          <EyeOff size={16} strokeWidth={1.5} aria-hidden />
+        ) : (
+          <Eye size={16} strokeWidth={1.5} aria-hidden />
+        )}
       </button>
     </div>
   );

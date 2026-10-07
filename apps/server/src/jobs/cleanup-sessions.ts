@@ -17,6 +17,8 @@ export function startCleanupJobs(log: FastifyBaseLogger): void {
     });
 
     const inactiveBefore = new Date(Date.now() - INACTIVITY_TIMEOUT_MS).toISOString();
-    log.info(`[cleanup] Sesiones del panel eliminadas: ${deleteExpiredPlatformSessions(inactiveBefore)}`);
+    log.info(
+      `[cleanup] Sesiones del panel eliminadas: ${deleteExpiredPlatformSessions(inactiveBefore)}`,
+    );
   });
 }

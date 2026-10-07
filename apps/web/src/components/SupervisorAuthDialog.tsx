@@ -6,8 +6,10 @@ import { ApiError } from '@/lib/api-client';
 // Mensaje para los errores que devuelve el servidor al validar una autorización.
 export function supervisorAuthErrorMessage(err: unknown): string {
   if (err instanceof ApiError) {
-    if (err.code === 'AUTORIZACION_INVALIDA') return 'Usuario o contraseña/PIN incorrectos, o sin permiso para autorizar.';
-    if (err.code === 'USUARIO_BLOQUEADO') return 'Ese usuario está bloqueado por intentos fallidos. Espera 15 minutos.';
+    if (err.code === 'AUTORIZACION_INVALIDA')
+      return 'Usuario o contraseña/PIN incorrectos, o sin permiso para autorizar.';
+    if (err.code === 'USUARIO_BLOQUEADO')
+      return 'Ese usuario está bloqueado por intentos fallidos. Espera 15 minutos.';
     return err.message;
   }
   return 'No se pudo conectar con el servidor.';
@@ -57,7 +59,10 @@ export function SupervisorAuthDialog({
     'h-10 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={onClose}
+    >
       <div className="absolute inset-0 bg-black/40" aria-hidden />
       <form
         role="dialog"
@@ -89,7 +94,10 @@ export function SupervisorAuthDialog({
 
         <div className="mb-5 space-y-3">
           <div>
-            <label htmlFor="supervisor-username" className="mb-1.5 block text-sm font-medium text-text-secondary">
+            <label
+              htmlFor="supervisor-username"
+              className="mb-1.5 block text-sm font-medium text-text-secondary"
+            >
               Usuario del administrador
             </label>
             <input
@@ -105,7 +113,10 @@ export function SupervisorAuthDialog({
             />
           </div>
           <div>
-            <label htmlFor="supervisor-secret" className="mb-1.5 block text-sm font-medium text-text-secondary">
+            <label
+              htmlFor="supervisor-secret"
+              className="mb-1.5 block text-sm font-medium text-text-secondary"
+            >
               Contraseña o PIN
             </label>
             <input
@@ -117,7 +128,11 @@ export function SupervisorAuthDialog({
               className={inputCls}
             />
           </div>
-          {error && <p className="text-xs text-brand-error" role="alert">{error}</p>}
+          {error && (
+            <p className="text-xs text-brand-error" role="alert">
+              {error}
+            </p>
+          )}
         </div>
 
         <div className="flex gap-2">
@@ -133,7 +148,9 @@ export function SupervisorAuthDialog({
             disabled={!canSubmit}
             className="flex flex-1 h-10 items-center justify-center gap-1.5 rounded-lg bg-brand-error text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoading && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+            {isLoading && (
+              <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
+            )}
             Autorizar y eliminar
           </button>
         </div>

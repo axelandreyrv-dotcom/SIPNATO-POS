@@ -10,12 +10,20 @@ export async function registerModuleRoutes(
   routes: FastifyPluginAsync,
   prefix: string,
 ): Promise<void> {
-  await app.register(async (scope) => {
-    scope.addHook('preHandler', async (_request, reply) => {
-      if (!getProfile().modules.includes(module)) {
-        return reply.status(404).send({ error: { code: 'MODULO_DESACTIVADO', message: 'Este módulo está desactivado para el negocio' } });
-      }
-    });
-    await scope.register(routes);
-  }, { prefix });
+  await app.register(
+    async (scope) => {
+      scope.addHook('preHandler', async (_request, reply) => {
+        if (!getProfile().modules.includes(module)) {
+          return reply.status(404).send({
+            error: {
+              code: 'MODULO_DESACTIVADO',
+              message: 'Este módulo está desactivado para el negocio',
+            },
+          });
+        }
+      });
+      await scope.register(routes);
+    },
+    { prefix },
+  );
 }

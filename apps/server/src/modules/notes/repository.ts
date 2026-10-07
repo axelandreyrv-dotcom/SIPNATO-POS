@@ -30,15 +30,17 @@ export function createNoteRow(input: CreateNoteInput, meta: AuditMeta): Note {
 
     if (!row) throw new Error('Failed to create note');
 
-    tx.insert(auditLog).values({
-      action: 'NOTE_CREATED',
-      entityType: 'note',
-      entityId: String(row.id),
-      payloadSnapshot: JSON.stringify({ title: input.title, bodyLength: input.body.length }),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'NOTE_CREATED',
+        entityType: 'note',
+        entityId: String(row.id),
+        payloadSnapshot: JSON.stringify({ title: input.title, bodyLength: input.body.length }),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
 
     return mapNote(row);
   });
@@ -62,15 +64,17 @@ export function updateNoteRow(id: number, input: UpdateNoteInput, meta: AuditMet
 
     if (!row) throw new Error('Failed to update note');
 
-    tx.insert(auditLog).values({
-      action: 'NOTE_UPDATED',
-      entityType: 'note',
-      entityId: String(id),
-      payloadSnapshot: JSON.stringify({ title: input.title, bodyLength: input.body.length }),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'NOTE_UPDATED',
+        entityType: 'note',
+        entityId: String(id),
+        payloadSnapshot: JSON.stringify({ title: input.title, bodyLength: input.body.length }),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
 
     return mapNote(row);
   });
@@ -83,23 +87,20 @@ export function hardDeleteNoteRow(
 ): void {
   db.transaction((tx) => {
     tx.delete(notes).where(eq(notes.id, id)).run();
-    tx.insert(auditLog).values({
-      action: 'NOTE_DELETED',
-      entityType: 'note',
-      entityId: String(id),
-      payloadSnapshot: JSON.stringify(snapshot),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'NOTE_DELETED',
+        entityType: 'note',
+        entityId: String(id),
+        payloadSnapshot: JSON.stringify(snapshot),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
   });
 }
 
 export function listNotesRows(): Note[] {
-  return db
-    .select()
-    .from(notes)
-    .orderBy(desc(notes.updatedAt), desc(notes.id))
-    .all()
-    .map(mapNote);
+  return db.select().from(notes).orderBy(desc(notes.updatedAt), desc(notes.id)).all().map(mapNote);
 }

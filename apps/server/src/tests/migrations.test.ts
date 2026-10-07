@@ -1,6 +1,15 @@
 import { strict as assert } from 'assert';
 import { after, describe, it } from 'node:test';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -57,7 +66,10 @@ describe('copia antes de migrar', () => {
     const copy = new Database(join(dataDir, 'backups', 'viejo', file), { readonly: true });
     assert.equal((copy.prepare('SELECT COUNT(*) AS n FROM customers').get() as { n: number }).n, 1);
     // La copia es la versión anterior: todavía no tiene las tablas de fases posteriores.
-    assert.equal(copy.prepare("SELECT name FROM sqlite_master WHERE name = 'users'").get(), undefined);
+    assert.equal(
+      copy.prepare("SELECT name FROM sqlite_master WHERE name = 'users'").get(),
+      undefined,
+    );
     copy.close();
   });
 

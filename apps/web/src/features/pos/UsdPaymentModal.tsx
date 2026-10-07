@@ -28,7 +28,9 @@ export function UsdPaymentModal({
 }) {
   const [received, setReceived] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   const rate = rateInfo?.rate ?? null;
   const cents = parseUsdToCents(received);
@@ -39,7 +41,10 @@ export function UsdPaymentModal({
   const minCents = rate !== null ? Math.ceil((amount * 10_000) / rate) : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
+      onClick={onClose}
+    >
       <div className="absolute inset-0 bg-black/40" aria-hidden />
       <div
         role="dialog"
@@ -53,34 +58,62 @@ export function UsdPaymentModal({
         }}
       >
         <div className="mb-5 flex items-center justify-between">
-          <h2 id="usd-title" className="text-base font-semibold text-text-primary">Cobro en dólares</h2>
-          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-md text-text-muted hover:bg-surface-bg hover:text-text-primary" aria-label="Cerrar">
+          <h2 id="usd-title" className="text-base font-semibold text-text-primary">
+            Cobro en dólares
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-md text-text-muted hover:bg-surface-bg hover:text-text-primary"
+            aria-label="Cerrar"
+          >
             <X size={16} strokeWidth={1.5} aria-hidden />
           </button>
         </div>
 
         {rate === null ? (
-          <p className="rounded-lg bg-brand-warning/[0.08] px-4 py-3 text-sm text-text-primary" role="alert">
-            No hay tipo de cambio disponible. El dueño puede configurar uno de respaldo en Configuración.
+          <p
+            className="rounded-lg bg-brand-warning/[0.08] px-4 py-3 text-sm text-text-primary"
+            role="alert"
+          >
+            No hay tipo de cambio disponible. El dueño puede configurar uno de respaldo en
+            Configuración.
           </p>
         ) : (
           <>
             <div className="mb-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border text-center">
               <div className="bg-surface-bg px-3 py-3">
                 <p className="mb-1 text-xs text-text-muted">Total</p>
-                <p className="text-xl font-semibold tabular-nums text-text-primary">{formatColones(amount)}</p>
-                {minCents !== null && <p className="mt-0.5 text-xs tabular-nums text-text-muted">≈ {formatUsd(minCents)}</p>}
+                <p className="text-xl font-semibold tabular-nums text-text-primary">
+                  {formatColones(amount)}
+                </p>
+                {minCents !== null && (
+                  <p className="mt-0.5 text-xs tabular-nums text-text-muted">
+                    ≈ {formatUsd(minCents)}
+                  </p>
+                )}
               </div>
               <div className="bg-surface-bg px-3 py-3">
                 <p className="mb-1 text-xs text-text-muted">Tipo de cambio</p>
-                <p className="text-xl font-semibold tabular-nums text-text-primary">{formatExchangeRate(rate)}</p>
-                <p className="mt-0.5 text-xs text-text-muted">{rateInfo?.source === 'bccr' ? 'compra BCCR' : 'de respaldo'}</p>
+                <p className="text-xl font-semibold tabular-nums text-text-primary">
+                  {formatExchangeRate(rate)}
+                </p>
+                <p className="mt-0.5 text-xs text-text-muted">
+                  {rateInfo?.source === 'bccr' ? 'compra BCCR' : 'de respaldo'}
+                </p>
               </div>
             </div>
 
-            <label htmlFor="usd-received" className="mb-1.5 block text-sm font-medium text-text-secondary">Dólares recibidos</label>
+            <label
+              htmlFor="usd-received"
+              className="mb-1.5 block text-sm font-medium text-text-secondary"
+            >
+              Dólares recibidos
+            </label>
             <div className="relative mb-5">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">$</span>
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">
+                $
+              </span>
               <input
                 id="usd-received"
                 ref={inputRef}
@@ -93,21 +126,45 @@ export function UsdPaymentModal({
             </div>
 
             {equivalent !== null && (
-              <div className={['mb-5 rounded-lg px-4 py-4 text-center', canConfirm ? 'bg-brand-success/[0.08]' : 'bg-brand-error/[0.08]'].join(' ')}>
-                <p className="mb-1 text-xs text-text-muted">Equivale a {formatColones(equivalent)} · Vuelto en colones</p>
-                <p className={['text-3xl font-bold tabular-nums', canConfirm ? 'text-brand-success' : 'text-brand-error'].join(' ')}>
+              <div
+                className={[
+                  'mb-5 rounded-lg px-4 py-4 text-center',
+                  canConfirm ? 'bg-brand-success/[0.08]' : 'bg-brand-error/[0.08]',
+                ].join(' ')}
+              >
+                <p className="mb-1 text-xs text-text-muted">
+                  Equivale a {formatColones(equivalent)} · Vuelto en colones
+                </p>
+                <p
+                  className={[
+                    'text-3xl font-bold tabular-nums',
+                    canConfirm ? 'text-brand-success' : 'text-brand-error',
+                  ].join(' ')}
+                >
                   {canConfirm ? formatColones(change!) : `−${formatColones(-change!)}`}
                 </p>
-                {!canConfirm && <p className="mt-1 text-xs text-brand-error" role="alert">No alcanza para el total</p>}
+                {!canConfirm && (
+                  <p className="mt-1 text-xs text-brand-error" role="alert">
+                    No alcanza para el total
+                  </p>
+                )}
               </div>
             )}
           </>
         )}
 
-        {error && <p className="mb-3 text-sm text-brand-error" role="alert">{error}</p>}
+        {error && (
+          <p className="mb-3 text-sm text-brand-error" role="alert">
+            {error}
+          </p>
+        )}
 
         <div className="flex gap-2">
-          <button type="button" onClick={onClose} className="flex h-10 flex-1 items-center justify-center rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-bg">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 flex-1 items-center justify-center rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-bg"
+          >
             Cancelar
           </button>
           <button
@@ -116,7 +173,9 @@ export function UsdPaymentModal({
             onClick={() => onConfirm(cents!)}
             className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-success text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoading && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+            {isLoading && (
+              <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
+            )}
             Confirmar cobro
           </button>
         </div>

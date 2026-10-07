@@ -10,10 +10,15 @@ declare module 'fastify' {
   }
 }
 
-export async function requirePlatformAuth(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function requirePlatformAuth(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
   // Defensa en profundidad: el middleware de negocios ya rechaza /platform/* fuera del panel.
   if (!request.isPlatform) {
-    return reply.status(404).send({ error: { code: 'NO_ENCONTRADO', message: 'Recurso no encontrado' } });
+    return reply
+      .status(404)
+      .send({ error: { code: 'NO_ENCONTRADO', message: 'Recurso no encontrado' } });
   }
 
   const token = request.cookies[PLATFORM_COOKIE_NAME];
@@ -24,7 +29,9 @@ export async function requirePlatformAuth(request: FastifyRequest, reply: Fastif
   const result = verifyPlatformSession(token);
   if (!result) {
     reply.clearCookie(PLATFORM_COOKIE_NAME, { path: '/' });
-    return reply.status(401).send({ error: { code: 'SESSION_EXPIRED', message: 'Sesión expirada' } });
+    return reply
+      .status(401)
+      .send({ error: { code: 'SESSION_EXPIRED', message: 'Sesión expirada' } });
   }
 
   request.superadmin = result.admin;

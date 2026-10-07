@@ -8,7 +8,12 @@ import { startAutoCloseCron } from './jobs/auto-close.js';
 import { startBackupCron } from './jobs/backup.js';
 import { startCleanupJobs } from './jobs/cleanup-sessions.js';
 import { registerSecurityHeaders } from './middleware/security-headers.js';
-import { isPlatformHost, PLATFORM_PREFIX, registerTenantResolution, slugFromHostname } from './middleware/tenant.js';
+import {
+  isPlatformHost,
+  PLATFORM_PREFIX,
+  registerTenantResolution,
+  slugFromHostname,
+} from './middleware/tenant.js';
 import authRoutes from './modules/auth/routes.js';
 import cashRegisterRoutes from './modules/cash-registers/routes.js';
 import boletasRoutes from './modules/boletas/routes.js';
@@ -67,7 +72,9 @@ export async function buildApp(opts: { startJobs?: boolean } = {}) {
       return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
     }
     app.log.error({ err }, 'unhandled error');
-    return reply.status(500).send({ error: { code: 'INTERNAL', message: 'Error interno del servidor' } });
+    return reply
+      .status(500)
+      .send({ error: { code: 'INTERNAL', message: 'Error interno del servidor' } });
   });
 
   // ── Background jobs ────────────────────────────────────────────────────────

@@ -12,9 +12,17 @@ export default async function businessRoutes(app: FastifyInstance) {
   app.put('/', { preHandler: [requireAuth, requireRole('dueno')] }, async (request, reply) => {
     const body = businessProfileSchema.safeParse(request.body);
     if (!body.success) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: body.error.issues[0]?.message ?? 'Datos inválidos' } });
+      return reply.status(400).send({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: body.error.issues[0]?.message ?? 'Datos inválidos',
+        },
+      });
     }
-    saveProfile(body.data, { ip: request.ip ?? null, userAgent: request.headers['user-agent'] ?? null });
+    saveProfile(body.data, {
+      ip: request.ip ?? null,
+      userAgent: request.headers['user-agent'] ?? null,
+    });
     return getProfile();
   });
 }

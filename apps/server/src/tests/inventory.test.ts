@@ -25,7 +25,12 @@ describe('inventario y ventas con carrito', () => {
   const tokens: Record<string, string> = {};
   let funda: { id: number };
 
-  const call = (who: string, method: 'GET' | 'POST' | 'PATCH' | 'DELETE', url: string, payload?: object) =>
+  const call = (
+    who: string,
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    url: string,
+    payload?: object,
+  ) =>
     app.inject({
       method,
       url,
@@ -34,7 +39,9 @@ describe('inventario y ventas con carrito', () => {
     });
 
   const product = async (id: number) =>
-    (await call('admin', 'GET', '/api/products?filter=activos')).json().products.find((p: { id: number }) => p.id === id);
+    (await call('admin', 'GET', '/api/products?filter=activos'))
+      .json()
+      .products.find((p: { id: number }) => p.id === id);
 
   before(async () => {
     insertTenant('tienda', 'Tienda');
@@ -43,21 +50,48 @@ describe('inventario y ventas con carrito', () => {
     app = await buildApp({ startJobs: false });
 
     const setup = await app.inject({
-      method: 'POST', url: '/auth/setup', headers: { host: HOST },
-      payload: { setupCode: code, username: 'dueno', displayName: 'Dueño', password: 'clave-dueno-1', confirmPassword: 'clave-dueno-1' },
+      method: 'POST',
+      url: '/auth/setup',
+      headers: { host: HOST },
+      payload: {
+        setupCode: code,
+        username: 'dueno',
+        displayName: 'Dueño',
+        password: 'clave-dueno-1',
+        confirmPassword: 'clave-dueno-1',
+      },
     });
     tokens['dueno'] = setup.cookies.find((c) => c.name === COOKIE_NAME)!.value;
 
-    for (const [username, role, secret] of [['admin', 'admin', 'clave-admin-1'], ['caja', 'cajero', '135790']] as const) {
-      assert.equal((await call('dueno', 'POST', '/api/users', { username, displayName: username, role, secret })).statusCode, 201);
+    for (const [username, role, secret] of [
+      ['admin', 'admin', 'clave-admin-1'],
+      ['caja', 'cajero', '135790'],
+    ] as const) {
+      assert.equal(
+        (
+          await call('dueno', 'POST', '/api/users', {
+            username,
+            displayName: username,
+            role,
+            secret,
+          })
+        ).statusCode,
+        201,
+      );
       const login = await app.inject({
-        method: 'POST', url: '/auth/login', headers: { host: HOST }, remoteAddress: `10.1.0.${username.length}`,
+        method: 'POST',
+        url: '/auth/login',
+        headers: { host: HOST },
+        remoteAddress: `10.1.0.${username.length}`,
         payload: { username, password: secret },
       });
       tokens[username] = login.cookies.find((c) => c.name === COOKIE_NAME)!.value;
     }
 
-    assert.equal((await call('caja', 'POST', '/api/cash-registers/open', { openingAmount: 0 })).statusCode, 201);
+    assert.equal(
+      (await call('caja', 'POST', '/api/cash-registers/open', { openingAmount: 0 })).statusCode,
+      201,
+    );
   });
 
   after(async () => {
@@ -69,13 +103,23 @@ describe('inventario y ventas con carrito', () => {
 
   it('el admin crea un producto con stock inicial; el código es único', async () => {
     const res = await call('admin', 'POST', '/api/products', {
-      name: 'Funda iPhone 15', code: '7501234567890', category: 'Fundas', price: 8000, cost: 3000, initialStock: 5, minStock: 2,
+      name: 'Funda iPhone 15',
+      code: '7501234567890',
+      category: 'Fundas',
+      price: 8000,
+      cost: 3000,
+      initialStock: 5,
+      minStock: 2,
     });
     assert.equal(res.statusCode, 201, res.body);
     funda = res.json();
     assert.equal(res.json().stock, 5);
 
-    const dup = await call('admin', 'POST', '/api/products', { name: 'Otra', code: '7501234567890', price: 1 });
+    const dup = await call('admin', 'POST', '/api/products', {
+      name: 'Otra',
+      code: '7501234567890',
+      price: 1,
+    });
     assert.equal(dup.statusCode, 409);
   });
 
@@ -85,13 +129,30 @@ describe('inventario y ventas con carrito', () => {
     assert.equal(list.products[0].cost, null, 'el cajero no ve el costo');
     assert.equal((await product(funda.id)).cost, 3000, 'el admin sí');
 
-    assert.equal((await call('caja', 'POST', '/api/products', { name: 'X', price: 1 })).statusCode, 403);
-    assert.equal((await call('caja', 'PATCH', `/api/products/${funda.id}`, { price: 1 })).statusCode, 403);
-    assert.equal((await call('caja', 'POST', `/api/products/${funda.id}/movements`, { type: 'entrada', quantity: 1 })).statusCode, 403);
+    assert.equal(
+      (await call('caja', 'POST', '/api/products', { name: 'X', price: 1 })).statusCode,
+      403,
+    );
+    assert.equal(
+      (await call('caja', 'PATCH', `/api/products/${funda.id}`, { price: 1 })).statusCode,
+      403,
+    );
+    assert.equal(
+      (
+        await call('caja', 'POST', `/api/products/${funda.id}/movements`, {
+          type: 'entrada',
+          quantity: 1,
+        })
+      ).statusCode,
+      403,
+    );
   });
 
   it('el lector de código encuentra el producto exacto', async () => {
-    assert.equal((await call('caja', 'GET', '/api/products/lookup?code=7501234567890')).json().id, funda.id);
+    assert.equal(
+      (await call('caja', 'GET', '/api/products/lookup?code=7501234567890')).json().id,
+      funda.id,
+    );
     assert.equal((await call('caja', 'GET', '/api/products/lookup?code=000')).statusCode, 404);
   });
 
@@ -117,14 +178,18 @@ describe('inventario y ventas con carrito', () => {
 
   it('vender sin stock se permite y avisa (stock negativo)', async () => {
     const res = await call('caja', 'POST', '/api/sales', {
-      paymentMethod: 'efectivo', items: [{ productId: funda.id, quantity: 5 }],
+      paymentMethod: 'efectivo',
+      items: [{ productId: funda.id, quantity: 5 }],
     });
     assert.equal(res.statusCode, 201);
     assert.equal(res.json().stockWarnings[0].stock, -2);
     assert.equal((await product(funda.id)).stock, -2);
 
     // Eliminar esa venta devuelve las 5 unidades.
-    assert.equal((await call('admin', 'DELETE', `/api/sales/${res.json().id}`, {})).statusCode, 200);
+    assert.equal(
+      (await call('admin', 'DELETE', `/api/sales/${res.json().id}`, {})).statusCode,
+      200,
+    );
     assert.equal((await product(funda.id)).stock, 3);
   });
 
@@ -135,48 +200,103 @@ describe('inventario y ventas con carrito', () => {
   });
 
   it('cambiar el precio no altera ventas pasadas, y queda en la bitácora', async () => {
-    assert.equal((await call('admin', 'PATCH', `/api/products/${funda.id}`, { price: 9500 })).json().price, 9500);
-    const sale = (await call('caja', 'GET', '/api/sales')).json().sales.find((s: { id: number }) => s.id === saleId);
+    assert.equal(
+      (await call('admin', 'PATCH', `/api/products/${funda.id}`, { price: 9500 })).json().price,
+      9500,
+    );
+    const sale = (await call('caja', 'GET', '/api/sales'))
+      .json()
+      .sales.find((s: { id: number }) => s.id === saleId);
     assert.equal(sale.items[0].unitPrice, 8000);
   });
 
   it('entradas y ajustes quedan en el historial con su saldo', async () => {
-    const entrada = await call('admin', 'POST', `/api/products/${funda.id}/movements`, { type: 'entrada', quantity: 10, unitCost: 3500 });
+    const entrada = await call('admin', 'POST', `/api/products/${funda.id}/movements`, {
+      type: 'entrada',
+      quantity: 10,
+      unitCost: 3500,
+    });
     assert.equal(entrada.statusCode, 201, entrada.body);
     assert.equal(entrada.json().stock, 13);
     assert.equal(entrada.json().cost, 3500, 'el costo pasa a ser el de la última entrada');
 
-    const ajuste = await call('admin', 'POST', `/api/products/${funda.id}/movements`, { type: 'ajuste', newStock: 11, reason: 'Conteo: 2 dañadas' });
+    const ajuste = await call('admin', 'POST', `/api/products/${funda.id}/movements`, {
+      type: 'ajuste',
+      newStock: 11,
+      reason: 'Conteo: 2 dañadas',
+    });
     assert.equal(ajuste.json().stock, 11);
 
-    const sinMotivo = await call('admin', 'POST', `/api/products/${funda.id}/movements`, { type: 'ajuste', newStock: 1, reason: '' });
+    const sinMotivo = await call('admin', 'POST', `/api/products/${funda.id}/movements`, {
+      type: 'ajuste',
+      newStock: 1,
+      reason: '',
+    });
     assert.equal(sinMotivo.statusCode, 400, 'el ajuste exige motivo');
 
     const history = (await call('admin', 'GET', `/api/products/${funda.id}/movements`)).json();
     assert.deepEqual(
-      history.map((m: { type: string; quantity: number; stockAfter: number }) => [m.type, m.quantity, m.stockAfter]).slice(0, 4),
-      [['ajuste', -2, 11], ['entrada', 10, 13], ['anulacion_venta', 5, 3], ['venta', -5, -2]],
+      history
+        .map((m: { type: string; quantity: number; stockAfter: number }) => [
+          m.type,
+          m.quantity,
+          m.stockAfter,
+        ])
+        .slice(0, 4),
+      [
+        ['ajuste', -2, 11],
+        ['entrada', 10, 13],
+        ['anulacion_venta', 5, 3],
+        ['venta', -5, -2],
+      ],
     );
     assert.equal(history[0].username, 'admin');
   });
 
   it('un servicio sin control de stock se vende sin tocar existencias', async () => {
-    const svc = (await call('admin', 'POST', '/api/products', { name: 'Cambio de pantalla', price: 25000, trackStock: false })).json();
-    const sale = await call('caja', 'POST', '/api/sales', { paymentMethod: 'tarjeta', items: [{ productId: svc.id, quantity: 1 }] });
+    const svc = (
+      await call('admin', 'POST', '/api/products', {
+        name: 'Cambio de pantalla',
+        price: 25000,
+        trackStock: false,
+      })
+    ).json();
+    const sale = await call('caja', 'POST', '/api/sales', {
+      paymentMethod: 'tarjeta',
+      items: [{ productId: svc.id, quantity: 1 }],
+    });
     assert.equal(sale.statusCode, 201);
     assert.equal((await product(svc.id)).stock, 0);
-    assert.equal((await call('admin', 'POST', `/api/products/${svc.id}/movements`, { type: 'entrada', quantity: 1 })).statusCode, 400);
+    assert.equal(
+      (
+        await call('admin', 'POST', `/api/products/${svc.id}/movements`, {
+          type: 'entrada',
+          quantity: 1,
+        })
+      ).statusCode,
+      400,
+    );
   });
 
   it('un producto desactivado no se vende ni aparece en el lector', async () => {
     await call('admin', 'PATCH', `/api/products/${funda.id}`, { active: false });
-    const sale = await call('caja', 'POST', '/api/sales', { paymentMethod: 'efectivo', items: [{ productId: funda.id, quantity: 1 }] });
+    const sale = await call('caja', 'POST', '/api/sales', {
+      paymentMethod: 'efectivo',
+      items: [{ productId: funda.id, quantity: 1 }],
+    });
     assert.equal(sale.statusCode, 400);
-    assert.equal((await call('caja', 'GET', '/api/products/lookup?code=7501234567890')).statusCode, 404);
+    assert.equal(
+      (await call('caja', 'GET', '/api/products/lookup?code=7501234567890')).statusCode,
+      404,
+    );
   });
 
   it('la venta de monto libre sigue funcionando como antes', async () => {
-    const res = await call('caja', 'POST', '/api/sales', { amount: 1500, paymentMethod: 'efectivo', description: 'Varios' });
+    const res = await call('caja', 'POST', '/api/sales', {
+      amount: 1500,
+      paymentMethod: 'efectivo',
+      description: 'Varios',
+    });
     assert.equal(res.statusCode, 201);
     assert.deepEqual(res.json().items, []);
   });

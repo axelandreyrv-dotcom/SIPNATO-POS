@@ -105,7 +105,13 @@ function SummaryGrid({ data, loading }: { data: ReportSummary | undefined; loadi
     },
     // Solo si hubo cobros en dólares en el periodo (valorados en colones).
     ...(data && data.byPaymentMethod.dolares > 0
-      ? [{ label: 'Dólares (en ₡)', value: data.byPaymentMethod.dolares, color: 'text-brand-success' }]
+      ? [
+          {
+            label: 'Dólares (en ₡)',
+            value: data.byPaymentMethod.dolares,
+            color: 'text-brand-success',
+          },
+        ]
       : []),
     { label: 'Gastos', value: data?.totalExpenses, color: 'text-brand-error', prefix: '−' },
     {
@@ -124,9 +130,20 @@ function SummaryGrid({ data, loading }: { data: ReportSummary | undefined; loadi
   const wide = cells.length === 7;
 
   return (
-    <div className={['grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border', wide ? 'sm:grid-cols-4' : 'sm:grid-cols-3'].join(' ')}>
+    <div
+      className={[
+        'grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border',
+        wide ? 'sm:grid-cols-4' : 'sm:grid-cols-3',
+      ].join(' ')}
+    >
       {cells.map(({ label, value, color, prefix }, i) => (
-        <div key={label} className={['bg-surface-card px-4 py-4', wide && i === cells.length - 1 ? 'col-span-2' : ''].join(' ')}>
+        <div
+          key={label}
+          className={[
+            'bg-surface-card px-4 py-4',
+            wide && i === cells.length - 1 ? 'col-span-2' : '',
+          ].join(' ')}
+        >
           <p className="mb-1.5 text-xs text-text-muted">{label}</p>
           {loading || value === undefined ? (
             <div className="h-5 w-24 animate-pulse rounded bg-border" />
@@ -265,7 +282,12 @@ export function ReportesPage() {
         {/* Custom date inputs */}
         {preset === 'personalizado' && (
           <div className="flex flex-wrap items-center gap-2">
-            <CalendarDays size={14} strokeWidth={1.5} className="shrink-0 text-text-muted" aria-hidden />
+            <CalendarDays
+              size={14}
+              strokeWidth={1.5}
+              className="shrink-0 text-text-muted"
+              aria-hidden
+            />
             <label htmlFor="rep-from" className="sr-only">
               Desde
             </label>
@@ -320,7 +342,12 @@ export function ReportesPage() {
             />
           </div>
           <div className="flex items-center gap-1.5">
-            <SlidersHorizontal size={13} strokeWidth={1.5} className="shrink-0 text-text-muted" aria-hidden />
+            <SlidersHorizontal
+              size={13}
+              strokeWidth={1.5}
+              className="shrink-0 text-text-muted"
+              aria-hidden
+            />
             <label htmlFor="rep-pm" className="sr-only">
               Método de pago
             </label>
@@ -353,7 +380,12 @@ export function ReportesPage() {
             )}
           </h2>
           {summaryQuery.isFetching && !summaryQuery.isLoading && (
-            <Loader2 size={12} strokeWidth={1.5} className="animate-spin text-text-muted" aria-hidden />
+            <Loader2
+              size={12}
+              strokeWidth={1.5}
+              className="animate-spin text-text-muted"
+              aria-hidden
+            />
           )}
         </div>
         {summaryQuery.isError ? (
@@ -370,13 +402,23 @@ export function ReportesPage() {
         <div className="mb-3 flex items-center gap-2">
           <h2 className="text-sm font-semibold text-text-primary">Ventas diarias</h2>
           {dailyQuery.isFetching && !dailyQuery.isLoading && (
-            <Loader2 size={12} strokeWidth={1.5} className="animate-spin text-text-muted" aria-hidden />
+            <Loader2
+              size={12}
+              strokeWidth={1.5}
+              className="animate-spin text-text-muted"
+              aria-hidden
+            />
           )}
         </div>
         <div className="rounded-xl border border-border bg-surface-card px-2 pb-2 pt-4">
           {dailyQuery.isLoading ? (
             <div className="flex h-[220px] items-center justify-center">
-              <Loader2 size={20} strokeWidth={1.5} className="animate-spin text-text-muted" aria-hidden />
+              <Loader2
+                size={20}
+                strokeWidth={1.5}
+                className="animate-spin text-text-muted"
+                aria-hidden
+              />
             </div>
           ) : dailyQuery.isError ? (
             <div className="flex h-[220px] items-center justify-center">

@@ -29,20 +29,23 @@ function Field({
       <label htmlFor={id} className="text-sm font-medium text-text-secondary">
         {label}
         {required && (
-          <span className="ml-1 text-brand-error" aria-label="obligatorio">*</span>
+          <span className="ml-1 text-brand-error" aria-label="obligatorio">
+            *
+          </span>
         )}
       </label>
       {children}
       {hint && !error && <p className="text-xs text-text-muted">{hint}</p>}
-      {error && <p className="text-xs text-brand-error" role="alert">{error}</p>}
+      {error && (
+        <p className="text-xs text-brand-error" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
 
-function Input({
-  className = '',
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement>) {
+function Input({ className = '', ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
@@ -83,7 +86,11 @@ function OrderFieldInput({
           className="h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
         >
           <option value="">Elegir…</option>
-          {field.options?.map((o) => <option key={o} value={o}>{o}</option>)}
+          {field.options?.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
         </select>
       ) : (
         <Input
@@ -91,14 +98,27 @@ function OrderFieldInput({
           type="text"
           inputMode={field.type === 'number' || field.type === 'imei' ? 'numeric' : undefined}
           maxLength={field.type === 'imei' ? 15 : 500}
-          onChange={(e) => onChange(field.type === 'imei' ? e.target.value.replace(/\D/g, '').slice(0, 15) : e.target.value)}
+          onChange={(e) =>
+            onChange(
+              field.type === 'imei'
+                ? e.target.value.replace(/\D/g, '').slice(0, 15)
+                : e.target.value,
+            )
+          }
           className={field.type === 'imei' ? 'font-mono tabular-nums' : ''}
         />
       )}
       {field.type === 'secret' && value && (
         <div className="flex items-center gap-1.5 rounded-md border border-brand-warning/25 bg-brand-warning/[0.07] px-3 py-1.5">
-          <AlertCircle size={12} strokeWidth={1.5} className="shrink-0 text-brand-warning" aria-hidden />
-          <span className="text-xs text-text-muted">Este dato no se cifra. Manéjalo con discreción.</span>
+          <AlertCircle
+            size={12}
+            strokeWidth={1.5}
+            className="shrink-0 text-brand-warning"
+            aria-hidden
+          />
+          <span className="text-xs text-text-muted">
+            Este dato no se cifra. Manéjalo con discreción.
+          </span>
         </div>
       )}
     </Field>
@@ -142,7 +162,7 @@ export function NuevoBoletaPage() {
   });
 
   const foundCustomer = phoneLookupEnabled
-    ? lookupData?.customers.find((c) => c.phone === phone) ?? null
+    ? (lookupData?.customers.find((c) => c.phone === phone) ?? null)
     : null;
 
   // Al encontrar al cliente se llenan sus datos una sola vez: si luego se corrige el nombre,
@@ -171,8 +191,15 @@ export function NuevoBoletaPage() {
   const createMutation = useMutation({ mutationFn: boletasApi.create });
 
   function resetForm() {
-    setPhone(''); setName(''); setEmail(''); setIdNumber('');
-    setDeviceModel(''); setFieldValues({}); setTouched({}); setSubmitted(false); setDescription('');
+    setPhone('');
+    setName('');
+    setEmail('');
+    setIdNumber('');
+    setDeviceModel('');
+    setFieldValues({});
+    setTouched({});
+    setSubmitted(false);
+    setDescription('');
     setPhoneError('');
   }
 
@@ -233,7 +260,11 @@ export function NuevoBoletaPage() {
             entityType="boleta"
             entityId={saved.id}
             phone={saved.customerPhone}
-            vars={{ cliente: saved.customerName, articulo: saved.deviceModel, numero: String(saved.consecutive) }}
+            vars={{
+              cliente: saved.customerName,
+              articulo: saved.deviceModel,
+              numero: String(saved.consecutive),
+            }}
             label="Enviar comprobante"
           />
           <button
@@ -271,9 +302,19 @@ export function NuevoBoletaPage() {
                 {phoneLookupEnabled && (
                   <span className="absolute right-3 top-1/2 -translate-y-1/2">
                     {lookingUp ? (
-                      <Loader2 size={14} strokeWidth={1.5} className="animate-spin text-text-muted" aria-hidden />
+                      <Loader2
+                        size={14}
+                        strokeWidth={1.5}
+                        className="animate-spin text-text-muted"
+                        aria-hidden
+                      />
                     ) : foundCustomer ? (
-                      <CheckCircle size={14} strokeWidth={1.5} className="text-brand-success" aria-hidden />
+                      <CheckCircle
+                        size={14}
+                        strokeWidth={1.5}
+                        className="text-brand-success"
+                        aria-hidden
+                      />
                     ) : null}
                   </span>
                 )}
@@ -365,9 +406,7 @@ export function NuevoBoletaPage() {
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full resize-y rounded-lg border border-border bg-surface-input px-3 py-2.5 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
               />
-              <span className="self-end text-xs text-text-muted">
-                {description.length}/5000
-              </span>
+              <span className="self-end text-xs text-text-muted">{description.length}/5000</span>
             </Field>
           </div>
         </section>
@@ -387,7 +426,10 @@ export function NuevoBoletaPage() {
             className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-success text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createMutation.isPending ? (
-              <><Loader2 size={15} strokeWidth={1.5} className="animate-spin" aria-hidden /> Guardando...</>
+              <>
+                <Loader2 size={15} strokeWidth={1.5} className="animate-spin" aria-hidden />{' '}
+                Guardando...
+              </>
             ) : (
               'Solo guardar'
             )}

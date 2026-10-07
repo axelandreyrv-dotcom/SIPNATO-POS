@@ -72,9 +72,10 @@ export async function verifyCredentials(username: string, secret: string): Promi
   if (!user || !user.active || !valid) {
     if (user && user.active && !valid) {
       const attempts = user.failedAttempts + 1;
-      const lockedUntil = attempts >= MAX_FAILED_ATTEMPTS
-        ? new Date(Date.now() + LOCK_DURATION_MS).toISOString()
-        : null;
+      const lockedUntil =
+        attempts >= MAX_FAILED_ATTEMPTS
+          ? new Date(Date.now() + LOCK_DURATION_MS).toISOString()
+          : null;
       recordFailedAttempt(user.id, lockedUntil ? 0 : attempts, lockedUntil);
       if (lockedUntil) throw new UsuarioBloqueado();
     }
@@ -127,7 +128,11 @@ export function listUsers(): UserRecord[] {
   return listUserRows().map(toRecord);
 }
 
-export async function createUser(actor: Actor, input: CreateUserInput, meta: Meta): Promise<UserRecord> {
+export async function createUser(
+  actor: Actor,
+  input: CreateUserInput,
+  meta: Meta,
+): Promise<UserRecord> {
   if (!manageableRoles(actor.role).includes(input.role)) {
     throw new PermisoDenegado('No puedes crear usuarios con ese rol');
   }

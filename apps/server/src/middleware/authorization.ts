@@ -7,7 +7,10 @@ import { verifySupervisor } from '../modules/users/service.js';
 // Acciones que un rol sin el permiso puede hacer si un admin/dueño las autoriza en el momento,
 // enviando sus credenciales en `body.authorization`. Devuelve quién autorizó (el propio usuario
 // si tiene el permiso), para dejarlo en el audit_log.
-export async function authorizeOrEscalate(request: FastifyRequest, permission: Permission): Promise<Actor> {
+export async function authorizeOrEscalate(
+  request: FastifyRequest,
+  permission: Permission,
+): Promise<Actor> {
   if (can(request.user.role, permission)) return request.user;
 
   const body = request.body as { authorization?: unknown } | undefined;

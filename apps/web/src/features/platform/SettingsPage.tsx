@@ -13,14 +13,21 @@ import { platformApi } from './api';
 import { errorText, FieldLabel, inputClass, primaryButton, textareaClass } from './ui';
 
 export function SettingsPage() {
-  const { data, error } = useQuery({ queryKey: ['platform-settings'], queryFn: platformApi.settings });
+  const { data, error } = useQuery({
+    queryKey: ['platform-settings'],
+    queryFn: platformApi.settings,
+  });
 
   return (
     <div className="mx-auto max-w-4xl">
       <h1 className="text-xl font-semibold tracking-tight text-text-primary">Configuración</h1>
       {error && <p className="mt-4 text-sm text-brand-error">{errorText(error)}</p>}
       <div className="divide-y divide-border">
-        {data ? <BillingForm initial={data} /> : !error && <div className="my-8 h-64 animate-pulse rounded-xl bg-border/40" />}
+        {data ? (
+          <BillingForm initial={data} />
+        ) : (
+          !error && <div className="my-8 h-64 animate-pulse rounded-xl bg-border/40" />
+        )}
         <PasswordForm />
       </div>
     </div>
@@ -61,10 +68,19 @@ function BillingForm({ initial }: { initial: PlatformSettings }) {
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      <Section title="Cobro" description="Precio para los negocios sin precio especial y lo que ven en su aviso de vencimiento.">
+      <Section
+        title="Cobro"
+        description="Precio para los negocios sin precio especial y lo que ven en su aviso de vencimiento."
+      >
         <div className="max-w-48">
           <FieldLabel htmlFor="ps-price">Mensualidad por defecto (₡)</FieldLabel>
-          <input id="ps-price" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} className={`${inputClass} tabular-nums`} />
+          <input
+            id="ps-price"
+            inputMode="numeric"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className={`${inputClass} tabular-nums`}
+          />
         </div>
         <div>
           <FieldLabel htmlFor="ps-instructions">Cómo pagar</FieldLabel>
@@ -76,29 +92,58 @@ function BillingForm({ initial }: { initial: PlatformSettings }) {
             placeholder={'SINPE Móvil 8888-8888 a nombre de …\nEnvíe el comprobante por WhatsApp.'}
             className={textareaClass}
           />
-          <p className="mt-1.5 text-xs text-text-muted">El dueño y los administradores lo ven cuando la mensualidad está por vencer o vencida.</p>
+          <p className="mt-1.5 text-xs text-text-muted">
+            El dueño y los administradores lo ven cuando la mensualidad está por vencer o vencida.
+          </p>
         </div>
       </Section>
 
-      <Section title="Recordatorio por WhatsApp" description="Mensaje que abre el botón Recordar cobro de cada negocio.">
+      <Section
+        title="Recordatorio por WhatsApp"
+        description="Mensaje que abre el botón Recordar cobro de cada negocio."
+      >
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <label htmlFor="ps-reminder" className="text-sm font-medium text-text-secondary">Mensaje</label>
-            <button type="button" onClick={() => setReminder(DEFAULT_REMINDER_MESSAGE)} className="text-xs text-brand-blue hover:underline">
+            <label htmlFor="ps-reminder" className="text-sm font-medium text-text-secondary">
+              Mensaje
+            </label>
+            <button
+              type="button"
+              onClick={() => setReminder(DEFAULT_REMINDER_MESSAGE)}
+              className="text-xs text-brand-blue hover:underline"
+            >
               Restaurar el original
             </button>
           </div>
-          <textarea id="ps-reminder" rows={5} value={reminder} onChange={(e) => setReminder(e.target.value)} className={textareaClass} />
+          <textarea
+            id="ps-reminder"
+            rows={5}
+            value={reminder}
+            onChange={(e) => setReminder(e.target.value)}
+            className={textareaClass}
+          />
           <p className="mt-1.5 text-xs text-text-muted">
-            Variables: {REMINDER_VARIABLES.map((v) => <code key={v} className="mr-1.5 font-mono text-text-secondary">{`{${v}}`}</code>)}
+            Variables:{' '}
+            {REMINDER_VARIABLES.map((v) => (
+              <code key={v} className="mr-1.5 font-mono text-text-secondary">{`{${v}}`}</code>
+            ))}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button type="submit" disabled={mutation.isPending} className={primaryButton}>
-            {mutation.isPending && <Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+            {mutation.isPending && (
+              <Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden />
+            )}
             Guardar
           </button>
-          {message && <p role="status" className={`text-sm ${message.ok ? 'text-text-secondary' : 'text-brand-error'}`}>{message.text}</p>}
+          {message && (
+            <p
+              role="status"
+              className={`text-sm ${message.ok ? 'text-text-secondary' : 'text-brand-error'}`}
+            >
+              {message.text}
+            </p>
+          )}
         </div>
       </Section>
     </form>
@@ -124,7 +169,11 @@ function PasswordForm() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = platformChangePasswordSchema.safeParse({ currentPassword, newPassword, confirmPassword });
+    const parsed = platformChangePasswordSchema.safeParse({
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
     if (!parsed.success) {
       setMessage({ ok: false, text: parsed.error.issues[0]?.message ?? 'Revisa los datos' });
       return;
@@ -134,27 +183,60 @@ function PasswordForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      <Section title="Mi contraseña" description="Al cambiarla se cierran tus sesiones en otros dispositivos.">
+      <Section
+        title="Mi contraseña"
+        description="Al cambiarla se cierran tus sesiones en otros dispositivos."
+      >
         <div className="grid max-w-md gap-4">
           <div>
             <FieldLabel htmlFor="pp-current">Contraseña actual</FieldLabel>
-            <input id="pp-current" type="password" autoComplete="current-password" value={currentPassword} onChange={(e) => setCurrent(e.target.value)} className={inputClass} />
+            <input
+              id="pp-current"
+              type="password"
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(e) => setCurrent(e.target.value)}
+              className={inputClass}
+            />
           </div>
           <div>
             <FieldLabel htmlFor="pp-new">Contraseña nueva</FieldLabel>
-            <input id="pp-new" type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNew(e.target.value)} className={inputClass} />
+            <input
+              id="pp-new"
+              type="password"
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(e) => setNew(e.target.value)}
+              className={inputClass}
+            />
           </div>
           <div>
             <FieldLabel htmlFor="pp-confirm">Repetir contraseña nueva</FieldLabel>
-            <input id="pp-confirm" type="password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirm(e.target.value)} className={inputClass} />
+            <input
+              id="pp-confirm"
+              type="password"
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirm(e.target.value)}
+              className={inputClass}
+            />
           </div>
         </div>
         <div className="flex items-center gap-3">
           <button type="submit" disabled={mutation.isPending} className={primaryButton}>
-            {mutation.isPending && <Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+            {mutation.isPending && (
+              <Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden />
+            )}
             Cambiar contraseña
           </button>
-          {message && <p role="status" className={`text-sm ${message.ok ? 'text-text-secondary' : 'text-brand-error'}`}>{message.text}</p>}
+          {message && (
+            <p
+              role="status"
+              className={`text-sm ${message.ok ? 'text-text-secondary' : 'text-brand-error'}`}
+            >
+              {message.text}
+            </p>
+          )}
         </div>
       </Section>
     </form>

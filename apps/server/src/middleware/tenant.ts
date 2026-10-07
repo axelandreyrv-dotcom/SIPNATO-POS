@@ -69,11 +69,15 @@ export function registerTenantResolution(app: FastifyInstance): void {
     const tenant = slug ? findTenant(slug) : null;
 
     if (!tenant) {
-      void reply.status(404).send({ error: { code: 'NEGOCIO_NO_ENCONTRADO', message: 'Negocio no encontrado' } });
+      void reply
+        .status(404)
+        .send({ error: { code: 'NEGOCIO_NO_ENCONTRADO', message: 'Negocio no encontrado' } });
       return;
     }
     if (tenant.status !== 'active') {
-      void reply.status(403).send({ error: { code: 'NEGOCIO_SUSPENDIDO', message: 'Este negocio está suspendido' } });
+      void reply
+        .status(403)
+        .send({ error: { code: 'NEGOCIO_SUSPENDIDO', message: 'Este negocio está suspendido' } });
       return;
     }
 

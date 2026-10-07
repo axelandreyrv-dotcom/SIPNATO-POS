@@ -1,4 +1,13 @@
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { formatColones } from '@sipnato/shared';
 
 // Ventas por día (dashboard y reportes). Se importa con lazy(): Recharts es pesado y solo
@@ -41,7 +50,9 @@ function SalesTooltip({
   return (
     <div className="rounded-lg border border-border bg-surface-card px-3 py-2 shadow-md">
       <p className="text-xs capitalize text-text-muted">{formatDate(entry.date)}</p>
-      <p className="text-sm font-semibold tabular-nums text-text-primary">{formatColones(entry.total)}</p>
+      <p className="text-sm font-semibold tabular-nums text-text-primary">
+        {formatColones(entry.total)}
+      </p>
       <p className="text-xs text-text-muted">
         {entry.count} {entry.count === 1 ? 'venta' : 'ventas'}
       </p>
@@ -49,7 +60,14 @@ function SalesTooltip({
   );
 }
 
-export default function SalesBarChart({ data, height, xTick, tooltipLabel, highlightDate, yAxisWidth = 48 }: Props) {
+export default function SalesBarChart({
+  data,
+  height,
+  xTick,
+  tooltipLabel,
+  highlightDate,
+  yAxisWidth = 48,
+}: Props) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
@@ -69,16 +87,25 @@ export default function SalesBarChart({ data, height, xTick, tooltipLabel, highl
           tickLine={false}
           width={yAxisWidth}
         />
-        <Tooltip content={<SalesTooltip formatDate={tooltipLabel} />} cursor={{ fill: 'transparent' }} />
+        <Tooltip
+          content={<SalesTooltip formatDate={tooltipLabel} />}
+          cursor={{ fill: 'transparent' }}
+        />
         <Bar
           dataKey="total"
           fill="var(--color-brand-blue)"
           radius={[3, 3, 0, 0]}
-          {...(highlightDate ? {} : { activeBar: { fill: 'var(--color-brand-blue)', opacity: 0.8 } })}
+          {...(highlightDate
+            ? {}
+            : { activeBar: { fill: 'var(--color-brand-blue)', opacity: 0.8 } })}
         >
           {highlightDate &&
             data.map((d) => (
-              <Cell key={d.date} fill="var(--color-brand-blue)" fillOpacity={d.date === highlightDate ? 1 : 0.32} />
+              <Cell
+                key={d.date}
+                fill="var(--color-brand-blue)"
+                fillOpacity={d.date === highlightDate ? 1 : 0.32}
+              />
             ))}
         </Bar>
       </BarChart>

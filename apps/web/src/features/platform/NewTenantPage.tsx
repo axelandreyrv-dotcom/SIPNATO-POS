@@ -5,7 +5,15 @@ import { addMonths, createTenantSchema, formatColones, type PlatformTenant } fro
 import { platformApi } from './api';
 import { Link } from './router';
 import { SetupCodePanel } from './SetupCodePanel';
-import { errorText, FieldLabel, inputClass, primaryButton, tenantHost, textareaClass, todayCR } from './ui';
+import {
+  errorText,
+  FieldLabel,
+  inputClass,
+  primaryButton,
+  tenantHost,
+  textareaClass,
+  todayCR,
+} from './ui';
 
 // "Taller Doña Ana #2" → "taller-dona-ana-2"
 function slugify(name: string): string {
@@ -33,7 +41,9 @@ export function NewTenantPage() {
   const [price, setPrice] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [created, setCreated] = useState<{ tenant: PlatformTenant; setupCode: string } | null>(null);
+  const [created, setCreated] = useState<{ tenant: PlatformTenant; setupCode: string } | null>(
+    null,
+  );
 
   const mutation = useMutation({
     mutationFn: platformApi.createTenant,
@@ -68,7 +78,9 @@ export function NewTenantPage() {
       <div className="mx-auto max-w-xl space-y-6">
         <BackLink />
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-text-primary">{created.tenant.name} está listo</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+            {created.tenant.name} está listo
+          </h1>
           <p className="mt-1 text-sm text-text-muted">
             Su base de datos ya existe. Falta que el dueño cree su cuenta con este código.
           </p>
@@ -120,17 +132,32 @@ export function NewTenantPage() {
               aria-describedby="nt-slug-hint"
             />
             <p id="nt-slug-hint" className="mt-1.5 text-xs text-text-muted">
-              {slug ? <>El negocio entrará en <span className="font-medium text-text-secondary">{tenantHost(slug)}</span>. No se puede cambiar después.</> : 'Minúsculas, números y guiones.'}
+              {slug ? (
+                <>
+                  El negocio entrará en{' '}
+                  <span className="font-medium text-text-secondary">{tenantHost(slug)}</span>. No se
+                  puede cambiar después.
+                </>
+              ) : (
+                'Minúsculas, números y guiones.'
+              )}
             </p>
           </div>
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="mb-3 text-sm font-semibold text-text-primary">Contacto para el cobro</legend>
+          <legend className="mb-3 text-sm font-semibold text-text-primary">
+            Contacto para el cobro
+          </legend>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <FieldLabel htmlFor="nt-contact">Nombre</FieldLabel>
-              <input id="nt-contact" value={contactName} onChange={(e) => setContactName(e.target.value)} className={inputClass} />
+              <input
+                id="nt-contact"
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+                className={inputClass}
+              />
             </div>
             <div>
               <FieldLabel htmlFor="nt-phone">Celular (WhatsApp)</FieldLabel>
@@ -148,7 +175,10 @@ export function NewTenantPage() {
 
         <fieldset className="space-y-4">
           <legend className="mb-3 text-sm font-semibold text-text-primary">Mensualidad</legend>
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border" role="radiogroup">
+          <div
+            className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border"
+            role="radiogroup"
+          >
             {[
               { value: true, label: 'Se le cobra', hint: 'Recibe avisos al vencer' },
               { value: false, label: 'Sin cobro', hint: 'Negocio propio o cortesía' },
@@ -161,10 +191,16 @@ export function NewTenantPage() {
                 onClick={() => setBilled(opt.value)}
                 className={[
                   'px-3 py-2.5 text-left transition-colors duration-150',
-                  billed === opt.value ? 'bg-brand-blue/10' : 'bg-surface-card hover:bg-brand-blue/[0.04]',
+                  billed === opt.value
+                    ? 'bg-brand-blue/10'
+                    : 'bg-surface-card hover:bg-brand-blue/[0.04]',
                 ].join(' ')}
               >
-                <span className={`block text-sm font-medium ${billed === opt.value ? 'text-brand-blue' : 'text-text-primary'}`}>{opt.label}</span>
+                <span
+                  className={`block text-sm font-medium ${billed === opt.value ? 'text-brand-blue' : 'text-text-primary'}`}
+                >
+                  {opt.label}
+                </span>
                 <span className="block text-xs text-text-muted">{opt.hint}</span>
               </button>
             ))}
@@ -182,7 +218,9 @@ export function NewTenantPage() {
                   className={inputClass}
                   aria-describedby="nt-until-hint"
                 />
-                <p id="nt-until-hint" className="mt-1.5 text-xs text-text-muted">Desde el día siguiente debe la mensualidad.</p>
+                <p id="nt-until-hint" className="mt-1.5 text-xs text-text-muted">
+                  Desde el día siguiente debe la mensualidad.
+                </p>
               </div>
               <div>
                 <FieldLabel htmlFor="nt-price">Precio especial</FieldLabel>
@@ -191,7 +229,9 @@ export function NewTenantPage() {
                   inputMode="numeric"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  placeholder={defaultPrice !== undefined ? `${formatColones(defaultPrice)} (por defecto)` : ''}
+                  placeholder={
+                    defaultPrice !== undefined ? `${formatColones(defaultPrice)} (por defecto)` : ''
+                  }
                   className={`${inputClass} tabular-nums`}
                 />
               </div>
@@ -201,13 +241,25 @@ export function NewTenantPage() {
 
         <div>
           <FieldLabel htmlFor="nt-notes">Notas internas</FieldLabel>
-          <textarea id="nt-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} className={textareaClass} />
+          <textarea
+            id="nt-notes"
+            rows={3}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className={textareaClass}
+          />
         </div>
 
-        {error && <p role="alert" className="text-sm text-brand-error">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-brand-error">
+            {error}
+          </p>
+        )}
 
         <button type="submit" disabled={mutation.isPending} className={primaryButton}>
-          {mutation.isPending && <Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+          {mutation.isPending && (
+            <Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden />
+          )}
           Crear negocio
         </button>
       </form>
@@ -217,7 +269,10 @@ export function NewTenantPage() {
 
 function BackLink() {
   return (
-    <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-text-secondary transition-colors hover:text-text-primary">
+    <Link
+      to="/"
+      className="inline-flex items-center gap-1.5 text-sm text-text-secondary transition-colors hover:text-text-primary"
+    >
       <ArrowLeft size={16} strokeWidth={1.5} aria-hidden />
       Negocios
     </Link>

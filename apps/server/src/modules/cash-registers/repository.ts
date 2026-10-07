@@ -4,12 +4,7 @@ import { cashRegisters, sales, expenses } from '../../db/schema.js';
 import type { CashRegisterTotals, CashRegisterSummary } from '@sipnato/shared';
 
 export function findOpenRegister() {
-  const rows = db
-    .select()
-    .from(cashRegisters)
-    .where(isNull(cashRegisters.closedAt))
-    .limit(1)
-    .all();
+  const rows = db.select().from(cashRegisters).where(isNull(cashRegisters.closedAt)).limit(1).all();
   return rows[0] ?? null;
 }
 
@@ -22,18 +17,14 @@ export function computeRunningTotals(cashRegisterId: number): CashRegisterTotals
       change: sql<number>`COALESCE(SUM(${sales.changeColones}), 0)`,
     })
     .from(sales)
-    .where(
-      sql`${sales.cashRegisterId} = ${cashRegisterId} AND ${sales.deletedAt} IS NULL`,
-    )
+    .where(sql`${sales.cashRegisterId} = ${cashRegisterId} AND ${sales.deletedAt} IS NULL`)
     .groupBy(sales.paymentMethod)
     .all();
 
   const expRow = db
     .select({ total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)` })
     .from(expenses)
-    .where(
-      sql`${expenses.cashRegisterId} = ${cashRegisterId} AND ${expenses.deletedAt} IS NULL`,
-    )
+    .where(sql`${expenses.cashRegisterId} = ${cashRegisterId} AND ${expenses.deletedAt} IS NULL`)
     .get();
 
   const totals: CashRegisterTotals = {
@@ -104,9 +95,5 @@ export function listCashRegistersRows(
 }
 
 export function findCashRegisterById(id: number) {
-  return db
-    .select()
-    .from(cashRegisters)
-    .where(eq(cashRegisters.id, id))
-    .get() ?? null;
+  return db.select().from(cashRegisters).where(eq(cashRegisters.id, id)).get() ?? null;
 }

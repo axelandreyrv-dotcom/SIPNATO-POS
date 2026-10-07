@@ -13,7 +13,10 @@ export default [
     rules: {
       ...reactHooks.configs.recommended.rules,
       // `{ campo: _, ...resto }` descarta una propiedad a propósito.
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', ignoreRestSiblings: true }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
       '@typescript-eslint/no-explicit-any': 'error',
     },
   },

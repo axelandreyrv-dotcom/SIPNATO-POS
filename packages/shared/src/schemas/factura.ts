@@ -14,9 +14,7 @@ export const createFacturaSchema = z.object({
   clientName: z.string().min(1, 'Cliente requerido').max(200),
   clientCedula: z.string().max(20).optional(),
   ivaPercent: z.number().int().min(0).max(100).default(0),
-  items: z
-    .array(createFacturaItemSchema)
-    .min(1, 'Debe tener al menos un ítem'),
+  items: z.array(createFacturaItemSchema).min(1, 'Debe tener al menos un ítem'),
 });
 
 export type CreateFacturaInput = z.infer<typeof createFacturaSchema>;

@@ -115,7 +115,11 @@ export class AbonoPagoExcede extends AppError {
 
 export class TipoCambioNoDisponible extends AppError {
   constructor() {
-    super('TIPO_CAMBIO_NO_DISPONIBLE', 'No hay tipo de cambio disponible. El dueño debe configurar uno de respaldo en Configuración.', 400);
+    super(
+      'TIPO_CAMBIO_NO_DISPONIBLE',
+      'No hay tipo de cambio disponible. El dueño debe configurar uno de respaldo en Configuración.',
+      400,
+    );
   }
 }
 
@@ -166,7 +170,11 @@ export class CredencialesInvalidas extends AppError {
 
 export class UsuarioBloqueado extends AppError {
   constructor() {
-    super('USUARIO_BLOQUEADO', 'Demasiados intentos fallidos. Espera 15 minutos o pide a un administrador que restablezca tu acceso.', 429);
+    super(
+      'USUARIO_BLOQUEADO',
+      'Demasiados intentos fallidos. Espera 15 minutos o pide a un administrador que restablezca tu acceso.',
+      429,
+    );
   }
 }
 
@@ -191,13 +199,21 @@ export class UsuarioYaExiste extends AppError {
 // El cajero intentó una acción que requiere que un admin o dueño la autorice en el momento.
 export class AutorizacionRequerida extends AppError {
   constructor() {
-    super('AUTORIZACION_REQUERIDA', 'Esta acción requiere la autorización de un administrador', 403);
+    super(
+      'AUTORIZACION_REQUERIDA',
+      'Esta acción requiere la autorización de un administrador',
+      403,
+    );
   }
 }
 
 export class AutorizacionInvalida extends AppError {
   constructor() {
-    super('AUTORIZACION_INVALIDA', 'La autorización no es válida: usuario o contraseña/PIN incorrectos, o sin permiso', 403);
+    super(
+      'AUTORIZACION_INVALIDA',
+      'La autorización no es válida: usuario o contraseña/PIN incorrectos, o sin permiso',
+      403,
+    );
   }
 }
 
@@ -217,7 +233,11 @@ export class NegocioYaExiste extends AppError {
 
 export class NegocioYaActivado extends AppError {
   constructor() {
-    super('NEGOCIO_YA_ACTIVADO', 'Este negocio ya tiene dueño. Para recuperar el acceso usa reset-admin en el servidor.', 409);
+    super(
+      'NEGOCIO_YA_ACTIVADO',
+      'Este negocio ya tiene dueño. Para recuperar el acceso usa reset-admin en el servidor.',
+      409,
+    );
   }
 }
 

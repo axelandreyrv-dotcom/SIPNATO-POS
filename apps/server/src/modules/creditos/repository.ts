@@ -1,7 +1,13 @@
 import { eq, sql, isNull, desc } from 'drizzle-orm';
 import { currentActorId, db } from '../../db/client.js';
 import { creditos, creditoPayments, counters, auditLog } from '../../db/schema.js';
-import type { CreateCredito, AddCreditoPayment, Credito, CreditoPayment, CreditoWithPayments } from '@sipnato/shared';
+import type {
+  CreateCredito,
+  AddCreditoPayment,
+  Credito,
+  CreditoPayment,
+  CreditoWithPayments,
+} from '@sipnato/shared';
 
 type CreditoDbRow = typeof creditos.$inferSelect;
 type PaymentDbRow = typeof creditoPayments.$inferSelect;
@@ -64,15 +70,17 @@ export function insertCreditoRow(
       .returning()
       .get();
 
-    tx.insert(auditLog).values({
-      action: 'CREDITO_CREATED',
-      entityType: 'credito',
-      entityId: String(row.id),
-      payloadSnapshot: JSON.stringify(data),
-      ip: meta.ip ?? null,
-      userAgent: meta.userAgent ?? null,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'CREDITO_CREATED',
+        entityType: 'credito',
+        entityId: String(row.id),
+        payloadSnapshot: JSON.stringify(data),
+        ip: meta.ip ?? null,
+        userAgent: meta.userAgent ?? null,
+        userId: currentActorId(),
+      })
+      .run();
 
     return mapCreditoRow({ ...row, paidAmount: 0 });
   });
@@ -80,7 +88,10 @@ export function insertCreditoRow(
 
 export function listCreditoRows(status?: string, search?: string): Credito[] {
   const paidSubquery = db
-    .select({ creditoId: creditoPayments.creditoId, paidAmount: sql<number>`COALESCE(SUM(${creditoPayments.amount}), 0)`.as('paidAmount') })
+    .select({
+      creditoId: creditoPayments.creditoId,
+      paidAmount: sql<number>`COALESCE(SUM(${creditoPayments.amount}), 0)`.as('paidAmount'),
+    })
     .from(creditoPayments)
     .groupBy(creditoPayments.creditoId)
     .as('paid');
@@ -112,10 +123,7 @@ export function listCreditoRows(status?: string, search?: string): Credito[] {
       if (status && r.status !== status) return false;
       if (search) {
         const q = search.toLowerCase();
-        return (
-          r.debtorName.toLowerCase().includes(q) ||
-          r.debtorPhone.includes(q)
-        );
+        return r.debtorName.toLowerCase().includes(q) || r.debtorPhone.includes(q);
       }
       return true;
     })
@@ -124,7 +132,10 @@ export function listCreditoRows(status?: string, search?: string): Credito[] {
 
 export function getCreditoWithPaymentsRow(id: number): CreditoWithPayments | null {
   const paidSubquery = db
-    .select({ creditoId: creditoPayments.creditoId, paidAmount: sql<number>`COALESCE(SUM(${creditoPayments.amount}), 0)`.as('paidAmount') })
+    .select({
+      creditoId: creditoPayments.creditoId,
+      paidAmount: sql<number>`COALESCE(SUM(${creditoPayments.amount}), 0)`.as('paidAmount'),
+    })
     .from(creditoPayments)
     .groupBy(creditoPayments.creditoId)
     .as('paid');
@@ -191,27 +202,27 @@ export function addCreditoPaymentRow(
         .where(eq(creditos.id, creditoId))
         .run();
     } else {
-      tx.update(creditos)
-        .set({ updatedAt: now })
-        .where(eq(creditos.id, creditoId))
-        .run();
+      tx.update(creditos).set({ updatedAt: now }).where(eq(creditos.id, creditoId)).run();
     }
 
-    tx.insert(auditLog).values({
-      action: 'CREDITO_PAYMENT_ADDED',
-      entityType: 'credito',
-      entityId: String(creditoId),
-      payloadSnapshot: JSON.stringify({ amount: data.amount, note: data.note, newPaid, newStatus }),
-      ip: meta.ip ?? null,
-      userAgent: meta.userAgent ?? null,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'CREDITO_PAYMENT_ADDED',
+        entityType: 'credito',
+        entityId: String(creditoId),
+        payloadSnapshot: JSON.stringify({
+          amount: data.amount,
+          note: data.note,
+          newPaid,
+          newStatus,
+        }),
+        ip: meta.ip ?? null,
+        userAgent: meta.userAgent ?? null,
+        userId: currentActorId(),
+      })
+      .run();
 
-    const updated = tx
-      .select()
-      .from(creditos)
-      .where(eq(creditos.id, creditoId))
-      .get()!;
+    const updated = tx.select().from(creditos).where(eq(creditos.id, creditoId)).get()!;
 
     return {
       credito: mapCreditoRow({ ...updated, paidAmount: newPaid }),
@@ -220,10 +231,7 @@ export function addCreditoPaymentRow(
   });
 }
 
-export function cancelCreditoRow(
-  id: number,
-  meta: { ip?: string; userAgent?: string },
-): void {
+export function cancelCreditoRow(id: number, meta: { ip?: string; userAgent?: string }): void {
   const now = new Date().toISOString();
   db.transaction((tx) => {
     tx.update(creditos)
@@ -231,14 +239,16 @@ export function cancelCreditoRow(
       .where(eq(creditos.id, id))
       .run();
 
-    tx.insert(auditLog).values({
-      action: 'CREDITO_CANCELLED',
-      entityType: 'credito',
-      entityId: String(id),
-      payloadSnapshot: null,
-      ip: meta.ip ?? null,
-      userAgent: meta.userAgent ?? null,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'CREDITO_CANCELLED',
+        entityType: 'credito',
+        entityId: String(id),
+        payloadSnapshot: null,
+        ip: meta.ip ?? null,
+        userAgent: meta.userAgent ?? null,
+        userId: currentActorId(),
+      })
+      .run();
   });
 }

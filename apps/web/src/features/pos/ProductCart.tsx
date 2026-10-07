@@ -26,7 +26,13 @@ function useDebounced<T>(value: T, ms: number): T {
 
 // Buscador de productos. Un lector de código de barras "escribe" el código y envía Enter:
 // con Enter se busca la coincidencia exacta por código y se agrega sin tocar el mouse.
-export function ProductSearch({ onAdd, disabled }: { onAdd: (p: Product) => void; disabled: boolean }) {
+export function ProductSearch({
+  onAdd,
+  disabled,
+}: {
+  onAdd: (p: Product) => void;
+  disabled: boolean;
+}) {
   const [text, setText] = useState('');
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
@@ -67,11 +73,19 @@ export function ProductSearch({ onAdd, disabled }: { onAdd: (p: Product) => void
 
   return (
     <div className="relative">
-      <label htmlFor="pos-product-search" className="mb-1.5 block text-sm font-medium text-text-secondary">
+      <label
+        htmlFor="pos-product-search"
+        className="mb-1.5 block text-sm font-medium text-text-secondary"
+      >
         Productos
       </label>
       <div className="relative">
-        <ScanBarcode size={16} strokeWidth={1.5} aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+        <ScanBarcode
+          size={16}
+          strokeWidth={1.5}
+          aria-hidden
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+        />
         <input
           id="pos-product-search"
           ref={inputRef}
@@ -82,13 +96,27 @@ export function ProductSearch({ onAdd, disabled }: { onAdd: (p: Product) => void
           role="combobox"
           aria-expanded={open && results.length > 0}
           aria-controls="pos-product-results"
-          onChange={(e) => { setText(e.target.value); setOpen(true); setHighlight(0); setNotice(null); }}
+          onChange={(e) => {
+            setText(e.target.value);
+            setOpen(true);
+            setHighlight(0);
+            setNotice(null);
+          }}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 120)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); void handleEnter(); }
-            if (e.key === 'ArrowDown') { e.preventDefault(); setHighlight((h) => Math.min(h + 1, results.length - 1)); }
-            if (e.key === 'ArrowUp') { e.preventDefault(); setHighlight((h) => Math.max(h - 1, 0)); }
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              void handleEnter();
+            }
+            if (e.key === 'ArrowDown') {
+              e.preventDefault();
+              setHighlight((h) => Math.min(h + 1, results.length - 1));
+            }
+            if (e.key === 'ArrowUp') {
+              e.preventDefault();
+              setHighlight((h) => Math.max(h - 1, 0));
+            }
             if (e.key === 'Escape') setOpen(false);
           }}
           placeholder="Buscar producto o escanear código"
@@ -109,24 +137,40 @@ export function ProductSearch({ onAdd, disabled }: { onAdd: (p: Product) => void
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => add(p)}
                 onMouseEnter={() => setHighlight(i)}
-                className={['flex w-full items-center gap-3 px-3 py-2 text-left', i === highlight ? 'bg-brand-blue/10' : ''].join(' ')}
+                className={[
+                  'flex w-full items-center gap-3 px-3 py-2 text-left',
+                  i === highlight ? 'bg-brand-blue/10' : '',
+                ].join(' ')}
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm text-text-primary">{p.name}</span>
-                  {p.code && <span className="block truncate text-xs text-text-muted">{p.code}</span>}
+                  {p.code && (
+                    <span className="block truncate text-xs text-text-muted">{p.code}</span>
+                  )}
                 </span>
                 {p.trackStock && (
-                  <span className={['shrink-0 text-xs tabular-nums', p.stock <= 0 ? 'text-brand-error' : 'text-text-muted'].join(' ')}>
+                  <span
+                    className={[
+                      'shrink-0 text-xs tabular-nums',
+                      p.stock <= 0 ? 'text-brand-error' : 'text-text-muted',
+                    ].join(' ')}
+                  >
                     {p.stock <= 0 ? 'Sin stock' : `${p.stock} disp.`}
                   </span>
                 )}
-                <span className="shrink-0 text-sm font-medium tabular-nums text-text-primary">{formatColones(p.price)}</span>
+                <span className="shrink-0 text-sm font-medium tabular-nums text-text-primary">
+                  {formatColones(p.price)}
+                </span>
               </button>
             </li>
           ))}
         </ul>
       )}
-      {notice && <p className="mt-1.5 text-xs text-brand-warning" role="status">{notice}</p>}
+      {notice && (
+        <p className="mt-1.5 text-xs text-brand-warning" role="status">
+          {notice}
+        </p>
+      )}
     </div>
   );
 }
@@ -150,19 +194,32 @@ export function CartLines({
           <li key={product.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm text-text-primary">{product.name}</span>
-              <span className="block text-xs tabular-nums text-text-muted">{formatColones(product.price)} c/u</span>
+              <span className="block text-xs tabular-nums text-text-muted">
+                {formatColones(product.price)} c/u
+              </span>
             </span>
 
-            <div className="flex items-center rounded-lg border border-border" role="group" aria-label={`Cantidad de ${product.name}`}>
+            <div
+              className="flex items-center rounded-lg border border-border"
+              role="group"
+              aria-label={`Cantidad de ${product.name}`}
+            >
               <button
                 type="button"
-                onClick={() => (quantity > 1 ? onChangeQty(product.id, quantity - 1) : onRemove(product.id))}
+                onClick={() =>
+                  quantity > 1 ? onChangeQty(product.id, quantity - 1) : onRemove(product.id)
+                }
                 className="flex h-9 w-9 items-center justify-center text-text-muted transition-colors hover:text-text-primary"
                 aria-label="Quitar uno"
               >
                 <Minus size={14} strokeWidth={1.5} aria-hidden />
               </button>
-              <span className="w-8 text-center text-sm font-medium tabular-nums text-text-primary" aria-live="polite">{quantity}</span>
+              <span
+                className="w-8 text-center text-sm font-medium tabular-nums text-text-primary"
+                aria-live="polite"
+              >
+                {quantity}
+              </span>
               <button
                 type="button"
                 onClick={() => onChangeQty(product.id, quantity + 1)}

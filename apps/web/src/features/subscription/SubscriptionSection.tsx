@@ -31,21 +31,29 @@ export function SubscriptionSection() {
           <dl className="grid grid-cols-3 gap-4 text-sm">
             <div>
               <dt className="text-xs text-text-muted">Estado</dt>
-              <dd className={`mt-0.5 font-medium ${STATUS_TONE[data.status]}`}>{SUBSCRIPTION_STATUS_LABELS[data.status]}</dd>
+              <dd className={`mt-0.5 font-medium ${STATUS_TONE[data.status]}`}>
+                {SUBSCRIPTION_STATUS_LABELS[data.status]}
+              </dd>
             </div>
             <div>
               <dt className="text-xs text-text-muted">Pagado hasta</dt>
-              <dd className="mt-0.5 font-medium text-text-primary">{data.paidUntil ? fmtDate(data.paidUntil) : '—'}</dd>
+              <dd className="mt-0.5 font-medium text-text-primary">
+                {data.paidUntil ? fmtDate(data.paidUntil) : '—'}
+              </dd>
             </div>
             <div>
               <dt className="text-xs text-text-muted">Mensualidad</dt>
-              <dd className="mt-0.5 font-medium tabular-nums text-text-primary">{formatColones(data.monthlyPrice)}</dd>
+              <dd className="mt-0.5 font-medium tabular-nums text-text-primary">
+                {formatColones(data.monthlyPrice)}
+              </dd>
             </div>
           </dl>
           {data.paymentInstructions && (
             <div>
               <p className="text-xs text-text-muted">Cómo pagar</p>
-              <p className="mt-0.5 whitespace-pre-line text-sm text-text-secondary">{data.paymentInstructions}</p>
+              <p className="mt-0.5 whitespace-pre-line text-sm text-text-secondary">
+                {data.paymentInstructions}
+              </p>
             </div>
           )}
           {data.payments.length > 0 && (
@@ -56,7 +64,9 @@ export function SubscriptionSection() {
                   <li key={p.id} className="flex flex-wrap justify-between gap-x-4 px-3 py-2">
                     <span className="tabular-nums text-text-primary">
                       {formatColones(p.amount)}
-                      <span className="ml-2 text-text-muted">{SUBSCRIPTION_PAYMENT_METHOD_LABELS[p.method]}</span>
+                      <span className="ml-2 text-text-muted">
+                        {SUBSCRIPTION_PAYMENT_METHOD_LABELS[p.method]}
+                      </span>
                     </span>
                     <span className="text-text-secondary">
                       {fmtDate(p.paidAt)} · hasta {fmtDate(p.periodTo)}

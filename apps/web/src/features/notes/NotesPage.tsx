@@ -64,7 +64,9 @@ function DraftCard({
             disabled={!title.trim() || isCreating}
             className="flex items-center gap-1.5 rounded-lg bg-brand-blue px-3 py-1.5 text-xs font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50"
           >
-            {isCreating && <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+            {isCreating && (
+              <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />
+            )}
             Guardar
           </button>
         </div>
@@ -142,7 +144,9 @@ function NoteCard({
               disabled={!title.trim() || isUpdating}
               className="flex items-center gap-1.5 rounded-lg bg-brand-blue px-3 py-1.5 text-xs font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50"
             >
-              {isUpdating && <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+              {isUpdating && (
+                <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />
+              )}
               Guardar cambios
             </button>
           </div>
@@ -171,11 +175,16 @@ function NoteCard({
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={() => { onDelete(note.id); setConfirmDelete(false); }}
+                onClick={() => {
+                  onDelete(note.id);
+                  setConfirmDelete(false);
+                }}
                 disabled={isDeleting}
                 className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-brand-error bg-brand-error/10 hover:bg-brand-error/20 transition-colors disabled:opacity-50"
               >
-                {isDeleting ? <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden /> : null}
+                {isDeleting ? (
+                  <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />
+                ) : null}
                 Eliminar
               </button>
               <button
@@ -208,9 +217,7 @@ function NoteCard({
       )}
 
       {/* Footer */}
-      <p className="mt-1 text-[10px] text-text-muted/50">
-        {fmtDateTime(note.updatedAt)}
-      </p>
+      <p className="mt-1 text-[10px] text-text-muted/50">{fmtDateTime(note.updatedAt)}</p>
     </div>
   );
 }
@@ -285,7 +292,10 @@ export function NotesPage() {
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="animate-pulse flex flex-col gap-3 rounded-xl border border-border bg-surface-card p-4">
+            <div
+              key={i}
+              className="animate-pulse flex flex-col gap-3 rounded-xl border border-border bg-surface-card p-4"
+            >
               <div className="h-4 w-3/5 rounded bg-border" />
               <div className="space-y-2">
                 <div className="h-2.5 w-full rounded bg-border" />

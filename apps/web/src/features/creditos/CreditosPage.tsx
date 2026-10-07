@@ -21,7 +21,8 @@ import { fmtDate, fmtDateTime } from '../../lib/format';
 
 // Vencido = la fecha de vencimiento ya pasó en Costa Rica (el mismo día aún no vence).
 // Se comparan textos YYYY-MM-DD: `new Date('2026-10-20')` sería medianoche UTC, el 19 en CR.
-const todayCR = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(new Date());
+const todayCR = () =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(new Date());
 
 function isOverdue(credito: Credito): boolean {
   if (credito.status !== 'activo') return false;
@@ -29,8 +30,10 @@ function isOverdue(credito: Credito): boolean {
 }
 
 function statusLabel(credito: Credito): { text: string; cls: string } {
-  if (credito.status === 'pagado') return { text: 'Pagado', cls: 'bg-brand-success/10 text-brand-success' };
-  if (credito.status === 'cancelado') return { text: 'Cancelado', cls: 'bg-border text-text-muted' };
+  if (credito.status === 'pagado')
+    return { text: 'Pagado', cls: 'bg-brand-success/10 text-brand-success' };
+  if (credito.status === 'cancelado')
+    return { text: 'Cancelado', cls: 'bg-border text-text-muted' };
   if (isOverdue(credito)) return { text: 'Vencido', cls: 'bg-brand-error/10 text-brand-error' };
   return { text: 'Activo', cls: 'bg-brand-blue/10 text-brand-blue' };
 }
@@ -84,35 +87,69 @@ function CreateModal({ onClose }: { onClose: () => void }) {
       <div className="w-full max-w-md rounded-2xl border border-border bg-surface-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="text-sm font-semibold text-text-primary">Nuevo crédito</h2>
-          <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover"
+          >
             <X size={15} strokeWidth={1.5} aria-hidden />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4 p-5">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-text-secondary">Nombre del deudor</label>
-            <input className={inputClass} placeholder="Juan Pérez" value={form.debtorName}
-              onChange={(e) => setForm((f) => ({ ...f, debtorName: e.target.value }))} />
+            <label className="mb-1.5 block text-xs font-medium text-text-secondary">
+              Nombre del deudor
+            </label>
+            <input
+              className={inputClass}
+              placeholder="Juan Pérez"
+              value={form.debtorName}
+              onChange={(e) => setForm((f) => ({ ...f, debtorName: e.target.value }))}
+            />
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-text-secondary">Teléfono</label>
-            <input className={inputClass} placeholder="8888-8888" value={form.debtorPhone}
-              onChange={(e) => setForm((f) => ({ ...f, debtorPhone: e.target.value }))} />
+            <input
+              className={inputClass}
+              placeholder="8888-8888"
+              value={form.debtorPhone}
+              onChange={(e) => setForm((f) => ({ ...f, debtorPhone: e.target.value }))}
+            />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-text-secondary">Descripción</label>
-            <input className={inputClass} placeholder="Reparación de pantalla…" value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+            <label className="mb-1.5 block text-xs font-medium text-text-secondary">
+              Descripción
+            </label>
+            <input
+              className={inputClass}
+              placeholder="Reparación de pantalla…"
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-text-secondary">Monto total (₡)</label>
-            <input className={inputClass} type="number" min="1" placeholder="0" value={form.totalAmount}
-              onChange={(e) => setForm((f) => ({ ...f, totalAmount: e.target.value }))} />
+            <label className="mb-1.5 block text-xs font-medium text-text-secondary">
+              Monto total (₡)
+            </label>
+            <input
+              className={inputClass}
+              type="number"
+              min="1"
+              placeholder="0"
+              value={form.totalAmount}
+              onChange={(e) => setForm((f) => ({ ...f, totalAmount: e.target.value }))}
+            />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-text-secondary">Fecha de vencimiento</label>
-            <input className={inputClass} type="date" value={form.dueDate}
-              onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))} />
+            <label className="mb-1.5 block text-xs font-medium text-text-secondary">
+              Fecha de vencimiento
+            </label>
+            <input
+              className={inputClass}
+              type="date"
+              value={form.dueDate}
+              onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
+            />
           </div>
 
           {error && (
@@ -122,13 +159,21 @@ function CreateModal({ onClose }: { onClose: () => void }) {
           )}
 
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose}
-              className="h-9 flex-1 rounded-lg border border-border text-sm text-text-secondary transition-all hover:bg-surface-hover">
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-9 flex-1 rounded-lg border border-border text-sm text-text-secondary transition-all hover:bg-surface-hover"
+            >
               Cancelar
             </button>
-            <button type="submit" disabled={mutation.isPending}
-              className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-blue text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60">
-              {mutation.isPending ? <Loader2 size={13} strokeWidth={1.5} className="animate-spin" aria-hidden /> : null}
+            <button
+              type="submit"
+              disabled={mutation.isPending}
+              className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-blue text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+            >
+              {mutation.isPending ? (
+                <Loader2 size={13} strokeWidth={1.5} className="animate-spin" aria-hidden />
+              ) : null}
               Guardar
             </button>
           </div>
@@ -165,8 +210,14 @@ function PaymentModal({ credito, onClose }: { credito: Credito; onClose: () => v
   if (paid !== null) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-        <div className="w-full max-w-sm rounded-2xl border border-border bg-surface-card p-5 shadow-xl" role="dialog" aria-modal="true">
-          <p className="text-sm font-semibold text-text-primary">Abono de {formatColones(paid)} registrado</p>
+        <div
+          className="w-full max-w-sm rounded-2xl border border-border bg-surface-card p-5 shadow-xl"
+          role="dialog"
+          aria-modal="true"
+        >
+          <p className="text-sm font-semibold text-text-primary">
+            Abono de {formatColones(paid)} registrado
+          </p>
           <p className="mt-1 text-sm text-text-muted">
             {credito.debtorName} · saldo pendiente {formatColones(pending - paid)}
           </p>
@@ -176,10 +227,19 @@ function PaymentModal({ credito, onClose }: { credito: Credito; onClose: () => v
               entityType="credito"
               entityId={credito.id}
               phone={credito.debtorPhone}
-              vars={{ cliente: credito.debtorName, abono: formatColones(paid), saldo: formatColones(pending - paid) }}
+              vars={{
+                cliente: credito.debtorName,
+                abono: formatColones(paid),
+                saldo: formatColones(pending - paid),
+              }}
               label="Enviar comprobante"
             />
-            <button type="button" onClick={onClose} autoFocus className="h-9 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white hover:brightness-110">
+            <button
+              type="button"
+              onClick={onClose}
+              autoFocus
+              className="h-9 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white hover:brightness-110"
+            >
               Listo
             </button>
           </div>
@@ -196,7 +256,8 @@ function PaymentModal({ credito, onClose }: { credito: Credito; onClose: () => v
     setError(null);
     const val = Math.round(Number(amount));
     if (!val || val <= 0) return setError('Monto inválido');
-    if (val > pending) return setError(`El abono no puede superar el saldo pendiente (${formatColones(pending)})`);
+    if (val > pending)
+      return setError(`El abono no puede superar el saldo pendiente (${formatColones(pending)})`);
     mutation.mutate();
   }
 
@@ -205,7 +266,11 @@ function PaymentModal({ credito, onClose }: { credito: Credito; onClose: () => v
       <div className="w-full max-w-sm rounded-2xl border border-border bg-surface-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="text-sm font-semibold text-text-primary">Registrar abono</h2>
-          <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover"
+          >
             <X size={15} strokeWidth={1.5} aria-hidden />
           </button>
         </div>
@@ -219,14 +284,30 @@ function PaymentModal({ credito, onClose }: { credito: Credito; onClose: () => v
             </div>
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-text-secondary">Monto del abono (₡)</label>
-            <input className={inputClass} type="number" min="1" max={pending} placeholder="0"
-              value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
+            <label className="mb-1.5 block text-xs font-medium text-text-secondary">
+              Monto del abono (₡)
+            </label>
+            <input
+              className={inputClass}
+              type="number"
+              min="1"
+              max={pending}
+              placeholder="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              autoFocus
+            />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-text-secondary">Nota (opcional)</label>
-            <input className={inputClass} placeholder="Pago parcial…" value={note}
-              onChange={(e) => setNote(e.target.value)} />
+            <label className="mb-1.5 block text-xs font-medium text-text-secondary">
+              Nota (opcional)
+            </label>
+            <input
+              className={inputClass}
+              placeholder="Pago parcial…"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
           </div>
           {error && (
             <p className="flex items-center gap-1.5 text-xs text-brand-error">
@@ -234,13 +315,21 @@ function PaymentModal({ credito, onClose }: { credito: Credito; onClose: () => v
             </p>
           )}
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose}
-              className="h-9 flex-1 rounded-lg border border-border text-sm text-text-secondary transition-all hover:bg-surface-hover">
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-9 flex-1 rounded-lg border border-border text-sm text-text-secondary transition-all hover:bg-surface-hover"
+            >
               Cancelar
             </button>
-            <button type="submit" disabled={mutation.isPending}
-              className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-blue text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60">
-              {mutation.isPending ? <Loader2 size={13} strokeWidth={1.5} className="animate-spin" aria-hidden /> : null}
+            <button
+              type="submit"
+              disabled={mutation.isPending}
+              className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-blue text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+            >
+              {mutation.isPending ? (
+                <Loader2 size={13} strokeWidth={1.5} className="animate-spin" aria-hidden />
+              ) : null}
               Registrar
             </button>
           </div>
@@ -252,13 +341,7 @@ function PaymentModal({ credito, onClose }: { credito: Credito; onClose: () => v
 
 // ── CreditoRow ────────────────────────────────────────────────────────────────
 
-function CreditoRow({
-  credito,
-  onAbono,
-}: {
-  credito: Credito;
-  onAbono: (c: Credito) => void;
-}) {
+function CreditoRow({ credito, onAbono }: { credito: Credito; onAbono: (c: Credito) => void }) {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [detail, setDetail] = useState<CreditoWithPayments | null>(null);
@@ -287,13 +370,18 @@ function CreditoRow({
     setExpanded((v) => !v);
   }
 
-  const pct = credito.totalAmount > 0 ? Math.min(100, Math.round((credito.paidAmount / credito.totalAmount) * 100)) : 0;
+  const pct =
+    credito.totalAmount > 0
+      ? Math.min(100, Math.round((credito.paidAmount / credito.totalAmount) * 100))
+      : 0;
   const pending = credito.totalAmount - credito.paidAmount;
   const { text: stText, cls: stCls } = statusLabel(credito);
   const overdue = isOverdue(credito);
 
   return (
-    <div className={`rounded-xl border transition-all ${overdue ? 'border-brand-error/30 bg-brand-error/5' : 'border-border bg-surface-card'}`}>
+    <div
+      className={`rounded-xl border transition-all ${overdue ? 'border-brand-error/30 bg-brand-error/5' : 'border-border bg-surface-card'}`}
+    >
       {/* Row header */}
       <button
         type="button"
@@ -302,9 +390,13 @@ function CreditoRow({
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-text-primary">#{String(credito.consecutive).padStart(4, '0')}</span>
+            <span className="text-sm font-semibold text-text-primary">
+              #{String(credito.consecutive).padStart(4, '0')}
+            </span>
             <span className="text-sm text-text-primary truncate">{credito.debtorName}</span>
-            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${stCls}`}>{stText}</span>
+            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${stCls}`}>
+              {stText}
+            </span>
           </div>
           <p className="mt-0.5 text-xs text-text-muted truncate">{credito.description}</p>
           <div className="mt-1.5 flex items-center gap-3 flex-wrap">
@@ -313,7 +405,9 @@ function CreditoRow({
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <span className="text-sm font-semibold text-text-primary">{formatColones(credito.totalAmount)}</span>
+          <span className="text-sm font-semibold text-text-primary">
+            {formatColones(credito.totalAmount)}
+          </span>
           <span className="text-xs text-text-muted">{pct}% pagado</span>
         </div>
         <div className="shrink-0 text-text-muted">
@@ -333,7 +427,12 @@ function CreditoRow({
           className="h-full rounded-full transition-[width] duration-500"
           style={{
             width: `${pct}%`,
-            backgroundColor: credito.status === 'pagado' ? 'var(--color-brand-success)' : overdue ? 'var(--color-brand-error)' : 'var(--color-brand-blue)',
+            backgroundColor:
+              credito.status === 'pagado'
+                ? 'var(--color-brand-success)'
+                : overdue
+                  ? 'var(--color-brand-error)'
+                  : 'var(--color-brand-blue)',
           }}
         />
       </div>
@@ -345,15 +444,23 @@ function CreditoRow({
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="rounded-lg bg-surface-input p-2">
               <p className="text-xs text-text-muted">Total</p>
-              <p className="text-sm font-semibold text-text-primary">{formatColones(credito.totalAmount)}</p>
+              <p className="text-sm font-semibold text-text-primary">
+                {formatColones(credito.totalAmount)}
+              </p>
             </div>
             <div className="rounded-lg bg-surface-input p-2">
               <p className="text-xs text-text-muted">Abonado</p>
-              <p className="text-sm font-semibold text-brand-success">{formatColones(credito.paidAmount)}</p>
+              <p className="text-sm font-semibold text-brand-success">
+                {formatColones(credito.paidAmount)}
+              </p>
             </div>
             <div className="rounded-lg bg-surface-input p-2">
               <p className="text-xs text-text-muted">Pendiente</p>
-              <p className={`text-sm font-semibold ${pending > 0 ? 'text-brand-error' : 'text-text-muted'}`}>{formatColones(pending)}</p>
+              <p
+                className={`text-sm font-semibold ${pending > 0 ? 'text-brand-error' : 'text-text-muted'}`}
+              >
+                {formatColones(pending)}
+              </p>
             </div>
           </div>
 
@@ -368,7 +475,9 @@ function CreditoRow({
                       <span className="text-text-muted">{fmtDateTime(p.createdAt)}</span>
                       {p.note && <span className="ml-2 text-text-muted">— {p.note}</span>}
                     </div>
-                    <span className="font-medium text-brand-success shrink-0">{formatColones(p.amount)}</span>
+                    <span className="font-medium text-brand-success shrink-0">
+                      {formatColones(p.amount)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -425,7 +534,9 @@ function CreditoRow({
                     disabled={cancelMutation.isPending}
                     className="flex h-8 items-center justify-center gap-1 rounded-lg bg-brand-error px-3 text-xs font-medium text-white disabled:opacity-60"
                   >
-                    {cancelMutation.isPending && <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+                    {cancelMutation.isPending && (
+                      <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />
+                    )}
                     Confirmar
                   </button>
                   <button
@@ -473,9 +584,8 @@ export function CreditosPage() {
   const creditos = data?.creditos ?? [];
 
   // Summary for active tab
-  const totalPending = tab === 'activo'
-    ? creditos.reduce((acc, c) => acc + (c.totalAmount - c.paidAmount), 0)
-    : 0;
+  const totalPending =
+    tab === 'activo' ? creditos.reduce((acc, c) => acc + (c.totalAmount - c.paidAmount), 0) : 0;
   const overdueCount = tab === 'activo' ? creditos.filter(isOverdue).length : 0;
 
   return (
@@ -521,7 +631,12 @@ export function CreditosPage() {
 
       {/* Search */}
       <div className="relative mb-4">
-        <Search size={14} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" aria-hidden />
+        <Search
+          size={14}
+          strokeWidth={1.5}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+          aria-hidden
+        />
         <input
           type="search"
           placeholder="Buscar por nombre o teléfono…"
@@ -549,9 +664,18 @@ export function CreditosPage() {
 
       {!isLoading && !isError && creditos.length === 0 && (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
-          <CreditCard size={32} strokeWidth={1} className="text-text-muted opacity-40" aria-hidden />
+          <CreditCard
+            size={32}
+            strokeWidth={1}
+            className="text-text-muted opacity-40"
+            aria-hidden
+          />
           <p className="text-sm text-text-muted">
-            {search ? 'Sin resultados para esa búsqueda' : tab === 'activo' ? 'No hay créditos activos' : `No hay créditos ${tab === 'pagado' ? 'pagados' : 'cancelados'}`}
+            {search
+              ? 'Sin resultados para esa búsqueda'
+              : tab === 'activo'
+                ? 'No hay créditos activos'
+                : `No hay créditos ${tab === 'pagado' ? 'pagados' : 'cancelados'}`}
           </p>
           {!search && tab === 'activo' && (
             <button

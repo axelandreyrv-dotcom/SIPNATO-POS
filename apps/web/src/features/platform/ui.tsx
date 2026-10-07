@@ -1,4 +1,8 @@
-import { SUBSCRIPTION_STATUS_LABELS, type PlatformTenant, type SubscriptionStatus } from '@sipnato/shared';
+import {
+  SUBSCRIPTION_STATUS_LABELS,
+  type PlatformTenant,
+  type SubscriptionStatus,
+} from '@sipnato/shared';
 import { ApiError } from '@/lib/api-client';
 
 export { FieldLabel, inputClass, textareaClass } from '../settings/ui';
@@ -38,7 +42,9 @@ const STATUS_STYLE: Record<SubscriptionStatus, string> = {
 
 export function SubscriptionBadge({ status }: { status: SubscriptionStatus }) {
   return (
-    <span className={`inline-flex h-6 items-center rounded-md px-2 text-xs font-medium ${STATUS_STYLE[status]}`}>
+    <span
+      className={`inline-flex h-6 items-center rounded-md px-2 text-xs font-medium ${STATUS_STYLE[status]}`}
+    >
       {SUBSCRIPTION_STATUS_LABELS[status]}
     </span>
   );

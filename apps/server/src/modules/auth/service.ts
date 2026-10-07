@@ -56,7 +56,13 @@ export async function setupAdmin(
     throw new AppError('SETUP_ALREADY_DONE', 'El sistema ya fue configurado', 409);
   }
   const dueno = insertUserRow(
-    { username: input.username, displayName: input.displayName, role: 'dueno', secretHash, recoveryCodeHash },
+    {
+      username: input.username,
+      displayName: input.displayName,
+      role: 'dueno',
+      secretHash,
+      recoveryCodeHash,
+    },
     meta,
   );
   setSetupCodeHash(slug, null);

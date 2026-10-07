@@ -32,7 +32,9 @@ function fail(message: string): never {
 
 function printSetupCode(tenantSlug: string, code: string): void {
   console.log(`         Código de activación: ${code}`);
-  console.log(`         Entrégalo al dueño junto con https://${tenantSlug}.<dominio> — lo pide /setup`);
+  console.log(
+    `         Entrégalo al dueño junto con https://${tenantSlug}.<dominio> — lo pide /setup`,
+  );
   console.log('         una sola vez. Si se pierde: tenant setup-code <slug>\n');
 }
 
@@ -40,7 +42,8 @@ switch (command) {
   case 'create': {
     const name = rest.join(' ').trim();
     if (!slug || !name) fail('Uso: tenant create <slug> "<nombre>"');
-    if (!isValidSlug(slug)) fail(`Slug inválido o reservado: "${slug}" (minúsculas, dígitos y guiones, máx. 32)`);
+    if (!isValidSlug(slug))
+      fail(`Slug inválido o reservado: "${slug}" (minúsculas, dígitos y guiones, máx. 32)`);
     if (findTenant(slug)) fail(`El negocio "${slug}" ya existe.`);
 
     insertTenant(slug, name);
@@ -53,8 +56,11 @@ switch (command) {
   }
 
   case 'setup-code': {
-    if (!slug || !findTenant(slug)) fail('Uso: tenant setup-code <slug>  — el negocio debe existir.');
-    const hasDueno = runWithTenant(slug, () => db.select({ id: users.id }).from(users).limit(1).get());
+    if (!slug || !findTenant(slug))
+      fail('Uso: tenant setup-code <slug>  — el negocio debe existir.');
+    const hasDueno = runWithTenant(slug, () =>
+      db.select({ id: users.id }).from(users).limit(1).get(),
+    );
     if (hasDueno) fail(`"${slug}" ya tiene dueño. Para recuperar acceso usar reset-admin ${slug}.`);
     const code = await issueSetupCode(slug);
     console.log(`\n[tenant] Nuevo código para "${slug}" (el anterior quedó invalidado).`);
@@ -79,5 +85,7 @@ switch (command) {
   }
 
   default:
-    fail('Comandos: create <slug> "<nombre>" | setup-code <slug> | list | suspend <slug> | activate <slug>');
+    fail(
+      'Comandos: create <slug> "<nombre>" | setup-code <slug> | list | suspend <slug> | activate <slug>',
+    );
 }

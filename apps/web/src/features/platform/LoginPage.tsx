@@ -78,13 +78,16 @@ export function LoginPage() {
           )}
 
           <button type="submit" disabled={loading} className={`${primaryButton} h-10 w-full`}>
-            {loading && <Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+            {loading && (
+              <Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden />
+            )}
             Entrar
           </button>
         </form>
 
         <p className="mt-8 text-xs leading-relaxed text-text-muted">
-          Las cuentas del panel se crean en el servidor con <code className="font-mono">superadmin create</code>.
+          Las cuentas del panel se crean en el servidor con{' '}
+          <code className="font-mono">superadmin create</code>.
         </p>
       </div>
     </div>

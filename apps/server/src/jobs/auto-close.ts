@@ -41,7 +41,9 @@ function autoCloseIfScheduled(log: FastifyBaseLogger): void {
 
 export function startAutoCloseCron(log: FastifyBaseLogger): void {
   cron.schedule('* * * * *', () => {
-    void forEachActiveTenant(log, 'auto-close', (_slug, tenantLog) => autoCloseIfScheduled(tenantLog));
+    void forEachActiveTenant(log, 'auto-close', (_slug, tenantLog) =>
+      autoCloseIfScheduled(tenantLog),
+    );
   });
 
   log.info('Auto-close cron iniciado (cada minuto)');
@@ -79,5 +81,7 @@ function retroactiveAutoClose(log: FastifyBaseLogger): void {
 }
 
 export async function checkRetroactiveAutoClose(log: FastifyBaseLogger): Promise<void> {
-  await forEachActiveTenant(log, 'retroactive-auto-close', (_slug, tenantLog) => retroactiveAutoClose(tenantLog));
+  await forEachActiveTenant(log, 'retroactive-auto-close', (_slug, tenantLog) =>
+    retroactiveAutoClose(tenantLog),
+  );
 }

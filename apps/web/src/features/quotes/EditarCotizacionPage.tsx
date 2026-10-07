@@ -24,7 +24,11 @@ export function EditarCotizacionPage() {
   const [items, setItems] = useState<ItemRow[]>([newItem()]);
   const [initialised, setInitialised] = useState(false);
 
-  const { data: quote, isLoading, isError } = useQuery({
+  const {
+    data: quote,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ['quotes', id],
     queryFn: () => quotesApi.getById(id),
     staleTime: 60_000,
@@ -47,8 +51,7 @@ export function EditarCotizacionPage() {
   const allValid = items.length >= 1 && items.every((item) => item.description.trim().length > 0);
 
   const updateMutation = useMutation({
-    mutationFn: (payload: { items: CreateQuoteItemInput[] }) =>
-      quotesApi.update(id, payload),
+    mutationFn: (payload: { items: CreateQuoteItemInput[] }) => quotesApi.update(id, payload),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['quotes', 'list'] });
       queryClient.setQueryData(['quotes', id], updated);
@@ -93,7 +96,10 @@ export function EditarCotizacionPage() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8 sm:px-8">
         <p className="text-sm text-brand-error">No se encontró la cotización.</p>
-        <Link to="/cotizaciones" className="mt-4 inline-block text-sm text-brand-blue hover:underline">
+        <Link
+          to="/cotizaciones"
+          className="mt-4 inline-block text-sm text-brand-blue hover:underline"
+        >
           ← Volver
         </Link>
       </div>

@@ -8,7 +8,9 @@ import { todayCR } from './cr-time.js';
 const MAX_BCCR_AGE_DAYS = 4;
 
 function ageInDays(isoDay: string): number {
-  return Math.round((Date.parse(`${todayCR()}T12:00:00Z`) - Date.parse(`${isoDay}T12:00:00Z`)) / 86_400_000);
+  return Math.round(
+    (Date.parse(`${todayCR()}T12:00:00Z`) - Date.parse(`${isoDay}T12:00:00Z`)) / 86_400_000,
+  );
 }
 
 // "505.5" → 50550. Vacío o inválido → null.
@@ -27,7 +29,13 @@ export function getExchangeRateInfo(): ExchangeRateInfo {
   const manual = parseManualRate(getSetting('usd_manual_rate'));
 
   if (bccrFresh) {
-    return { rate: bccr.buy, source: 'bccr', date: bccr.date, bccrBuy: bccr.buy, bccrSell: bccr.sell };
+    return {
+      rate: bccr.buy,
+      source: 'bccr',
+      date: bccr.date,
+      bccrBuy: bccr.buy,
+      bccrSell: bccr.sell,
+    };
   }
   return {
     rate: manual,

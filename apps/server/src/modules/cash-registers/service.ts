@@ -15,10 +15,7 @@ interface Meta {
   userAgent: string | null;
 }
 
-export function openCashRegister(
-  openingAmount: number,
-  meta: Meta,
-): CashRegisterCurrent {
+export function openCashRegister(openingAmount: number, meta: Meta): CashRegisterCurrent {
   const existing = findOpenRegister();
   if (existing) throw new CajaYaAbierta();
 
@@ -35,15 +32,17 @@ export function openCashRegister(
       .get();
     if (!row) throw new Error('Failed to create cash register');
 
-    tx.insert(auditLog).values({
-      action: 'CASH_REGISTER_OPENED',
-      entityType: 'cash_register',
-      entityId: String(row.id),
-      payloadSnapshot: JSON.stringify({ openingAmount }),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'CASH_REGISTER_OPENED',
+        entityType: 'cash_register',
+        entityId: String(row.id),
+        payloadSnapshot: JSON.stringify({ openingAmount }),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
 
     return row.id;
   });
@@ -53,8 +52,16 @@ export function openCashRegister(
     openedAt,
     openingAmount,
     totals: {
-      salesEfectivo: 0, salesTarjeta: 0, salesTransferencia: 0, salesSinpe: 0, salesDolares: 0,
-      totalSales: 0, totalExpenses: 0, netBalance: 0, usdReceivedCents: 0, usdChangeColones: 0,
+      salesEfectivo: 0,
+      salesTarjeta: 0,
+      salesTransferencia: 0,
+      salesSinpe: 0,
+      salesDolares: 0,
+      totalSales: 0,
+      totalExpenses: 0,
+      netBalance: 0,
+      usdReceivedCents: 0,
+      usdChangeColones: 0,
     },
   };
 }
@@ -90,15 +97,17 @@ export function closeCashRegister(
       .where(eq(cashRegisters.id, register.id))
       .run();
 
-    tx.insert(auditLog).values({
-      action: 'CASH_REGISTER_CLOSED',
-      entityType: 'cash_register',
-      entityId: String(register.id),
-      payloadSnapshot: JSON.stringify({ closeType, totals }),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'CASH_REGISTER_CLOSED',
+        entityType: 'cash_register',
+        entityId: String(register.id),
+        payloadSnapshot: JSON.stringify({ closeType, totals }),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
   });
 
   return totals;

@@ -13,7 +13,9 @@ export function formatColones(amount: number): string {
 
 export function formatUsd(cents: number): string {
   const c = Math.floor(cents);
-  const dollars = Math.floor(c / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const dollars = Math.floor(c / 100)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return `$${dollars}.${String(c % 100).padStart(2, '0')}`;
 }
 

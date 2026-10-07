@@ -66,9 +66,12 @@ const TENANT_COLUMNS: [string, string][] = [
   ['monthly_price', 'INTEGER'],
   ['paid_until', 'TEXT'],
 ];
-const tenantColumns = controlDb.prepare<[], { name: string }>("SELECT name FROM pragma_table_info('tenants')").all();
+const tenantColumns = controlDb
+  .prepare<[], { name: string }>("SELECT name FROM pragma_table_info('tenants')")
+  .all();
 for (const [name, type] of TENANT_COLUMNS) {
-  if (!tenantColumns.some((c) => c.name === name)) controlDb.exec(`ALTER TABLE tenants ADD COLUMN ${name} ${type}`);
+  if (!tenantColumns.some((c) => c.name === name))
+    controlDb.exec(`ALTER TABLE tenants ADD COLUMN ${name} ${type}`);
 }
 
 // ─── Plataforma (Fase F) ──────────────────────────────────────────────────────
@@ -164,11 +167,15 @@ function toRecord(row: TenantRow): TenantRecord {
 
 const selectOne = controlDb.prepare<[string], TenantRow>('SELECT * FROM tenants WHERE slug = ?');
 const selectAll = controlDb.prepare<[], TenantRow>('SELECT * FROM tenants ORDER BY slug');
-const selectActive = controlDb.prepare<[], TenantRow>("SELECT * FROM tenants WHERE status = 'active' ORDER BY slug");
+const selectActive = controlDb.prepare<[], TenantRow>(
+  "SELECT * FROM tenants WHERE status = 'active' ORDER BY slug",
+);
 const insertOne = controlDb.prepare<[string, string, string]>(
   'INSERT INTO tenants (slug, name, created_at) VALUES (?, ?, ?)',
 );
-const updateStatus = controlDb.prepare<[TenantStatus, string]>('UPDATE tenants SET status = ? WHERE slug = ?');
+const updateStatus = controlDb.prepare<[TenantStatus, string]>(
+  'UPDATE tenants SET status = ? WHERE slug = ?',
+);
 const updateSetupCode = controlDb.prepare<[string | null, string]>(
   'UPDATE tenants SET setup_code_hash = ? WHERE slug = ?',
 );
@@ -219,9 +226,10 @@ const upsertRate = controlDb.prepare<[string, number, number, string]>(`
   INSERT INTO exchange_rates (date, buy, sell, fetched_at) VALUES (?, ?, ?, ?)
   ON CONFLICT(date) DO UPDATE SET buy = excluded.buy, sell = excluded.sell, fetched_at = excluded.fetched_at
 `);
-const selectLatestRate = controlDb.prepare<[], { date: string; buy: number; sell: number; fetched_at: string }>(
-  'SELECT * FROM exchange_rates ORDER BY date DESC LIMIT 1',
-);
+const selectLatestRate = controlDb.prepare<
+  [],
+  { date: string; buy: number; sell: number; fetched_at: string }
+>('SELECT * FROM exchange_rates ORDER BY date DESC LIMIT 1');
 
 export function saveExchangeRate(date: string, buy: number, sell: number): void {
   upsertRate.run(date, buy, sell, new Date().toISOString());

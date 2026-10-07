@@ -1,5 +1,11 @@
 import { getRouteApi, redirect } from '@tanstack/react-router';
-import { can, type BusinessProfile, type CurrentUser, type ModuleKey, type Permission } from '@sipnato/shared';
+import {
+  can,
+  type BusinessProfile,
+  type CurrentUser,
+  type ModuleKey,
+  type Permission,
+} from '@sipnato/shared';
 
 const authRouteApi = getRouteApi('/_auth');
 

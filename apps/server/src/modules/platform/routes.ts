@@ -44,10 +44,19 @@ function meta(request: FastifyRequest) {
 }
 
 // Valida y responde 400 con el primer mensaje; devuelve null si ya respondió.
-function parse<S extends z.ZodTypeAny>(schema: S, data: unknown, reply: FastifyReply): z.infer<S> | null {
+function parse<S extends z.ZodTypeAny>(
+  schema: S,
+  data: unknown,
+  reply: FastifyReply,
+): z.infer<S> | null {
   const result = schema.safeParse(data);
   if (result.success) return result.data;
-  void reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: result.error.issues[0]?.message ?? 'Datos inválidos' } });
+  void reply.status(400).send({
+    error: {
+      code: 'VALIDATION_ERROR',
+      message: result.error.issues[0]?.message ?? 'Datos inválidos',
+    },
+  });
   return null;
 }
 
@@ -57,16 +66,20 @@ function slugParam(request: FastifyRequest, reply: FastifyReply): string | null 
 
 export default async function platformRoutes(app: FastifyInstance) {
   // ── Sesión ─────────────────────────────────────────────────────────────────
-  app.post('/auth/login', {
-    config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
-  }, async (request, reply) => {
-    if (!request.isPlatform) return reply.status(404).send();
-    const body = parse(platformLoginSchema, request.body, reply);
-    if (!body) return;
-    const token = await loginSuperadmin(body.username, body.password, meta(request));
-    reply.setCookie(PLATFORM_COOKIE_NAME, token, cookieOpts(SESSION_DURATION_MS / 1000));
-    return reply.send({ ok: true });
-  });
+  app.post(
+    '/auth/login',
+    {
+      config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+    },
+    async (request, reply) => {
+      if (!request.isPlatform) return reply.status(404).send();
+      const body = parse(platformLoginSchema, request.body, reply);
+      if (!body) return;
+      const token = await loginSuperadmin(body.username, body.password, meta(request));
+      reply.setCookie(PLATFORM_COOKIE_NAME, token, cookieOpts(SESSION_DURATION_MS / 1000));
+      return reply.send({ ok: true });
+    },
+  );
 
   app.post('/auth/logout', { preHandler: [requirePlatformAuth] }, async (request, reply) => {
     logoutSuperadmin(request.platformSessionId, request.superadmin, meta(request));
@@ -78,16 +91,25 @@ export default async function platformRoutes(app: FastifyInstance) {
     return { superadmin: request.superadmin };
   });
 
-  app.post('/auth/password', {
-    preHandler: [requirePlatformAuth],
-    config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
-  }, async (request, reply) => {
-    const body = parse(platformChangePasswordSchema, request.body, reply);
-    if (!body) return;
-    const token = await changeSuperadminPassword(request.superadmin, body.currentPassword, body.newPassword, meta(request));
-    reply.setCookie(PLATFORM_COOKIE_NAME, token, cookieOpts(SESSION_DURATION_MS / 1000));
-    return reply.send({ ok: true });
-  });
+  app.post(
+    '/auth/password',
+    {
+      preHandler: [requirePlatformAuth],
+      config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+    },
+    async (request, reply) => {
+      const body = parse(platformChangePasswordSchema, request.body, reply);
+      if (!body) return;
+      const token = await changeSuperadminPassword(
+        request.superadmin,
+        body.currentPassword,
+        body.newPassword,
+        meta(request),
+      );
+      reply.setCookie(PLATFORM_COOKIE_NAME, token, cookieOpts(SESSION_DURATION_MS / 1000));
+      return reply.send({ ok: true });
+    },
+  );
 
   // ── Negocios ───────────────────────────────────────────────────────────────
   app.get('/tenants', { preHandler: [requirePlatformAuth] }, async () => listPlatformTenants());
@@ -112,35 +134,55 @@ export default async function platformRoutes(app: FastifyInstance) {
     return { tenant: updateTenant(request.superadmin, slug, body, meta(request)) };
   });
 
-  app.post('/tenants/:slug/status', { preHandler: [requirePlatformAuth] }, async (request, reply) => {
-    const slug = slugParam(request, reply);
-    const body = slug && parse(tenantStatusSchema, request.body, reply);
-    if (!slug || !body) return;
-    return { tenant: changeTenantStatus(request.superadmin, slug, body.status, meta(request)) };
-  });
+  app.post(
+    '/tenants/:slug/status',
+    { preHandler: [requirePlatformAuth] },
+    async (request, reply) => {
+      const slug = slugParam(request, reply);
+      const body = slug && parse(tenantStatusSchema, request.body, reply);
+      if (!slug || !body) return;
+      return { tenant: changeTenantStatus(request.superadmin, slug, body.status, meta(request)) };
+    },
+  );
 
-  app.post('/tenants/:slug/setup-code', { preHandler: [requirePlatformAuth] }, async (request, reply) => {
-    const slug = slugParam(request, reply);
-    if (!slug) return;
-    return { setupCode: await regenerateSetupCode(request.superadmin, slug, meta(request)) };
-  });
+  app.post(
+    '/tenants/:slug/setup-code',
+    { preHandler: [requirePlatformAuth] },
+    async (request, reply) => {
+      const slug = slugParam(request, reply);
+      if (!slug) return;
+      return { setupCode: await regenerateSetupCode(request.superadmin, slug, meta(request)) };
+    },
+  );
 
-  app.post('/tenants/:slug/payments', { preHandler: [requirePlatformAuth] }, async (request, reply) => {
-    const slug = slugParam(request, reply);
-    const body = slug && parse(recordPaymentSchema, request.body, reply);
-    if (!slug || !body) return;
-    return reply.status(201).send({ tenant: recordPayment(request.superadmin, slug, body, meta(request)) });
-  });
+  app.post(
+    '/tenants/:slug/payments',
+    { preHandler: [requirePlatformAuth] },
+    async (request, reply) => {
+      const slug = slugParam(request, reply);
+      const body = slug && parse(recordPaymentSchema, request.body, reply);
+      if (!slug || !body) return;
+      return reply
+        .status(201)
+        .send({ tenant: recordPayment(request.superadmin, slug, body, meta(request)) });
+    },
+  );
 
-  app.post('/tenants/:slug/payments/:id/void', { preHandler: [requirePlatformAuth] }, async (request, reply) => {
-    const slug = slugParam(request, reply);
-    if (!slug) return;
-    const id = Number((request.params as { id?: string }).id);
-    if (!Number.isInteger(id) || id <= 0) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Pago inválido' } });
-    }
-    return voidPayment(request.superadmin, slug, id, meta(request));
-  });
+  app.post(
+    '/tenants/:slug/payments/:id/void',
+    { preHandler: [requirePlatformAuth] },
+    async (request, reply) => {
+      const slug = slugParam(request, reply);
+      if (!slug) return;
+      const id = Number((request.params as { id?: string }).id);
+      if (!Number.isInteger(id) || id <= 0) {
+        return reply
+          .status(400)
+          .send({ error: { code: 'VALIDATION_ERROR', message: 'Pago inválido' } });
+      }
+      return voidPayment(request.superadmin, slug, id, meta(request));
+    },
+  );
 
   // ── Configuración ──────────────────────────────────────────────────────────
   app.get('/settings', { preHandler: [requirePlatformAuth] }, async () => getPlatformSettings());

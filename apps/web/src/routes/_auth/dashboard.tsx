@@ -108,15 +108,21 @@ function DeltaBadge({ pct }: { pct: number | null }) {
 function KpiStrip({ data }: { data: DashboardData }) {
   const { totalSales, totalExpenses, netBalance, boletasCount, salesDeltaPct } = data.today;
   const balanceColor =
-    netBalance > 0 ? 'text-brand-success' : netBalance < 0 ? 'text-brand-error' : 'text-text-primary';
+    netBalance > 0
+      ? 'text-brand-success'
+      : netBalance < 0
+        ? 'text-brand-error'
+        : 'text-text-primary';
   const { ordersLabel, modules } = useBusiness();
   const showOrders = modules.includes('ordenes');
 
   return (
-    <div className={[
-      'grid gap-px overflow-hidden rounded-xl border border-border bg-border',
-      showOrders ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-1 sm:grid-cols-3',
-    ].join(' ')}>
+    <div
+      className={[
+        'grid gap-px overflow-hidden rounded-xl border border-border bg-border',
+        showOrders ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-1 sm:grid-cols-3',
+      ].join(' ')}
+    >
       <div className="bg-surface-card px-4 py-4">
         <p className="text-xs text-text-muted">Ventas hoy</p>
         <p className="mt-1 text-2xl font-semibold tabular-nums text-text-primary">
@@ -147,7 +153,9 @@ function KpiStrip({ data }: { data: DashboardData }) {
       {showOrders && (
         <div className="bg-surface-card px-4 py-4">
           <p className="text-xs text-text-muted">{ordersLabel} hoy</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums text-text-primary">{boletasCount}</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums text-text-primary">
+            {boletasCount}
+          </p>
           <p className="mt-1 text-xs text-text-muted">ingresos registrados</p>
         </div>
       )}

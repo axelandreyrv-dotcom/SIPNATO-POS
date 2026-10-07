@@ -25,13 +25,17 @@ const apartadosRoutes: FastifyPluginAsync = async (app) => {
   app.get('/:id', { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const parsed = parseInt(id, 10);
-    if (isNaN(parsed)) return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });
+    if (isNaN(parsed))
+      return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });
 
     try {
       const apartado = getApartado(parsed);
       return reply.send(apartado);
     } catch (err) {
-      if (err instanceof AppError) return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+      if (err instanceof AppError)
+        return reply
+          .status(err.statusCode)
+          .send({ error: { code: err.code, message: err.message } });
       throw err;
     }
   });
@@ -40,7 +44,12 @@ const apartadosRoutes: FastifyPluginAsync = async (app) => {
   app.post('/', { preHandler: requireAuth }, async (req, reply) => {
     const parsed = createApartadoSchema.safeParse(req.body);
     if (!parsed.success) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0]?.message ?? 'Datos inválidos' } });
+      return reply.status(400).send({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: parsed.error.errors[0]?.message ?? 'Datos inválidos',
+        },
+      });
     }
 
     const ua = req.headers['user-agent'];
@@ -49,7 +58,10 @@ const apartadosRoutes: FastifyPluginAsync = async (app) => {
       const apartado = createApartado(parsed.data, meta);
       return reply.status(201).send(apartado);
     } catch (err) {
-      if (err instanceof AppError) return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+      if (err instanceof AppError)
+        return reply
+          .status(err.statusCode)
+          .send({ error: { code: err.code, message: err.message } });
       throw err;
     }
   });
@@ -58,11 +70,17 @@ const apartadosRoutes: FastifyPluginAsync = async (app) => {
   app.post('/:id/payments', { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const parsed = parseInt(id, 10);
-    if (isNaN(parsed)) return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });
+    if (isNaN(parsed))
+      return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });
 
     const bodyParsed = addApartadoPaymentSchema.safeParse(req.body);
     if (!bodyParsed.success) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: bodyParsed.error.errors[0]?.message ?? 'Datos inválidos' } });
+      return reply.status(400).send({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: bodyParsed.error.errors[0]?.message ?? 'Datos inválidos',
+        },
+      });
     }
 
     const ua = req.headers['user-agent'];
@@ -71,27 +89,38 @@ const apartadosRoutes: FastifyPluginAsync = async (app) => {
       const result = addPayment(parsed, bodyParsed.data, meta);
       return reply.send(result.apartado);
     } catch (err) {
-      if (err instanceof AppError) return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+      if (err instanceof AppError)
+        return reply
+          .status(err.statusCode)
+          .send({ error: { code: err.code, message: err.message } });
       throw err;
     }
   });
 
   // POST /api/apartados/:id/cancel
-  app.post('/:id/cancel', { preHandler: [requireAuth, requireRole('dueno', 'admin')] }, async (req, reply) => {
-    const { id } = req.params as { id: string };
-    const parsed = parseInt(id, 10);
-    if (isNaN(parsed)) return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });
+  app.post(
+    '/:id/cancel',
+    { preHandler: [requireAuth, requireRole('dueno', 'admin')] },
+    async (req, reply) => {
+      const { id } = req.params as { id: string };
+      const parsed = parseInt(id, 10);
+      if (isNaN(parsed))
+        return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });
 
-    const ua = req.headers['user-agent'];
-    const meta = { ip: req.ip, ...(ua !== undefined && { userAgent: ua }) };
-    try {
-      const apartado = cancelApartado(parsed, meta);
-      return reply.send(apartado);
-    } catch (err) {
-      if (err instanceof AppError) return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
-      throw err;
-    }
-  });
+      const ua = req.headers['user-agent'];
+      const meta = { ip: req.ip, ...(ua !== undefined && { userAgent: ua }) };
+      try {
+        const apartado = cancelApartado(parsed, meta);
+        return reply.send(apartado);
+      } catch (err) {
+        if (err instanceof AppError)
+          return reply
+            .status(err.statusCode)
+            .send({ error: { code: err.code, message: err.message } });
+        throw err;
+      }
+    },
+  );
 };
 
 export default apartadosRoutes;

@@ -38,7 +38,8 @@ function temporaryPassword(): string {
 
 function requireUsername(): string {
   const parsed = superadminUsernameSchema.safeParse(rawUsername ?? '');
-  if (!parsed.success) fail(`Uso: superadmin ${command} <usuario>  — ${parsed.error.issues[0]?.message}`);
+  if (!parsed.success)
+    fail(`Uso: superadmin ${command} <usuario>  — ${parsed.error.issues[0]?.message}`);
   return parsed.data;
 }
 
@@ -57,7 +58,8 @@ function printPassword(username: string, password: string): void {
 switch (command) {
   case 'create': {
     const username = requireUsername();
-    if (findSuperadminByUsername(username)) fail(`"${username}" ya existe. Usa: superadmin reset ${username}`);
+    if (findSuperadminByUsername(username))
+      fail(`"${username}" ya existe. Usa: superadmin reset ${username}`);
     const password = temporaryPassword();
     insertSuperadmin(username, await hashPassword(password));
     console.log('\n[superadmin] ✅ Cuenta creada.');
@@ -80,7 +82,9 @@ switch (command) {
     const admin = existing(requireUsername());
     setSuperadminActive(admin.id, command === 'enable');
     if (command === 'disable') deleteSuperadminSessions(admin.id);
-    console.log(`\n[superadmin] "${admin.username}" → ${command === 'enable' ? 'activo' : 'desactivado'}\n`);
+    console.log(
+      `\n[superadmin] "${admin.username}" → ${command === 'enable' ? 'activo' : 'desactivado'}\n`,
+    );
     break;
   }
 
@@ -97,5 +101,7 @@ switch (command) {
   }
 
   default:
-    fail('Comandos: create <usuario> | reset <usuario> | disable <usuario> | enable <usuario> | list');
+    fail(
+      'Comandos: create <usuario> | reset <usuario> | disable <usuario> | enable <usuario> | list',
+    );
 }

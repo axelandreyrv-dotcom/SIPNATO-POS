@@ -13,7 +13,14 @@ const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$/;
 
 // Subdominios que nunca pueden ser un negocio. `admin` es el panel de superadministrador.
 export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
-  'www', 'api', 'app', 'admin', 'mail', 'static', 'assets', 'control',
+  'www',
+  'api',
+  'app',
+  'admin',
+  'mail',
+  'static',
+  'assets',
+  'control',
 ]);
 
 export const PLATFORM_SUBDOMAIN = 'admin';
@@ -26,7 +33,10 @@ export const slugSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .refine(isValidSlug, 'Subdominio: minúsculas, números y guiones (máx. 32), sin guion al inicio ni al final');
+  .refine(
+    isValidSlug,
+    'Subdominio: minúsculas, números y guiones (máx. 32), sin guion al inicio ni al final',
+  );
 
 // ─── Fechas de la suscripción ─────────────────────────────────────────────────
 // `paidUntil` es el último día cubierto (YYYY-MM-DD, calendario de Costa Rica).
@@ -34,7 +44,12 @@ export const slugSchema = z
 export const isoDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida')
-  .refine((d) => !Number.isNaN(Date.parse(`${d}T00:00:00Z`)) && new Date(`${d}T00:00:00Z`).toISOString().startsWith(d), 'Fecha inválida');
+  .refine(
+    (d) =>
+      !Number.isNaN(Date.parse(`${d}T00:00:00Z`)) &&
+      new Date(`${d}T00:00:00Z`).toISOString().startsWith(d),
+    'Fecha inválida',
+  );
 
 // Suma meses de calendario. Si el día no existe en el mes destino (31 → febrero) se usa el último.
 export function addMonths(date: string, months: number): string {
@@ -121,7 +136,10 @@ export const updateTenantSchema = z
   .object({
     name: z.string().trim().min(1, 'El nombre es requerido').max(80),
     contactName: z.string().trim().max(80),
-    contactPhone: z.string().trim().refine((v) => v === '' || /^\d{8}$/.test(v), 'Celular: 8 dígitos'),
+    contactPhone: z
+      .string()
+      .trim()
+      .refine((v) => v === '' || /^\d{8}$/.test(v), 'Celular: 8 dígitos'),
     monthlyPrice: colonesSchema.nullable(),
     paidUntil: isoDateSchema.nullable(),
     notes: z.string().trim().max(2000),
@@ -242,5 +260,8 @@ export interface SubscriptionInfo {
   daysLeft: number | null;
   monthlyPrice: number;
   paymentInstructions: string;
-  payments: Pick<SubscriptionPayment, 'id' | 'amount' | 'months' | 'method' | 'paidAt' | 'periodTo'>[];
+  payments: Pick<
+    SubscriptionPayment,
+    'id' | 'amount' | 'months' | 'method' | 'paidAt' | 'periodTo'
+  >[];
 }
