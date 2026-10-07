@@ -13,7 +13,7 @@ import {
   Menu,
   Moon,
   NotebookPen,
-
+  Package,
   Settings,
   ShoppingCart,
   Sun,
@@ -22,30 +22,32 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { can, ROLE_LABELS, type Permission } from '@sipnato/shared';
+import { can, ROLE_LABELS, type ModuleKey, type Permission } from '@sipnato/shared';
 import { Logo } from '../../components/branding/Logo';
 import { useDarkMode } from '../../lib/hooks/useDarkMode';
 import { authApi } from '../../features/auth/api';
-import { useCurrentUser } from '../../features/auth/useCurrentUser';
+import { useBusiness, useCurrentUser } from '../../features/auth/useCurrentUser';
 
+// `module`: solo aparece si el negocio lo tiene activo (perfil del negocio).
 const NAV_ITEMS: ReadonlyArray<{
   to: string;
   label: string;
   icon: React.ElementType;
   exact: boolean;
   permission?: Permission;
+  module?: ModuleKey;
 }> = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { to: '/pos', label: 'Punto de venta', icon: ShoppingCart, exact: false },
   { to: '/caja', label: 'Caja', icon: Landmark, exact: false },
-  { to: '/inventario', label: 'Inventario', icon: Boxes, exact: false },
-  { to: '/boletas', label: 'Boletas', icon: FileText, exact: false },
+  { to: '/inventario', label: 'Inventario', icon: Boxes, exact: false, module: 'inventario' },
+  { to: '/boletas', label: 'Boletas', icon: FileText, exact: false, module: 'ordenes' },
   { to: '/clientes', label: 'Clientes', icon: Users, exact: false },
   { to: '/gastos', label: 'Gastos', icon: TrendingDown, exact: false },
-  { to: '/cotizaciones', label: 'Cotizaciones', icon: FileOutput, exact: false },
-  { to: '/facturas', label: 'Facturas', icon: Receipt, exact: false },
-
-  { to: '/creditos', label: 'Créditos', icon: CreditCard, exact: false },
+  { to: '/cotizaciones', label: 'Cotizaciones', icon: FileOutput, exact: false, module: 'cotizaciones' },
+  { to: '/facturas', label: 'Facturas', icon: Receipt, exact: false, module: 'facturas' },
+  { to: '/apartados', label: 'Apartados', icon: Package, exact: false, module: 'apartados' },
+  { to: '/creditos', label: 'Créditos', icon: CreditCard, exact: false, module: 'creditos' },
   { to: '/notas', label: 'Notas', icon: NotebookPen, exact: false },
   { to: '/reportes', label: 'Reportes', icon: BarChart3, exact: false },
   { to: '/usuarios', label: 'Usuarios', icon: UserCog, exact: false, permission: 'manageUsers' },
@@ -89,7 +91,11 @@ function SidebarNav({ onNav }: { onNav?: () => void }) {
   const { isDark, toggle } = useDarkMode();
   const user = useCurrentUser();
   const { location } = useRouterState();
-  const items = NAV_ITEMS.filter((item) => !item.permission || can(user.role, item.permission));
+  const business = useBusiness();
+  const items = NAV_ITEMS
+    .filter((item) => !item.permission || can(user.role, item.permission))
+    .filter((item) => !item.module || business.modules.includes(item.module))
+    .map((item) => (item.module === 'ordenes' ? { ...item, label: business.ordersLabel } : item));
   const onAccount = location.pathname === '/mi-cuenta';
 
   async function handleLogout() {

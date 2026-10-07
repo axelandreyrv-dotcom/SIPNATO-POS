@@ -45,7 +45,7 @@ export function AuthShell({ children }: AuthShellProps) {
           <MeshGradientCharacter />
           <div className="space-y-2">
             <p className="text-2xl font-semibold leading-tight tracking-tight text-white">
-              Tu taller,<br />tu sistema.
+              Tu negocio,<br />tu sistema.
             </p>
             <p className="text-sm text-white/50">
               Gestión de ventas, caja y clientes en un solo lugar.

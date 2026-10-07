@@ -75,8 +75,8 @@ function BoletaHistory({ boletas }: { boletas: BoletaSummary[] }) {
           >
             <span className="w-7 shrink-0 text-right font-mono text-text-muted">#{b.consecutive}</span>
             <span className="flex-1 truncate text-text-primary">{b.deviceModel}</span>
-            {b.imei && (
-              <span className="hidden font-mono text-text-muted sm:block">{b.imei}</span>
+            {b.fields[0] && (
+              <span className="hidden max-w-40 truncate text-text-muted sm:block">{b.fields[0].value}</span>
             )}
             <span className="shrink-0 text-text-muted">
               {fmtDateShort(b.createdAt)}
@@ -121,7 +121,7 @@ export function CustomersPage() {
             type="text"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar por nombre, celular o cédula..."
+            placeholder="Buscar por nombre, teléfono o cédula..."
             className="h-10 w-full rounded-lg border border-border bg-surface-input pl-9 pr-4 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
           />
           {search && (

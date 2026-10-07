@@ -17,7 +17,7 @@ import { cashRegisterApi } from '../cash-register/api';
 import { salesApi } from './api';
 import { CartLines, ProductSearch, cartTotal, type CartLine } from './ProductCart';
 import { settingsApi } from '../settings/api';
-import { useCan } from '../auth/useCurrentUser';
+import { useCan, useModuleEnabled } from '../auth/useCurrentUser';
 import { SupervisorAuthDialog, supervisorAuthErrorMessage } from '../../components/SupervisorAuthDialog';
 
 const METHODS: { value: PaymentMethod; label: string }[] = [
@@ -372,6 +372,7 @@ export function POSPage() {
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const canDeleteDirectly = useCan('deleteMoneyDirectly');
+  const inventoryEnabled = useModuleEnabled('inventario');
   const amountInputRef = useRef<HTMLInputElement>(null);
   const [cart, setCart] = useState<CartLine[]>([]);
 
@@ -555,8 +556,8 @@ export function POSPage() {
       {/* POS Form */}
       <form onSubmit={handleSubmit} className="mb-8">
         <fieldset disabled={noRegister || createMutation.isPending} className="space-y-4 disabled:opacity-60">
-          {/* Catálogo: buscar / escanear y carrito */}
-          <ProductSearch onAdd={addToCart} disabled={noRegister || createMutation.isPending} />
+          {/* Catálogo: buscar / escanear y carrito (solo con el módulo de inventario activo) */}
+          {inventoryEnabled && <ProductSearch onAdd={addToCart} disabled={noRegister || createMutation.isPending} />}
           <CartLines
             lines={cart}
             onChangeQty={(id, quantity) => setCart((prev) => prev.map((l) => (l.product.id === id ? { ...l, quantity } : l)))}

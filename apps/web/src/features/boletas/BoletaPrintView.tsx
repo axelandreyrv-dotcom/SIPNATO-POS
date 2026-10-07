@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { BoletaWithCustomer, Settings } from '@sipnato/shared';
 import { settingsApi } from '../settings/api';
 import { fmtDateTime } from '../../lib/format';
+import { useBusiness } from '../auth/useCurrentUser';
 
 function BoletaPrintView({
   boleta,
@@ -18,6 +19,8 @@ function BoletaPrintView({
   const shopMobile = settings?.shop_mobile?.trim();
   const shopId = settings?.shop_id_number?.trim();
   const footer = settings?.boleta_footer?.trim() || settings?.receipt_footer?.trim();
+  const { template, itemLabel } = useBusiness();
+  const title = template === 'celulares' ? 'BOLETA DE INGRESO' : 'ORDEN DE INGRESO';
 
   return (
     <div className="sale-print-overlay" style={{ fontFamily: '"Courier New", Courier, monospace', color: '#000' }}>
@@ -35,7 +38,7 @@ function BoletaPrintView({
 
         {/* Title */}
         <div style={{ textAlign: 'center', marginBottom: 6 }}>
-          <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '0.06em' }}>BOLETA DE INGRESO</div>
+          <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '0.06em' }}>{title}</div>
           <div style={{ fontSize: 15 }}>#{String(boleta.consecutive).padStart(4, '0')}</div>
           <div style={{ fontSize: 14 }}>{fmtDateTime(boleta.createdAt)}</div>
         </div>
@@ -56,24 +59,18 @@ function BoletaPrintView({
 
         <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
 
-        {/* Device */}
+        {/* Artículo recibido + campos del negocio (con la etiqueta guardada en la orden) */}
         <div style={{ fontSize: 14, marginBottom: 6 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
-            <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>Equipo:</span>
+            <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{itemLabel}:</span>
             <span style={{ textAlign: 'right', wordBreak: 'break-word' }}>{boleta.deviceModel}</span>
           </div>
-          {boleta.imei && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
-              <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>IMEI:</span>
-              <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{boleta.imei}</span>
+          {boleta.fields.map((f) => (
+            <div key={f.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
+              <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{f.label}:</span>
+              <span style={{ textAlign: 'right', wordBreak: 'break-word' }}>{f.value}</span>
             </div>
-          )}
-          {boleta.unlockPassword && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
-              <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>Clave:</span>
-              <span>{boleta.unlockPassword}</span>
-            </div>
-          )}
+          ))}
         </div>
 
         <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />

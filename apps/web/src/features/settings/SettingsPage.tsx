@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, KeyRound, Loader2, Printer } from 'lucide-react';
 import type { Settings } from '@sipnato/shared';
 import { settingsApi } from './api';
+import { BusinessProfileEditor } from '../business/BusinessProfileEditor';
 
 const inputClass = [
   'h-9 w-full rounded-lg border px-3 text-sm text-text-primary',
@@ -227,18 +228,18 @@ export function SettingsPage() {
       {/* Header */}
       <div className="mb-2">
         <h1 className="text-xl font-semibold text-text-primary">Configuración</h1>
-        <p className="mt-1 text-sm text-text-muted">Ajustes del taller y del sistema.</p>
+        <p className="mt-1 text-sm text-text-muted">Datos del negocio, tickets, tipo de negocio y módulos.</p>
       </div>
 
       <form onSubmit={handleSubmit}>
         <div className="divide-y divide-border">
-          {/* ── Datos del taller ────────────────────────────────────────── */}
+          {/* ── Datos del negocio ────────────────────────────────────────── */}
           <Section
-            title="Datos del taller"
+            title="Datos del negocio"
             description="Información visible en los tickets y documentos impresos."
           >
             <div>
-              <FieldLabel htmlFor="shop_name">Nombre del taller</FieldLabel>
+              <FieldLabel htmlFor="shop_name">Nombre del negocio</FieldLabel>
               <input
                 id="shop_name"
                 type="text"
@@ -246,7 +247,7 @@ export function SettingsPage() {
                 value={current.shop_name}
                 onChange={(e) => patch({ shop_name: e.target.value })}
                 className={inputClass}
-                placeholder="Taller de Reparación Dosuxsoft"
+                placeholder="Mi Negocio S.A."
               />
             </div>
             <div>
@@ -317,7 +318,7 @@ export function SettingsPage() {
               />
             </div>
             <div>
-              <FieldLabel htmlFor="boleta_footer">Pie de boletas de servicio</FieldLabel>
+              <FieldLabel htmlFor="boleta_footer">Pie de órdenes de servicio</FieldLabel>
               <textarea
                 id="boleta_footer"
                 rows={3}
@@ -325,7 +326,7 @@ export function SettingsPage() {
                 value={current.boleta_footer}
                 onChange={(e) => patch({ boleta_footer: e.target.value })}
                 className={textareaClass}
-                placeholder="El equipo será retenido 30 días si no es reclamado."
+                placeholder="Lo no retirado en 30 días queda a disposición del negocio."
               />
             </div>
             <div>
@@ -425,6 +426,11 @@ export function SettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* Perfil del negocio: se guarda aparte (otra API, otro botón) */}
+      <div className="mt-6 border-t-2 border-border">
+        <BusinessProfileEditor />
+      </div>
     </div>
   );
 }

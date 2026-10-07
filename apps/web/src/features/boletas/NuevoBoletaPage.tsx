@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { AlertCircle, CheckCircle, ChevronLeft, Loader2, Printer } from 'lucide-react';
-import { validateImei } from '@sipnato/shared';
+import { validateOrderFields, type OrderField } from '@sipnato/shared';
 import { customersApi } from '../customers/api';
+import { useBusiness } from '../auth/useCurrentUser';
 import { boletasApi } from './api';
 import { useBoletaPrint } from './BoletaPrintView';
 
@@ -49,6 +50,60 @@ function Input({
   );
 }
 
+// Un campo de la orden según su tipo en el perfil del negocio.
+function OrderFieldInput({
+  field,
+  value,
+  error,
+  onChange,
+  onBlur,
+}: {
+  field: OrderField;
+  value: string;
+  error: string | undefined;
+  onChange: (value: string) => void;
+  onBlur: () => void;
+}) {
+  const id = `nb-field-${field.key}`;
+  const common = { id, value, onBlur, 'aria-required': field.required, 'aria-invalid': !!error };
+
+  return (
+    <Field
+      id={id}
+      label={field.label}
+      required={field.required}
+      {...(error ? { error } : {})}
+      {...(field.type === 'imei' ? { hint: '15 dígitos' } : {})}
+    >
+      {field.type === 'select' ? (
+        <select
+          {...common}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
+        >
+          <option value="">Elegir…</option>
+          {field.options?.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      ) : (
+        <Input
+          {...common}
+          type="text"
+          inputMode={field.type === 'number' || field.type === 'imei' ? 'numeric' : undefined}
+          maxLength={field.type === 'imei' ? 15 : 500}
+          onChange={(e) => onChange(field.type === 'imei' ? e.target.value.replace(/\D/g, '').slice(0, 15) : e.target.value)}
+          className={field.type === 'imei' ? 'font-mono tabular-nums' : ''}
+        />
+      )}
+      {field.type === 'secret' && value && (
+        <div className="flex items-center gap-1.5 rounded-md border border-brand-warning/25 bg-brand-warning/[0.07] px-3 py-1.5">
+          <AlertCircle size={12} strokeWidth={1.5} className="shrink-0 text-brand-warning" aria-hidden />
+          <span className="text-xs text-text-muted">Este dato no se cifra. Manéjalo con discreción.</span>
+        </div>
+      )}
+    </Field>
+  );
+}
+
 export function NuevoBoletaPage() {
   const navigate = useNavigate();
   const { printBoleta, printPortal } = useBoletaPrint();
@@ -60,14 +115,19 @@ export function NuevoBoletaPage() {
   const [email, setEmail] = useState('');
   const [idNumber, setIdNumber] = useState('');
 
-  // Device fields
+  // Artículo y campos del negocio
+  const { itemLabel, ordersLabel, fields: orderFields } = useBusiness();
   const [deviceModel, setDeviceModel] = useState('');
-  const [imei, setImei] = useState('');
-  const [unlockPassword, setUnlockPassword] = useState('');
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitted, setSubmitted] = useState(false);
   const [description, setDescription] = useState('');
 
+  // Misma validación que aplica el servidor (validateOrderFields).
+  const fieldCheck = validateOrderFields(orderFields, fieldValues);
+  const fieldErrors = fieldCheck.ok ? {} : fieldCheck.errors;
+
   // Client-side validation state
-  const [imeiError, setImeiError] = useState('');
   const [phoneError, setPhoneError] = useState('');
 
   // Lookup customer by phone (fires when phone is exactly 8 digits)
@@ -100,32 +160,26 @@ export function NuevoBoletaPage() {
     else setPhoneError('');
   }
 
-  function validateImeiField(v: string) {
-    if (!v) { setImeiError(''); return; }
-    if (!/^\d{15}$/.test(v)) { setImeiError('El IMEI debe tener 15 dígitos'); return; }
-    if (!validateImei(v)) { setImeiError('IMEI inválido (falla Luhn)'); return; }
-    setImeiError('');
-  }
-
+  // Los campos obligatorios vacíos no deshabilitan el botón: al enviar se marcan en rojo.
   const canSubmit =
     /^\d{8}$/.test(phone) &&
     name.trim().length > 0 &&
     deviceModel.trim().length > 0 &&
     description.trim().length > 0 &&
-    !imeiError &&
     !phoneError;
 
   const createMutation = useMutation({ mutationFn: boletasApi.create });
 
   function resetForm() {
     setPhone(''); setName(''); setEmail(''); setIdNumber('');
-    setDeviceModel(''); setImei(''); setUnlockPassword(''); setDescription('');
-    setImeiError(''); setPhoneError('');
+    setDeviceModel(''); setFieldValues({}); setTouched({}); setSubmitted(false); setDescription('');
+    setPhoneError('');
   }
 
   function handleSubmit(e: React.FormEvent, andPrint: boolean) {
     e.preventDefault();
-    if (!canSubmit || createMutation.isPending) return;
+    setSubmitted(true);
+    if (!canSubmit || !fieldCheck.ok || createMutation.isPending) return;
 
     createMutation.mutate(
       {
@@ -134,8 +188,7 @@ export function NuevoBoletaPage() {
         customerEmail: email.trim() || undefined,
         customerIdNumber: idNumber.trim() || undefined,
         deviceModel: deviceModel.trim(),
-        imei: imei.trim() || undefined,
-        unlockPassword: unlockPassword.trim() || undefined,
+        fields: fieldValues,
         description: description.trim(),
       },
       {
@@ -161,27 +214,26 @@ export function NuevoBoletaPage() {
           type="button"
           onClick={() => void navigate({ to: '/boletas' })}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
-          aria-label="Volver a boletas"
+          aria-label="Volver"
         >
           <ChevronLeft size={18} strokeWidth={1.5} aria-hidden />
         </button>
         <div>
-          <h1 className="text-xl font-semibold text-text-primary">Nueva boleta</h1>
-          <p className="mt-0.5 text-sm text-text-muted">Registro de ingreso de equipo.</p>
+          <h1 className="text-xl font-semibold text-text-primary">{ordersLabel}: nuevo ingreso</h1>
         </div>
       </div>
 
       {savedConsecutive !== null && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-brand-success/30 bg-brand-success/10 px-4 py-3 text-sm">
           <span className="text-brand-success">
-            Boleta #{savedConsecutive} guardada e impresa. Formulario listo para la siguiente.
+            #{savedConsecutive} guardado e impreso. Formulario listo para el siguiente.
           </span>
           <button
             type="button"
             onClick={() => void navigate({ to: '/boletas' })}
             className="ml-3 shrink-0 text-brand-blue hover:underline"
           >
-            Ver boletas →
+            Ver todos →
           </button>
         </div>
       )}
@@ -262,64 +314,37 @@ export function NuevoBoletaPage() {
           </div>
         </section>
 
-        {/* Device section */}
+        {/* Artículo + campos definidos por el negocio */}
         <section>
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-text-muted">
-            Equipo
+            {itemLabel}
           </h2>
           <div className="space-y-4 rounded-xl border border-border bg-surface-card p-5">
-            <Field id="nb-model" label="Modelo" required>
+            <Field id="nb-model" label={itemLabel} required>
               <Input
                 id="nb-model"
                 type="text"
                 maxLength={200}
                 value={deviceModel}
-                placeholder="Samsung Galaxy A54"
                 aria-required="true"
                 onChange={(e) => setDeviceModel(e.target.value)}
               />
             </Field>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field id="nb-imei" label="IMEI" error={imeiError} hint="15 dígitos (opcional)">
-                <Input
-                  id="nb-imei"
-                  type="text"
-                  maxLength={15}
-                  value={imei}
-                  placeholder="353879234498174"
-                  onChange={(e) => {
-                    const v = e.target.value.replace(/\D/g, '').slice(0, 15);
-                    setImei(v);
-                    validateImeiField(v);
-                  }}
-                />
-              </Field>
-              <Field
-                id="nb-password"
-                label="Contraseña de desbloqueo"
-                hint="Código PIN o patrón — no se almacena de forma segura"
-              >
-                <div className="relative">
-                  <Input
-                    id="nb-password"
-                    type="text"
-                    maxLength={100}
-                    value={unlockPassword}
-                    placeholder="1234"
-                    onChange={(e) => setUnlockPassword(e.target.value)}
+            {orderFields.length > 0 && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {orderFields.map((f) => (
+                  <OrderFieldInput
+                    key={f.key}
+                    field={f}
+                    value={fieldValues[f.key] ?? ''}
+                    error={touched[f.key] || submitted ? fieldErrors[f.key] : undefined}
+                    onChange={(v) => setFieldValues((prev) => ({ ...prev, [f.key]: v }))}
+                    onBlur={() => setTouched((prev) => ({ ...prev, [f.key]: true }))}
                   />
-                </div>
-                {unlockPassword && (
-                  <div className="flex items-center gap-1.5 rounded-md border border-brand-warning/25 bg-brand-warning/[0.07] px-3 py-1.5">
-                    <AlertCircle size={12} strokeWidth={1.5} className="shrink-0 text-brand-warning" aria-hidden />
-                    <span className="text-xs text-text-muted">
-                      Este dato no se cifra. Manéjalo con discreción.
-                    </span>
-                  </div>
-                )}
-              </Field>
-            </div>
+                ))}
+              </div>
+            )}
 
             <Field id="nb-description" label="Descripción del problema / trabajo" required>
               <textarea
@@ -327,7 +352,7 @@ export function NuevoBoletaPage() {
                 maxLength={5000}
                 rows={4}
                 value={description}
-                placeholder="Pantalla rota, no enciende, batería dañada..."
+                placeholder="Qué pide el cliente o qué falla presenta"
                 aria-required="true"
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full resize-y rounded-lg border border-border bg-surface-input px-3 py-2.5 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
@@ -372,7 +397,7 @@ export function NuevoBoletaPage() {
 
         {createMutation.isError && (
           <p className="text-center text-xs text-brand-error" role="alert">
-            {createMutation.error?.message ?? 'Error al crear la boleta'}
+            {createMutation.error?.message ?? 'Error al guardar'}
           </p>
         )}
       </form>

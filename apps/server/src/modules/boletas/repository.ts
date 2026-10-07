@@ -2,32 +2,51 @@ import { count, desc, eq, like, or, sql } from 'drizzle-orm';
 import { currentActorId, db } from '../../db/client.js';
 import { auditLog, boletas, counters, customers } from '../../db/schema.js';
 import type {
-  Boleta,
   BoletaList,
   BoletaWithCustomer,
   CreateBoletaInput,
+  OrderFieldValue,
 } from '@sipnato/shared';
-function mapBoleta(r: typeof boletas.$inferSelect): Boleta {
-  return {
-    id: r.id,
-    customerId: r.customerId,
-    consecutive: r.consecutive,
-    deviceModel: r.deviceModel,
-    imei: r.imei ?? null,
-    unlockPassword: r.unlockPassword ?? null,
-    description: r.description,
-    createdAt: r.createdAt,
-    updatedAt: r.updatedAt,
-  };
-}
 
 interface AuditMeta {
   ip: string | null;
   userAgent: string | null;
 }
 
+const boletaColumns = {
+  id: boletas.id,
+  customerId: boletas.customerId,
+  consecutive: boletas.consecutive,
+  deviceModel: boletas.deviceModel,
+  fields: boletas.fields,
+  description: boletas.description,
+  createdAt: boletas.createdAt,
+  updatedAt: boletas.updatedAt,
+  customerName: customers.name,
+  customerPhone: customers.phone,
+};
+
+type BoletaJoinRow = {
+  [K in keyof typeof boletaColumns]: (typeof boletaColumns)[K]['_']['data'];
+};
+
+function parseFields(json: string): OrderFieldValue[] {
+  try {
+    const parsed = JSON.parse(json) as unknown;
+    return Array.isArray(parsed) ? (parsed as OrderFieldValue[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function toBoleta(r: BoletaJoinRow): BoletaWithCustomer {
+  return { ...r, fields: parseFields(r.fields) };
+}
+
+// `fields` llega ya validado contra el perfil del negocio (service).
 export function createBoletaRow(
-  input: CreateBoletaInput,
+  input: Omit<CreateBoletaInput, 'fields'>,
+  fields: OrderFieldValue[],
   meta: AuditMeta,
 ): BoletaWithCustomer {
   const now = new Date().toISOString();
@@ -69,15 +88,13 @@ export function createBoletaRow(
     if (!counter) throw new Error('Counter row for boleta is missing — run bootstrapDb');
     const consecutive = counter.newValue;
 
-    // Create boleta
     const row = tx
       .insert(boletas)
       .values({
         customerId: customer.id,
         consecutive,
         deviceModel: input.deviceModel,
-        imei: input.imei ?? null,
-        unlockPassword: input.unlockPassword ?? null,
+        fields: JSON.stringify(fields),
         description: input.description,
         createdAt: now,
         updatedAt: now,
@@ -91,60 +108,31 @@ export function createBoletaRow(
       action: 'BOLETA_CREATED',
       entityType: 'boleta',
       entityId: String(row.id),
+      // Sin los valores de los campos: pueden incluir contraseñas de equipos de clientes.
       payloadSnapshot: JSON.stringify({
         consecutive,
         customerId: customer.id,
         customerPhone: input.customerPhone,
         deviceModel: input.deviceModel,
-        imei: input.imei ?? null,
       }),
       ip: meta.ip,
       userAgent: meta.userAgent,
       userId: currentActorId(),
     }).run();
 
-    return {
-      ...mapBoleta(row),
-      customerName: customer.name,
-      customerPhone: customer.phone,
-    };
+    return toBoleta({ ...row, customerName: customer.name, customerPhone: customer.phone });
   });
 }
 
 export function findBoletaById(id: number): BoletaWithCustomer | null {
   const row = db
-    .select({
-      id: boletas.id,
-      customerId: boletas.customerId,
-      consecutive: boletas.consecutive,
-      deviceModel: boletas.deviceModel,
-      imei: boletas.imei,
-      unlockPassword: boletas.unlockPassword,
-      description: boletas.description,
-      createdAt: boletas.createdAt,
-      updatedAt: boletas.updatedAt,
-      customerName: customers.name,
-      customerPhone: customers.phone,
-    })
+    .select(boletaColumns)
     .from(boletas)
     .innerJoin(customers, eq(boletas.customerId, customers.id))
     .where(eq(boletas.id, id))
     .get();
 
-  if (!row) return null;
-  return {
-    id: row.id,
-    customerId: row.customerId,
-    consecutive: row.consecutive,
-    deviceModel: row.deviceModel,
-    imei: row.imei ?? null,
-    unlockPassword: row.unlockPassword ?? null,
-    description: row.description,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-    customerName: row.customerName,
-    customerPhone: row.customerPhone,
-  };
+  return row ? toBoleta(row) : null;
 }
 
 export function listBoletasRows(q: string, page: number, limit: number): BoletaList {
@@ -152,33 +140,21 @@ export function listBoletasRows(q: string, page: number, limit: number): BoletaL
 
   const consecutiveNum = q && /^\d+$/.test(q.trim()) ? parseInt(q.trim(), 10) : null;
 
+  // `fields` es JSON en texto: el LIKE encuentra placas, IMEI, números de serie...
   const condition = q
     ? or(
         like(customers.name, `%${q}%`),
         like(customers.phone, `%${q}%`),
-        like(boletas.imei, `%${q}%`),
+        like(boletas.deviceModel, `%${q}%`),
+        like(boletas.fields, `%${q}%`),
         consecutiveNum !== null ? eq(boletas.consecutive, consecutiveNum) : undefined,
       )
     : undefined;
 
-  const baseQuery = db
-    .select({
-      id: boletas.id,
-      customerId: boletas.customerId,
-      consecutive: boletas.consecutive,
-      deviceModel: boletas.deviceModel,
-      imei: boletas.imei,
-      unlockPassword: boletas.unlockPassword,
-      description: boletas.description,
-      createdAt: boletas.createdAt,
-      updatedAt: boletas.updatedAt,
-      customerName: customers.name,
-      customerPhone: customers.phone,
-    })
+  const rows = db
+    .select(boletaColumns)
     .from(boletas)
-    .innerJoin(customers, eq(boletas.customerId, customers.id));
-
-  const rows = baseQuery
+    .innerJoin(customers, eq(boletas.customerId, customers.id))
     .where(condition)
     .orderBy(desc(boletas.createdAt), desc(boletas.id))
     .limit(limit)
@@ -195,22 +171,9 @@ export function listBoletasRows(q: string, page: number, limit: number): BoletaL
   const total = countRow?.total ?? 0;
 
   return {
-    boletas: rows.map((r) => ({
-      id: r.id,
-      customerId: r.customerId,
-      consecutive: r.consecutive,
-      deviceModel: r.deviceModel,
-      imei: r.imei ?? null,
-      unlockPassword: r.unlockPassword ?? null,
-      description: r.description,
-      createdAt: r.createdAt,
-      updatedAt: r.updatedAt,
-      customerName: r.customerName,
-      customerPhone: r.customerPhone,
-    })),
+    boletas: rows.map(toBoleta),
     total,
     page,
     totalPages: Math.max(1, Math.ceil(total / limit)),
   };
 }
-

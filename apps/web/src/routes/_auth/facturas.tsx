@@ -6,12 +6,13 @@ import { formatColones } from '@sipnato/shared';
 import { fetchFactura, fetchFacturas, anularFactura } from '../../features/facturas/api';
 import { useFacturaPrint } from '../../features/facturas/FacturaPrintView';
 import { Route as authRoute } from '../_auth';
-import { useCan } from '../../features/auth/useCurrentUser';
+import { useCan, requireModule } from '../../features/auth/useCurrentUser';
 import type { Factura, FacturaWithItems } from '@sipnato/shared';
 
 export const Route = createRoute({
   getParentRoute: () => authRoute,
   path: '/facturas',
+  beforeLoad: ({ context }) => requireModule(context, 'facturas'),
   component: FacturasPage,
 });
 

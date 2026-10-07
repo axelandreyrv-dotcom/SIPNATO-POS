@@ -36,11 +36,34 @@
 | A | Aislamiento multi-negocio (BD por negocio, subdominios) | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
 | B | Multiusuario y roles (dueño / administrador / cajero, PIN por cajero) | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
 | C | Inventario / catálogo integrado al POS (manteniendo venta libre) | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
-| D | Plantillas por tipo de negocio + órdenes de servicio configurables | ⬜ Pendiente |
+| D | Plantillas por tipo de negocio + órdenes de servicio configurables | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
 | E | Colones + dólares · notificaciones a clientes | ⬜ Pendiente |
 | F | Registro de negocios, cobro de suscripción y panel de superadministrador | ⬜ Pendiente |
 
 > IVA y facturación electrónica de Hacienda: **descartados** (decisión del usuario, 2026-10-07).
+
+---
+
+## Fase D — Plantillas por tipo de negocio ✅ COMPLETADA 2026-10-07
+
+**Objetivo:** que el sistema sirva a otros rubros además de celulares, sin cambiar código por cliente.
+
+### Tareas Backend
+- [x] Perfil del negocio (migración 0009): plantilla, nombres, campos de la orden y módulos activos
+- [x] 5 plantillas: celulares, electrónica, taller mecánico, tienda sin servicio técnico, genérico
+- [x] Órdenes con campos configurables (texto, número, lista, IMEI, contraseña del cliente), validados en el servidor
+- [x] Boletas existentes migradas (IMEI y contraseña → campos) sin pérdida
+- [x] Módulos activables bloqueados en el servidor
+- [x] El setup de un negocio nuevo aplica la plantilla elegida
+
+### Tareas Frontend
+- [x] Editor del perfil en Configuración (plantilla, nombres, campos, módulos)
+- [x] Formulario, lista e impresión de órdenes generados desde el perfil
+- [x] Menú, dashboard y POS respetan los módulos activos
+- [x] Textos genéricos ("negocio" en lugar de "taller")
+
+### Criterio de completitud
+Un taller mecánico ve "Órdenes de trabajo" con placa y kilometraje, una tienda no ve órdenes, y el negocio de celulares existente sigue igual que antes. ✅ Verificado con tests y en navegador.
 
 ---
 

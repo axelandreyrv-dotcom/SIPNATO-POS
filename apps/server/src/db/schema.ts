@@ -149,7 +149,7 @@ export const customers = sqliteTable(
   }),
 );
 
-// ─── boletas ──────────────────────────────────────────────────────────────────
+// ─── boletas (órdenes de servicio) ────────────────────────────────────────────
 export const boletas = sqliteTable(
   'boletas',
   {
@@ -158,11 +158,12 @@ export const boletas = sqliteTable(
       .notNull()
       .references(() => customers.id),
     consecutive: integer('consecutive').notNull(),
+    // Artículo recibido (modelo del equipo, vehículo...). Etiqueta según el perfil del negocio.
     deviceModel: text('device_model').notNull(),
-    imei: text('imei'),
-    // Stored as plain text — this is the customer's device PIN, not a system secret.
-    // The UI must display a clear "not stored securely" notice.
-    unlockPassword: text('unlock_password'),
+    // JSON OrderFieldValue[] con la etiqueta de cada campo al momento de crear la orden.
+    // Los campos tipo "secret" (contraseña del equipo del cliente) van en texto plano:
+    // no es un secreto del sistema y la UI lo advierte.
+    fields: text('fields').notNull().default('[]'),
     description: text('description').notNull(),
     createdAt: text('created_at')
       .notNull()
@@ -172,10 +173,21 @@ export const boletas = sqliteTable(
       .default(sql`(datetime('now'))`),
   },
   (t) => ({
-    imeiIdx: index('boletas_imei_idx').on(t.imei),
     consecutiveIdx: index('boletas_consecutive_idx').on(t.consecutive),
   }),
 );
+
+// ─── business_profile ─────────────────────────────────────────────────────────
+// Una fila (id = 1): tipo de negocio, campos de las órdenes y módulos activos.
+export const businessProfile = sqliteTable('business_profile', {
+  id: integer('id').primaryKey(),
+  template: text('template').notNull(),
+  ordersLabel: text('orders_label').notNull(),
+  itemLabel: text('item_label').notNull(),
+  fields: text('fields').notNull(),
+  modules: text('modules').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
 
 // ─── quotes ───────────────────────────────────────────────────────────────────
 export const quotes = sqliteTable('quotes', {

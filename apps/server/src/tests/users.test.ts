@@ -158,9 +158,10 @@ describe('usuarios, roles y permisos', () => {
     assert.equal((await call('admin', 'GET', '/api/settings/backup/download')).statusCode, 403, 'backups: solo el dueño');
   });
 
-  it('el cajero no cancela créditos ni apartados; el admin sí puede intentarlo', async () => {
+  it('el cajero no cancela créditos ni anula facturas; el admin sí puede intentarlo', async () => {
+    // (Apartados viene desactivado en la plantilla genérica: respondería 404 MODULO_DESACTIVADO.)
     assert.equal((await call('cajero', 'POST', '/api/creditos/999/cancel')).statusCode, 403);
-    assert.equal((await call('cajero', 'POST', '/api/apartados/999/cancel')).statusCode, 403);
+    assert.equal((await call('cajero', 'POST', '/api/facturas/999/anular')).statusCode, 403);
     assert.equal((await call('admin', 'POST', '/api/creditos/999/cancel')).statusCode, 404);
   });
 

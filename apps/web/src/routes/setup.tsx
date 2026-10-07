@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createRoute, isRedirect, redirect, useNavigate } from '@tanstack/react-router';
 import { CheckCircle, Copy, Eye, EyeOff, Loader2, ShieldAlert } from 'lucide-react';
-import { setupSchema } from '@sipnato/shared';
+import { BUSINESS_TEMPLATES, setupSchema, TEMPLATE_INFO, type BusinessTemplate } from '@sipnato/shared';
 import { ApiError } from '@/lib/api-client';
 import { authApi } from '@/features/auth/api';
 import { redirectIfTenantUnavailable } from '@/features/auth/tenant-guard';
@@ -32,6 +32,7 @@ function SetupPage() {
 
   // Form state
   const [setupCode, setSetupCode] = useState('');
+  const [template, setTemplate] = useState<BusinessTemplate>('generico');
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -51,7 +52,7 @@ function SetupPage() {
     e.preventDefault();
     setErrors({});
 
-    const parsed = setupSchema.safeParse({ setupCode, displayName, username, password, confirmPassword: confirm });
+    const parsed = setupSchema.safeParse({ setupCode, template, displayName, username, password, confirmPassword: confirm });
     if (!parsed.success) {
       const fieldErrors: typeof errors = {};
       for (const issue of parsed.error.issues) {
@@ -215,6 +216,24 @@ function SetupPage() {
             ) : (
               <p className="text-xs text-text-muted">Lo recibiste junto con la dirección de tu negocio.</p>
             )}
+          </div>
+
+          {/* Tipo de negocio: define campos de las órdenes y módulos; se ajusta luego en Configuración */}
+          <div className="space-y-1.5">
+            <label htmlFor="setup-template" className="block text-sm font-medium text-text-secondary">
+              Tipo de negocio
+            </label>
+            <select
+              id="setup-template"
+              value={template}
+              onChange={(e) => setTemplate(e.target.value as BusinessTemplate)}
+              className="h-10 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all duration-150 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
+            >
+              {BUSINESS_TEMPLATES.map((t) => (
+                <option key={t} value={t}>{TEMPLATE_INFO[t].name}</option>
+              ))}
+            </select>
+            <p className="text-xs text-text-muted">{TEMPLATE_INFO[template].description} Puedes cambiarlo después.</p>
           </div>
 
           {/* Dueño: nombre y usuario */}

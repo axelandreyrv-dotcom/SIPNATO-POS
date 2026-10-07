@@ -26,6 +26,8 @@ import facturasRoutes from './modules/facturas/routes.js';
 import creditosRoutes from './modules/creditos/routes.js';
 import usersRoutes from './modules/users/routes.js';
 import productsRoutes from './modules/products/routes.js';
+import businessRoutes from './modules/business/routes.js';
+import { registerModuleRoutes } from './middleware/module.js';
 
 export async function buildApp(opts: { startJobs?: boolean } = {}) {
   const { startJobs = true } = opts;
@@ -77,20 +79,23 @@ export async function buildApp(opts: { startJobs?: boolean } = {}) {
   // ── Routes ─────────────────────────────────────────────────────────────────
   await app.register(authRoutes, { prefix: '/auth' });
   await app.register(cashRegisterRoutes, { prefix: '/api/cash-registers' });
-  await app.register(boletasRoutes, { prefix: '/api/boletas' });
   await app.register(customersRoutes, { prefix: '/api/customers' });
   await app.register(expensesRoutes, { prefix: '/api/expenses' });
   await app.register(salesRoutes, { prefix: '/api/sales' });
   await app.register(notesRoutes, { prefix: '/api/notes' });
-  await app.register(quotesRoutes, { prefix: '/api/quotes' });
   await app.register(settingsRoutes, { prefix: '/api/settings' });
   await app.register(reportsRoutes, { prefix: '/api/reports' });
   await app.register(dashboardRoutes, { prefix: '/api/dashboard' });
-  await app.register(apartadosRoutes, { prefix: '/api/apartados' });
-  await app.register(facturasRoutes, { prefix: '/api/facturas' });
-  await app.register(creditosRoutes, { prefix: '/api/creditos' });
   await app.register(usersRoutes, { prefix: '/api/users' });
-  await app.register(productsRoutes, { prefix: '/api/products' });
+  await app.register(businessRoutes, { prefix: '/api/business' });
+
+  // Módulos que cada negocio activa o desactiva (perfil del negocio).
+  await registerModuleRoutes(app, 'ordenes', boletasRoutes, '/api/boletas');
+  await registerModuleRoutes(app, 'cotizaciones', quotesRoutes, '/api/quotes');
+  await registerModuleRoutes(app, 'facturas', facturasRoutes, '/api/facturas');
+  await registerModuleRoutes(app, 'apartados', apartadosRoutes, '/api/apartados');
+  await registerModuleRoutes(app, 'creditos', creditosRoutes, '/api/creditos');
+  await registerModuleRoutes(app, 'inventario', productsRoutes, '/api/products');
 
   // Caddy (on-demand TLS) pregunta aquí antes de emitir un certificado para un subdominio.
   // Solo accesible dentro de la red Docker: el Caddyfile no expone /internal/*.
