@@ -12,7 +12,7 @@
 | Nombre | SIPNATO POS |
 | Propósito | Sistema POS multi-negocio — nació para un taller de celulares; se generaliza a otros tipos de tienda |
 | País / Zona horaria | Costa Rica · `America/Costa_Rica` |
-| Moneda | Colones costarricenses (₡) únicamente |
+| Moneda | Colones costarricenses (₡). Los dólares solo se reciben en caja y se convierten (Fase E) |
 | Usuarios | Por negocio: un **dueño**, administradores y cajeros (Fase B, ver §6.13) |
 | Tipo de sistema | Aplicación web privada detrás de login · cada negocio en su subdominio HTTPS (`<slug>.dosuxsoft.com`) con su propia BD |
 
@@ -82,7 +82,7 @@
 | Drizzle ORM | Schema, queries type-safe y migraciones |
 | argon2 (argon2id) | Hash de contraseñas y recovery codes |
 | node-cron | Jobs programados (cierre auto, backup) |
-| pino | Logging estructurado |
+| pino (incluido en Fastify) | Logging estructurado a la salida estándar |
 | zod | Validación de env vars y requests |
 
 ### Impresión de tickets — vía navegador
@@ -177,9 +177,8 @@ Agregar un módulo nuevo = crear esas carpetas. **Nada existente se modifica.**
 ### Branding
 | Archivo fuente | Uso en la app |
 |---|---|
-| `BRAND/*.jpg` (monograma DS) | Logo principal en sidebar/topbar y favicon · copiado a `web/public/logo.jpg` |
-| `web/public/favicon.svg` + `favicon.ico` | Favicons fallback (declarados en `index.html`) |
-| `web/public/og-image.png` | Open Graph / Twitter meta tags |
+| `BRAND/*.jpg` (monograma DS) | Fuente del logo · `web/public/logo.png` (blanco sobre transparente) se usa en sidebar, panel y como favicon |
+| `web/public/og-image.png` | Open Graph (1200×630): monograma DS sobre azul ejecutivo |
 
 ### Tipografía
 - Fuente: `Inter` (Google Fonts o bundleada con Fontsource).
@@ -226,8 +225,7 @@ Los contadores se llevan por **negocio + IP** (`keyGenerator` en `app.ts`).
 | `GET /api/settings/backup/download` | 5 descargas por hora por sesión |
 
 ### 6.5 CORS
-- Configuración: `origin: ['https://<tu-subdominio>']` — **nunca `*`** en endpoints autenticados.
-- Configurar en Fastify con `@fastify/cors`.
+- **Sin CORS.** Cada negocio y el panel llaman a su API en su mismo origen (Caddy en producción, proxy de Vite en desarrollo). Habilitarlo permitiría a otro subdominio de `dosuxsoft.com` leer la API con sesión: es el mismo sitio, así que las cookies `SameSite=Strict` viajan. (Hasta la revisión de 2026-10-07 se autorizaba `www.dosuxsoft.com`.)
 
 ### 6.6 Headers de seguridad HTTP (en `Caddyfile`)
 ```
@@ -260,11 +258,11 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 ### 6.10 Manejo de errores
 - Errores internos → loguear con `pino` (nivel `error`) → responder al cliente con mensaje genérico `{ error: { code, message } }`.
 - **Nunca** stack traces ni detalles internos en respuestas al cliente (CWE-209).
-- Errores tipados del dominio en `server/src/lib/errors.ts` (ej. `CajaYaAbierta`, `SesionExpirada`).
+- Errores tipados del dominio en `server/src/lib/errors.ts` (ej. `CajaYaAbierta`, `UsuarioBloqueado`).
 
 ### 6.11 Observabilidad
-- Logging estructurado con `pino` → archivo rotado diariamente en `/app/logs/`.
-- Health check: `GET /health` → retorna estado de la BD, último backup, uptime.
+- Logging estructurado con `pino` (JSON) a la salida estándar → `docker compose logs server`. Docker los rota: 5 archivos de 20 MB (`logging` en `docker-compose.yml`).
+- Health check: `GET /health` → estado de `control.db`, entorno y hora.
 - Sin Sentry (decisión del usuario) — los logs de pino son la fuente de diagnóstico.
 
 ### 6.12 Break-glass (recuperación de emergencia)
@@ -288,7 +286,8 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 - **Autorización de supervisor:** el cajero envía `body.authorization = { username, secret }` de un admin/dueño junto con la acción. Se valida con el mismo `verifyCredentials` del login (cuenta intentos fallidos y bloquea), no abre sesión, y queda en el `payload_snapshot` como `authorizedBy`. Los intentos fallidos se registran como `SUPERVISOR_AUTH_FAILED`.
 - **Autor en audit_log:** columna `user_id`, rellenada con `currentActorId()` (el actor que `requireAuth` deja en el contexto del request). NULL = sistema o sin sesión. Toda inserción nueva en `audit_log` debe incluir `userId: currentActorId()`.
 - Un solo dueño por negocio (índice único parcial).
-- **Revisar unicidad después de cada `await`:** entre una verificación ("¿existe ya?") y la inserción no puede haber `await` (hash argon2). Calcular los hashes primero y luego verificar e insertar sin pausas; better-sqlite3 es síncrono, así que ese tramo es atómico (setup del dueño, alta de usuarios, alta de negocios). Usuarios nunca se borran: se desactivan. El rol no se cambia (contraseña vs PIN): se desactiva y se crea otro.
+- Usuarios nunca se borran: se desactivan. El rol no se cambia (contraseña vs PIN): se desactiva y se crea otro.
+- **Revisar unicidad después de cada `await`:** entre una verificación ("¿existe ya?") y la inserción no puede haber `await` (hash argon2). Calcular los hashes primero y luego verificar e insertar sin pausas; better-sqlite3 es síncrono, así que ese tramo es atómico (setup del dueño, alta de usuarios, alta de negocios).
 - El recovery code es solo del dueño; admins y cajeros los restablece un superior desde Usuarios.
 
 ### 6.14 Panel de la plataforma (Fase F)
@@ -408,27 +407,34 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 
 ## 8. Variables de Entorno
 
-Definidas en `.env` (nunca en el repositorio). Ver `.env.example` para estructura.
-Producción: `deploy/.env` (lo lee Docker Compose). Desarrollo: `apps/server/.env`, opcional, cargado por `pnpm dev` con `--env-file-if-exists` (p. ej. para `BCCR_API_TOKEN`).
+Definidas en `.env` (nunca en el repositorio).
+Producción: `deploy/.env` (lo lee Docker Compose; ver `deploy/.env.example`). Desarrollo: `apps/server/.env`, opcional, cargado por `pnpm dev` con `--env-file-if-exists` (ver `apps/server/.env.example`).
+No hay secretos que generar: las sesiones son tokens aleatorios con hash en BD y la cookie no se firma (`SESSION_SECRET` y `ALLOWED_ORIGIN` se eliminaron el 2026-10-07; si siguen en un `.env` se ignoran).
 
 | Variable | Descripción |
 |---|---|
-| `SESSION_SECRET` | Secret para firmar cookies de sesión (min 64 chars, random) |
 | `DATA_DIR` | Directorio de datos: `control.db`, `tenants/<slug>.db`, `backups/<slug>/` (default: `./data`; prod: `/app/data`) |
 | `TENANT_BASE_DOMAIN` | Dominio base de los negocios (default: `localhost`; prod: `dosuxsoft.com`) |
 | `DEV_TENANT` | Solo desarrollo: negocio para `localhost` sin subdominio (opcional) |
 | `BCCR_API_TOKEN` | Token Bearer del API SDDE del BCCR para el tipo de cambio (opcional; sin él rige el respaldo manual de cada negocio) |
-| `LOG_PATH` | Ruta absoluta al directorio de logs (default: `/app/logs/`) |
 | `PORT` | Puerto del servidor Fastify (default: `3000`) |
-| `ALLOWED_ORIGIN` | Origen CORS permitido — **`https://www.sipnato.com`** |
 | `NODE_ENV` | `development` o `production` |
 
 ---
 
-## 9. Estructura de Carpetas (Aprobada)
+## 9. Estructura de Carpetas
 
-Ver sección 7 del spec de diseño en `docs/superpowers/specs/2026-06-09-sipnato-pos-design.md`.
-La estructura está fijada y aprobada — no modificar sin actualizar este archivo.
+```
+apps/server/src/   db/ (schema, migraciones, control.ts, client.ts, seed) · jobs/ · lib/ · middleware/
+                   modules/<modulo>/ (routes, service, repository) · scripts/ (tenant, superadmin, reset-admin)
+                   tests/ (integración) · db/tests/ (schema)
+apps/web/src/      features/<modulo>/ · routes/ (TanStack Router) · components/ · app/layout/ · lib/
+packages/shared/   src/schemas/<modulo>.ts · src/money.ts
+deploy/            docker-compose.yml · Caddyfile · backup.sh · DEPLOY.md · ACTUALIZAR-VPS.md · .env.example
+Dockerfile         multi-stage: build → server + caddy
+```
+
+El spec original (`docs/superpowers/specs/2026-06-09-sipnato-pos-design.md`) es histórico: describe la versión de un solo negocio.
 
 ---
 
@@ -488,6 +494,7 @@ La estructura está fijada y aprobada — no modificar sin actualizar este archi
 | 2026-06-17 | Post-launch bugfix | **Apartados eliminado del sidebar** — ítem `/apartados` removido de `NAV_ITEMS` en `AppLayout.tsx` (commit `2cee7ed`). El módulo backend y la página siguen existiendo pero no son accesibles desde la navegación; decisión tomada por el usuario. |
 | 2026-06-17 | Post-launch bugfix | **`drizzle.config.ts` apuntaba a DB incorrecta** — `sipnato.db` → `dosuxsoft.db` (commit `26832fa`). La BD de producción siempre se llamó `dosuxsoft.db` (volumen Docker `dosuxsoft-data`); el config de desarrollo nunca era crítico pero era engañoso. |
 | 2026-06-17 | Post-launch bugfix | **Bug crítico de Drizzle en módulo Créditos** — `listCreditoRows` y `getCreditoWithPaymentsRow` en `modules/creditos/repository.ts` producían 500 en producción: `"You tried to reference 'paidAmount' field from a subquery, which is a raw SQL field, but it doesn't have an alias declared."`. Causa: Drizzle v0.36.4 exige `.as('fieldAlias')` en campos `sql<T>\`...\`` dentro de subqueries nombrados. Fix: añadido `.as('paidAmount')` en ambas funciones (commit `e9cbe24`). El error solo se manifestó en producción porque `tsc` no lo detecta — ver regla de alias en Sección 7. |
+| 2026-10-07 | Revisión general | Limpieza y correcciones antes de producción. **Seguridad/configuración:** quitado CORS (autorizaba a `www.dosuxsoft.com` a leer la API de los negocios con sesión, porque las cookies `SameSite=Strict` viajan entre subdominios del mismo sitio) y la variable sin uso `SESSION_SECRET`; quitado `LOG_PATH` (los logs nunca fueron a archivo) y la rotación pasó a Docker (5 × 20 MB) para no llenar el disco. **Bug:** el panel marcaba "Sin activar" a un negocio migrado de la versión anterior (miraba el código de activación pendiente); ahora mira si la BD tiene usuarios (test nuevo). **Frontend:** 12 errores de lint corregidos (incluidos 3 `setState` dentro de `useEffect`: al encontrar un cliente por teléfono ya no se sobrescribe el nombre corregido en cada consulta); la animación del login y Recharts se cargan aparte (bundle inicial de 345 a 184 KB gzip) con un `SalesBarChart` compartido por dashboard y reportes; error en consola de la animación del login (elipses sin valor inicial); etiquetas de métodos de pago desde `PAYMENT_METHOD_LABELS`; `og-image.png` con el monograma DS (era el logo viejo de SIPNATO); descripción de `index.html` multi-negocio; Vite en el puerto 5174. **Eliminado:** código sin uso (3 errores, 5 funciones de repositorio, `parseColones`, esquemas y tipos sin referencias), dependencias `pino` y `@fastify/cors` (`tsx` pasó a desarrollo), favicons con el logo viejo, carpetas vacías con `.gitkeep`, `.env.example` de la raíz (ahora `apps/server/.env.example`). **Datos:** la BD de desarrollo se vació (solo había datos de prueba). **Docs:** README, PRODUCT.md, DEPLOY.md (migración de la BD anterior corregida, backups de `_control`, checklist) y ACTUALIZAR-VPS.md reescritos para la versión multi-negocio. 85/85 tests. |
 | 2026-10-07 | `/grill-me` A–F | Revisión técnica del backend de las Fases A–F. Verificado sin cambios: todas las rutas de negocio exigen sesión; cancelar/anular restringido a dueño/admin y eliminar ventas/gastos con autorización; el `audit_log` de órdenes no guarda valores de campos (contraseñas de clientes); el puerto 3000 no se publica (solo Caddy); `env_file` pasa `BCCR_API_TOKEN`. **Corregido:** (1) `control.db` no se respaldaba (desde la Fase F guarda pagos, precios y cuentas del panel) → respaldo diario en `backups/_control/`, que `backup.sh` ya copia. (2) Carreras entre verificación y escritura separadas por `await` (setup del dueño → 500 en vez de 409; alta de usuarios y de negocios duplicados) → hashes primero, verificación e inserción sin pausas. (3) Sin copia antes de migrar → `pre-migracion-*.db` por negocio con migraciones pendientes; test nuevo `src/tests/migrations.test.ts` que además sube una BD en el estado de producción (0006) hasta la 0010. (4) El aviso de vencimiento tardaba hasta 1 h en irse tras un pago → 10 min. Decisión del usuario: cotizaciones y notas siguen pudiéndose borrar por cualquier rol. 84/84 tests. |
 | 2026-10-07 | Fase F | **Panel de la plataforma y cobro de la mensualidad.** Decisiones del usuario: alta de negocios solo desde el panel; cobro manual por SINPE/transferencia; un atraso solo genera avisos; un plan con precio por defecto y precio especial por negocio. `control.db`: columnas de contacto/precio/vencimiento en `tenants`, tablas `superadmins`, `platform_sessions`, `subscription_payments`, `platform_settings`, `platform_audit_log`. Backend: `modules/platform/` (NUEVO: sesión del superadministrador con bloqueo, alta con BD y código de activación, datos y vencimiento auditados, pagos y anulaciones, suspensión, configuración de cobro), `middleware/platform-auth.ts` (NUEVO), subdominio `admin` aislado en `middleware/tenant.ts`, `modules/subscription/` (NUEVO: `/api/subscription` para dueño y admins), `scripts/superadmin.ts` (NUEVO), tls-check acepta `admin.`, limpieza diaria de sesiones del panel. Shared: `schemas/platform.ts` (NUEVO: validación del subdominio movida aquí, `addMonths`, `subscriptionStatus`, esquemas y tipos del panel). Frontend: `features/platform/` (NUEVO: login, negocios con resumen de cobros y filtros, alta con código enviable por WhatsApp, detalle con pagos/recordatorio/datos/acceso/actividad, configuración), `features/subscription/` (NUEVO: aviso de vencimiento en el layout y sección en Configuración). Deploy: Caddy enruta `/platform/*`; DEPLOY.md con la cuenta del panel. Tests: `src/tests/platform.test.ts` (NUEVO, 16 casos); 82/82 pasan. Verificado en navegador: login, configuración de cobro, alta de negocio con subdominio sugerido, activación con el código, aviso "vence el 09 oct" en el negocio, recordatorio y pago de 3 meses que corre el vencimiento al 09 ene 2027, vista de celular y modo oscuro. |
 | 2026-10-07 | Fase E | **Cobro en dólares y avisos a clientes por WhatsApp.** Decisiones del usuario: cobrar en USD con contabilidad en colones; tipo de cambio automático del BCCR; avisos por WhatsApp que la persona envía con un toque; avisos de orden recibida/lista, cobro de créditos, abono registrado y cotización. DB: migración `0010_dolares_avisos.sql` (campos USD en `sales`, totales USD en el cierre de `cash_registers`, tabla `customer_notifications`); `exchange_rates` en `control.db`. Backend: `lib/bccr.ts` (NUEVO: cliente API SDDE, compra 317/venta 318), `jobs/exchange-rate.ts` (NUEVO: consulta horaria global), `lib/exchange-rate.ts` (NUEVO: compra BCCR reciente o respaldo manual), método de pago `dolares` con conversión y vuelto calculados en el servidor, totales de caja con dólares en caja y vueltos, reportes y dashboard con dólares, `/api/exchange-rate` y `/api/notifications` (NUEVOS), settings `usd_manual_rate` y plantillas `msg_*`. Shared: utilidades USD en `money.ts`, `schemas/notifications.ts` (NUEVO: plantillas, `renderMessage`, `whatsappLink`). Frontend: botón "Dólares" y diálogo de cobro en USD en el POS, dólares en caja y arqueo, Configuración con tipo de cambio y editor de mensajes, `WhatsAppNotify` + historial en órdenes (comprobante / listo para retirar), créditos (recordar cobro, comprobante de abono), apartados (comprobante de abono) y cotizaciones. **Bugs previos corregidos:** fechas sin hora (vencimiento de créditos) se mostraban un día antes y un crédito figuraba vencido el mismo día de su vencimiento. Tests: `src/tests/currency.test.ts` (NUEVO, 11 casos, incluye el cliente BCCR con respuestas simuladas); 66/66 pasan. Verificado en navegador: respaldo de ₡505.50, cobro de ₡8,000 con $20 → vuelto ₡2,110, caja con $20.00 en dólares, aviso por WhatsApp con mensaje y número correctos y su historial. |

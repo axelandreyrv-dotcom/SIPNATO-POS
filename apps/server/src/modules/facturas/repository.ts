@@ -1,4 +1,4 @@
-import { and, count, desc, eq, like, or, sql } from 'drizzle-orm';
+import { count, desc, eq, like, or, sql } from 'drizzle-orm';
 import { currentActorId, db } from '../../db/client.js';
 import { auditLog, counters, facturaItems, facturas } from '../../db/schema.js';
 import type { CreateFacturaInput, Factura, FacturaItem, FacturaWithItems } from '@sipnato/shared';

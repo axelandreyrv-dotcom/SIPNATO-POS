@@ -1,5 +1,4 @@
 import cookie from '@fastify/cookie';
-import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import Fastify from 'fastify';
 import { config } from './config.js';
@@ -46,10 +45,8 @@ export async function buildApp(opts: { startJobs?: boolean } = {}) {
   // ── Plugins ────────────────────────────────────────────────────────────────
   await app.register(cookie);
 
-  await app.register(cors, {
-    origin: config.ALLOWED_ORIGIN,
-    credentials: true,
-  });
+  // Sin CORS a propósito: cada negocio y el panel llaman a su API en su mismo origen. Habilitarlo
+  // permitiría a otro subdominio (mismo sitio, así que las cookies SameSite=Strict viajan) leer la API.
 
   // Debe registrarse antes del rate limit: el límite se cuenta por negocio + IP.
   registerTenantResolution(app);

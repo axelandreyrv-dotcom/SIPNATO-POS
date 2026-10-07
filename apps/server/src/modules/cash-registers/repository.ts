@@ -13,16 +13,6 @@ export function findOpenRegister() {
   return rows[0] ?? null;
 }
 
-export function createCashRegister(openingAmount: number, openedAt: string): number {
-  const result = db
-    .insert(cashRegisters)
-    .values({ openingAmount, openedAt })
-    .returning({ id: cashRegisters.id })
-    .get();
-  if (!result) throw new Error('Failed to create cash register');
-  return result.id;
-}
-
 export function computeRunningTotals(cashRegisterId: number): CashRegisterTotals {
   const salesRows = db
     .select({
@@ -75,30 +65,6 @@ export function computeRunningTotals(cashRegisterId: number): CashRegisterTotals
 
   totals.netBalance = totals.totalSales - totals.totalExpenses;
   return totals;
-}
-
-export function closeCashRegisterRow(
-  id: number,
-  closedAt: string,
-  closeType: 'manual' | 'auto',
-  totals: CashRegisterTotals,
-): void {
-  db.update(cashRegisters)
-    .set({
-      closedAt,
-      closeType,
-      totalSalesCash: totals.salesEfectivo,
-      totalSalesCard: totals.salesTarjeta,
-      totalSalesTransfer: totals.salesTransferencia,
-      totalSalesSinpe: totals.salesSinpe,
-      totalSalesDolares: totals.salesDolares,
-      totalUsdCents: totals.usdReceivedCents,
-      totalUsdChange: totals.usdChangeColones,
-      totalExpenses: totals.totalExpenses,
-      netBalance: totals.netBalance,
-    })
-    .where(eq(cashRegisters.id, id))
-    .run();
 }
 
 export function listCashRegistersRows(

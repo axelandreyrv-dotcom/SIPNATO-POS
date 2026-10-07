@@ -85,7 +85,7 @@ export function listCreditoRows(status?: string, search?: string): Credito[] {
     .groupBy(creditoPayments.creditoId)
     .as('paid');
 
-  let query = db
+  const query = db
     .select({
       id: creditos.id,
       consecutive: creditos.consecutive,

@@ -16,8 +16,6 @@ Thumbs.db
 apps/web/vite.config.js
 apps/web/vite.config.d.ts
 
-# Datos en runtime — directorios trackeados via .gitkeep, contenido ignorado
+# Datos en runtime — directorio trackeado via .gitkeep, contenido ignorado
 apps/server/data/*
 !apps/server/data/.gitkeep
-apps/server/logs/*
-!apps/server/logs/.gitkeep

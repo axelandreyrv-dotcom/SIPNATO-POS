@@ -17,7 +17,6 @@
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
-    "@fastify/cors": "^11.2.0",
     "@fastify/rate-limit": "^11.0.0",
     "@sipnato/shared": "workspace:*",
     "argon2": "^0.41.0",
@@ -25,8 +24,6 @@
     "drizzle-orm": "^0.36.0",
     "fastify": "^5.0.0",
     "node-cron": "^3.0.3",
-    "pino": "^9.4.0",
-    "tsx": "^4.19.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
@@ -35,6 +32,7 @@
     "@types/node-cron": "^3.0.11",
     "drizzle-kit": "^0.28.0",
     "pino-pretty": "^11.3.0",
+    "tsx": "^4.19.0",
     "typescript": "*"
   }
 }

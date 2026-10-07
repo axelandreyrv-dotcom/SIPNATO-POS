@@ -10,12 +10,17 @@ services:
       # control.db + tenants/<slug>.db + backups/<slug>/
       DATA_DIR: /app/data
       TENANT_BASE_DOMAIN: dosuxsoft.com
-      LOG_PATH: /app/logs
       PORT: "3000"
     volumes:
       - dosuxsoft-data:/app/data
-      - dosuxsoft-logs:/app/logs
     restart: unless-stopped
+    # Los logs (pino, JSON) van a la salida estándar: `docker compose logs server`.
+    # Docker los rota para que no llenen el disco: 5 archivos de 20 MB.
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     healthcheck:
       test:
         - CMD
@@ -43,9 +48,13 @@ services:
       server:
         condition: service_healthy
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
 volumes:
   dosuxsoft-data:
-  dosuxsoft-logs:
   caddy-data:
   caddy-config:

@@ -53,17 +53,6 @@ export function getAllSettings(): RawSettings {
   };
 }
 
-export function setSetting(key: SettingKey, value: string): void {
-  db
-    .insert(settings)
-    .values({ key, value })
-    .onConflictDoUpdate({
-      target: settings.key,
-      set: { value, updatedAt: new Date().toISOString() },
-    })
-    .run();
-}
-
 export function setAllSettings(
   entries: [SettingKey, string][],
   audit: { payloadSnapshot: string; ip: string | null; userAgent: string | null },

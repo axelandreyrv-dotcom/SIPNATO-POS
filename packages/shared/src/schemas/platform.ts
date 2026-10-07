@@ -170,7 +170,6 @@ export type RecordPaymentInput = z.infer<typeof recordPaymentSchema>;
 export type CreateTenantInput = z.infer<typeof createTenantSchema>;
 export type UpdateTenantInput = z.infer<typeof updateTenantSchema>;
 export type PlatformSettings = z.infer<typeof platformSettingsSchema>;
-export type PlatformLoginInput = z.infer<typeof platformLoginSchema>;
 
 export interface Superadmin {
   id: number;

@@ -138,14 +138,6 @@ export function updateTenantFields(slug: string, fields: TenantFields): void {
   controlDb.prepare(`UPDATE tenants SET ${sets} WHERE slug = ?`).run(...entries.map(([, v]) => v), slug);
 }
 
-export function tenantSlugsWithOwner(): Set<string> {
-  // La marca de activación es que el código de un solo uso ya no existe.
-  const rows = controlDb
-    .prepare<[], { slug: string }>('SELECT slug FROM tenants WHERE setup_code_hash IS NULL')
-    .all();
-  return new Set(rows.map((r) => r.slug));
-}
-
 // ─── Pagos ────────────────────────────────────────────────────────────────────
 
 interface PaymentRow {

@@ -9,16 +9,6 @@ export const customerIdNumberSchema = z
   .regex(/^[a-zA-Z0-9\-]{1,20}$/, 'Cédula inválida')
   .optional();
 
-export const createCustomerSchema = z.object({
-  name: z.string().min(1, 'El nombre es requerido').max(200),
-  phone: customerPhoneSchema,
-  email: z.string().email('Correo inválido').max(200).optional(),
-  address: z.string().max(500).optional(),
-  idNumber: customerIdNumberSchema,
-});
-
-export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
-
 export type Customer = {
   id: number;
   name: string;

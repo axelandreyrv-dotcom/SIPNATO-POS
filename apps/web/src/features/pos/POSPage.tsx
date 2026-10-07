@@ -11,7 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import type { CreateSaleInput, PaymentMethod, Product, Sale, Settings, SupervisorAuth } from '@sipnato/shared';
-import { formatColones } from '@sipnato/shared';
+import { formatColones, PAYMENT_METHOD_LABELS } from '@sipnato/shared';
 import { fmtTime } from '../../lib/format';
 import { cashRegisterApi } from '../cash-register/api';
 import { salesApi } from './api';
@@ -29,14 +29,6 @@ const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'transferencia', label: 'Trans.' },
   { value: 'dolares', label: 'Dólares' },
 ];
-
-const METHOD_LABELS: Record<PaymentMethod, string> = {
-  efectivo: 'Efectivo',
-  tarjeta: 'Tarjeta',
-  sinpe: 'SINPE',
-  transferencia: 'Trans.',
-  dolares: 'Dólares',
-};
 
 const METHOD_COLORS: Record<PaymentMethod, string> = {
   efectivo: 'bg-brand-success/10 text-brand-success',
@@ -224,7 +216,7 @@ function SaleRow({
         'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
         METHOD_COLORS[sale.paymentMethod],
       ].join(' ')}>
-        {METHOD_LABELS[sale.paymentMethod]}
+        {PAYMENT_METHOD_LABELS[sale.paymentMethod]}
       </span>
       <span className="shrink-0 text-sm font-semibold tabular-nums text-text-primary">
         {formatColones(sale.amount)}
@@ -340,7 +332,7 @@ function SalePrintView({ sale, settings }: { sale: Sale; settings: Settings | un
         )}
 
         {/* Method */}
-        {row('Método:', METHOD_LABELS[sale.paymentMethod])}
+        {row('Método:', PAYMENT_METHOD_LABELS[sale.paymentMethod])}
 
         <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Loader2, Minus, Plus } from 'lucide-react';
@@ -30,19 +30,18 @@ export function EditarCotizacionPage() {
     staleTime: 60_000,
   });
 
-  // Pre-fill items from loaded quote (only once)
-  useEffect(() => {
-    if (quote && !initialised) {
-      setItems(
-        quote.items.map((item) => ({
-          id: Math.random().toString(36).slice(2),
-          description: item.description,
-          amountStr: String(item.amount),
-        })),
-      );
-      setInitialised(true);
-    }
-  }, [quote, initialised]);
+  // Las líneas de la cotización se copian al estado una sola vez, cuando llega
+  // (ajuste durante el render, sin efecto).
+  if (quote && !initialised) {
+    setInitialised(true);
+    setItems(
+      quote.items.map((item, i) => ({
+        id: `orig-${i}`,
+        description: item.description,
+        amountStr: String(item.amount),
+      })),
+    );
+  }
 
   const total = items.reduce((sum, item) => sum + parseAmount(item.amountStr), 0);
   const allValid = items.length >= 1 && items.every((item) => item.description.trim().length > 0);

@@ -9,7 +9,7 @@ import { tmpdir } from 'os';
 import { rmSync } from 'fs';
 import { fileURLToPath } from 'url';
 import * as schema from '../schema.js';
-import { cashRegisters, counters, expenses, sales } from '../schema.js';
+import { sales } from '../schema.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const migrationsFolder = join(__dirname, '..', 'migrations');
@@ -25,11 +25,10 @@ function makeTestDb() {
 }
 
 describe('counters — consecutivos transaccionales', () => {
-  let db: ReturnType<typeof makeTestDb>['db'];
   let sqlite: ReturnType<typeof makeTestDb>['sqlite'];
 
   before(() => {
-    ({ db, sqlite } = makeTestDb());
+    ({ sqlite } = makeTestDb());
     sqlite.prepare("INSERT INTO counters (type, current_value) VALUES ('sale', 0)").run();
   });
 

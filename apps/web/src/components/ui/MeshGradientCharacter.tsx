@@ -34,6 +34,8 @@ export function MeshGradientCharacter() {
   const eyeProps = (baseCx: number) => ({
     rx: 20 as number,
     fill: 'currentColor',
+    // Sin valores iniciales el primer cuadro pinta la elipse con cx/cy/ry vacíos (error en consola).
+    initial: { cx: baseCx, cy: 120, ry: 30 },
     animate: {
       cx: baseCx + eyeOffset.x,
       cy: 120 + eyeOffset.y,

@@ -64,7 +64,6 @@ import {
   recordSuperadminFailure,
   resetSuperadminFailures,
   sumPaymentsBetween,
-  tenantSlugsWithOwner,
   touchPlatformSession,
   updateSuperadminPassword,
   updateTenantFields,
@@ -178,6 +177,12 @@ export function updatePlatformSettings(admin: Superadmin, settings: PlatformSett
 
 // ─── Negocios ─────────────────────────────────────────────────────────────────
 
+// Se mira la BD del negocio y no el código de activación: una BD migrada de la versión anterior
+// ya trae dueño aunque nunca se haya usado un código.
+function hasOwner(slug: string): boolean {
+  return runWithTenant(slug, () => db.select({ id: users.id }).from(users).limit(1).get() !== undefined);
+}
+
 function toPlatformTenant(t: TenantRecord, defaultPrice: number, activated: boolean, today: string): PlatformTenant {
   const { status: subscription, daysLeft } = subscriptionStatus(t.paidUntil, today);
   return {
@@ -205,14 +210,13 @@ function requireTenant(slug: string): TenantRecord {
 
 function platformTenant(slug: string): PlatformTenant {
   const tenant = requireTenant(slug);
-  return toPlatformTenant(tenant, getPlatformSettings().defaultMonthlyPrice, tenantSlugsWithOwner().has(slug), todayCR());
+  return toPlatformTenant(tenant, getPlatformSettings().defaultMonthlyPrice, hasOwner(slug), todayCR());
 }
 
 export function listPlatformTenants(): { tenants: PlatformTenant[]; summary: PlatformSummary } {
   const today = todayCR();
   const { defaultMonthlyPrice } = getPlatformSettings();
-  const activated = tenantSlugsWithOwner();
-  const tenants = listTenants().map((t) => toPlatformTenant(t, defaultMonthlyPrice, activated.has(t.slug), today));
+  const tenants = listTenants().map((t) => toPlatformTenant(t, defaultMonthlyPrice, hasOwner(t.slug), today));
 
   const active = tenants.filter((t) => t.status === 'active');
   const billed = active.filter((t) => t.subscription !== 'sin_cobro');
@@ -265,9 +269,6 @@ export async function issueSetupCode(slug: string): Promise<string> {
   return code;
 }
 
-function hasOwner(slug: string): boolean {
-  return runWithTenant(slug, () => db.select({ id: users.id }).from(users).limit(1).get() !== undefined);
-}
 
 export async function createTenant(
   admin: Superadmin,

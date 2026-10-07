@@ -32,11 +32,3 @@ export function parseUsdToCents(raw: string): number | null {
   if (!m) return null;
   return parseInt(m[1]!, 10) * 100 + (m[2] ? parseInt(m[2].padEnd(2, '0'), 10) : 0);
 }
-
-export function parseColones(raw: string): number {
-  const digits = raw.replace(/[^\d]/g, '');
-  if (!digits) throw new Error(`Monto inválido: "${raw}"`);
-  const value = parseInt(digits, 10);
-  if (!Number.isFinite(value) || value < 0) throw new Error(`Monto inválido: "${raw}"`);
-  return value;
-}

@@ -13,7 +13,7 @@ delete process.env['DEV_TENANT'];
 
 const { addMonths, subscriptionStatus } = await import('@sipnato/shared');
 const { buildApp } = await import('../app.js');
-const { closeAllTenantDbs } = await import('../db/client.js');
+const { closeAllTenantDbs, currentTenant, runWithTenant } = await import('../db/client.js');
 const { closeControlDb, findTenant } = await import('../db/control.js');
 const { COOKIE_NAME, PLATFORM_COOKIE_NAME } = await import('../lib/constants.js');
 const { hashPassword } = await import('../lib/crypto.js');
@@ -149,6 +149,24 @@ describe('panel de superadministrador', () => {
     // Ya tiene dueño: no se emite otro código.
     const again = await app.inject({ method: 'POST', url: '/platform/tenants/tienda-nueva/setup-code', headers: asAdmin() });
     assert.equal(again.statusCode, 409);
+  });
+
+  it('una BD migrada que ya trae dueño cuenta como activada aunque quede un código', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/platform/tenants',
+      headers: asAdmin(),
+      payload: { slug: 'migrado', name: 'Migrado', paidUntil: null },
+    });
+    assert.equal(res.statusCode, 201);
+    // Como al copiar el dosuxsoft.db de la versión anterior sobre tenants/<slug>.db.
+    runWithTenant('migrado', () =>
+      currentTenant().sqlite
+        .prepare("INSERT INTO users (username, display_name, role, secret_hash) VALUES ('dueno', 'Dueño', 'dueno', 'x')")
+        .run(),
+    );
+    const list = await app.inject({ method: 'GET', url: '/platform/tenants', headers: asAdmin() });
+    assert.equal(list.json().tenants.find((t: { slug: string }) => t.slug === 'migrado').activated, true);
   });
 
   it('la sesión de un negocio no abre el panel', async () => {

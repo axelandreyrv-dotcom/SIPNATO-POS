@@ -1,14 +1,5 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import {
   CalendarDays,
   ChevronLeft,
@@ -19,7 +10,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { formatColones } from '@sipnato/shared';
-import type { DailyEntry, ReportSaleRow, ReportSummary } from '@sipnato/shared';
+import type { ReportSaleRow, ReportSummary } from '@sipnato/shared';
 import { fmtDate, fmtDateTime } from '../../lib/format';
 import { reportsApi } from './api';
 
@@ -82,6 +73,7 @@ const METHOD_BADGE: Record<string, string> = {
   dolares: 'bg-brand-success/10 text-brand-success',
 };
 
+// Cortas a propósito: la columna de método de la tabla mide ~55 px.
 const METHOD_LABEL: Record<string, string> = {
   efectivo: 'Efectivo',
   tarjeta: 'Tarjeta',
@@ -90,31 +82,7 @@ const METHOD_LABEL: Record<string, string> = {
   dolares: 'Dólares',
 };
 
-// ── Chart custom tooltip ───────────────────────────────────────────────────
-
-function ChartTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ value?: number; payload?: DailyEntry }>;
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  const entry = payload[0];
-  const total = entry?.value ?? 0;
-  const count = entry?.payload?.count ?? 0;
-  return (
-    <div className="rounded-lg border border-border bg-surface-card px-3 py-2 shadow-md">
-      <p className="text-xs text-text-muted">{label}</p>
-      <p className="text-sm font-semibold tabular-nums text-text-primary">{formatColones(total)}</p>
-      <p className="text-xs text-text-muted">
-        {count} {count === 1 ? 'venta' : 'ventas'}
-      </p>
-    </div>
-  );
-}
+const SalesBarChart = lazy(() => import('../../components/charts/SalesBarChart'));
 
 // ── Summary grid ───────────────────────────────────────────────────────────
 
@@ -212,10 +180,13 @@ export function ReportesPage() {
     return f <= t;
   }
 
-  // Reset page when filters change
-  useEffect(() => {
+  // Volver a la página 1 al cambiar los filtros (ajuste durante el render, sin efecto).
+  const filterKey = `${from}|${to}|${pmFilter}|${qFilter}`;
+  const [pageFilterKey, setPageFilterKey] = useState(filterKey);
+  if (pageFilterKey !== filterKey) {
+    setPageFilterKey(filterKey);
     setPage(1);
-  }, [from, to, pmFilter, qFilter]);
+  }
 
   const summaryQuery = useQuery({
     queryKey: ['reports', 'summary', from, to],
@@ -416,46 +387,15 @@ export function ReportesPage() {
               <p className="text-sm text-text-muted">Sin ventas en el período.</p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={dailyData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                <CartesianGrid
-                  vertical={false}
-                  stroke="var(--color-border)"
-                  strokeDasharray="3 3"
-                />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(d: string) => {
-                    const p = d.split('-');
-                    return `${p[2] ?? ''}/${p[1] ?? ''}`;
-                  }}
-                  tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  tickFormatter={(v: number) =>
-                    v >= 1_000_000
-                      ? `₡${(v / 1_000_000).toFixed(1)}M`
-                      : v >= 1000
-                        ? `₡${Math.round(v / 1000)}k`
-                        : `₡${v}`
-                  }
-                  tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={60}
-                />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'transparent' }} />
-                <Bar
-                  dataKey="total"
-                  fill="var(--color-brand-blue)"
-                  radius={[3, 3, 0, 0]}
-                  activeBar={{ fill: 'var(--color-brand-blue)', opacity: 0.8 }}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <Suspense fallback={<div className="h-[220px]" />}>
+              <SalesBarChart
+                data={dailyData}
+                height={220}
+                yAxisWidth={60}
+                xTick={(d) => `${d.slice(8, 10)}/${d.slice(5, 7)}`}
+                tooltipLabel={fmtDate}
+              />
+            </Suspense>
           )}
         </div>
       </section>

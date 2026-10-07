@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { AlertCircle, CheckCircle, ChevronLeft, Loader2, Printer } from 'lucide-react';
@@ -141,20 +141,19 @@ export function NuevoBoletaPage() {
     staleTime: 30_000,
   });
 
-  // Autofill name when customer found
-  useEffect(() => {
-    if (!phoneLookupEnabled) return;
-    const match = lookupData?.customers.find((c) => c.phone === phone);
-    if (match) {
-      setName(match.name);
-      setEmail(match.email ?? '');
-      setIdNumber(match.idNumber ?? '');
-    }
-  }, [lookupData, phone, phoneLookupEnabled]);
-
   const foundCustomer = phoneLookupEnabled
     ? lookupData?.customers.find((c) => c.phone === phone) ?? null
     : null;
+
+  // Al encontrar al cliente se llenan sus datos una sola vez: si luego se corrige el nombre,
+  // una nueva consulta no lo sobrescribe. (Ajuste durante el render, sin efecto.)
+  const [autofilledId, setAutofilledId] = useState<number | null>(null);
+  if (foundCustomer && autofilledId !== foundCustomer.id) {
+    setAutofilledId(foundCustomer.id);
+    setName(foundCustomer.name);
+    setEmail(foundCustomer.email ?? '');
+    setIdNumber(foundCustomer.idNumber ?? '');
+  }
 
   function validatePhoneField(v: string) {
     if (v && !/^\d{8}$/.test(v)) setPhoneError('Debe tener exactamente 8 dígitos');
