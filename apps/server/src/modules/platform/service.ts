@@ -281,6 +281,8 @@ export async function createTenant(
   const codeHash = await hashSetupCode(code);
 
   controlTransaction(() => {
+    // Otra vez tras el await: dos altas simultáneas del mismo subdominio.
+    if (findTenant(input.slug)) throw new NegocioYaExiste();
     insertTenant(input.slug, input.name);
     updateTenantFields(input.slug, {
       contactName: input.contactName,

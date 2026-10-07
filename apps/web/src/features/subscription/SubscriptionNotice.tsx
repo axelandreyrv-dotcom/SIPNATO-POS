@@ -13,7 +13,8 @@ export function useSubscription(enabled: boolean) {
     queryKey: ['subscription'],
     queryFn: subscriptionApi.get,
     enabled,
-    staleTime: 60 * 60 * 1000,
+    // Tras registrar un pago en el panel, el aviso desaparece en minutos sin recargar.
+    staleTime: 10 * 60 * 1000,
   });
 }
 

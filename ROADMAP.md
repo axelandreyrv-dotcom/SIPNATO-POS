@@ -33,12 +33,12 @@
 
 | Fase | Nombre | Estado |
 |---|---|---|
-| A | Aislamiento multi-negocio (BD por negocio, subdominios) | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
-| B | Multiusuario y roles (dueño / administrador / cajero, PIN por cajero) | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
-| C | Inventario / catálogo integrado al POS (manteniendo venta libre) | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
-| D | Plantillas por tipo de negocio + órdenes de servicio configurables | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
-| E | Colones + dólares · notificaciones a clientes | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
-| F | Alta de negocios, cobro de suscripción y panel de superadministrador | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
+| A | Aislamiento multi-negocio (BD por negocio, subdominios) | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
+| B | Multiusuario y roles (dueño / administrador / cajero, PIN por cajero) | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
+| C | Inventario / catálogo integrado al POS (manteniendo venta libre) | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
+| D | Plantillas por tipo de negocio + órdenes de servicio configurables | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
+| E | Colones + dólares · notificaciones a clientes | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
+| F | Alta de negocios, cobro de suscripción y panel de superadministrador | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
 
 > IVA y facturación electrónica de Hacienda: **descartados** (decisión del usuario, 2026-10-07).
 

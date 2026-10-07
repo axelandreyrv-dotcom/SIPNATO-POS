@@ -46,14 +46,17 @@ export async function setupAdmin(
   }
 
   const recoveryCode = generateRecoveryCode();
+  const secretHash = await hashPassword(input.password);
+  const recoveryCodeHash = await hashRecoveryCode(recoveryCode);
+
+  // Sin `await` desde aquí hasta consumir el código: dos activaciones simultáneas no pueden
+  // pasar ambas (better-sqlite3 es síncrono). La segunda recibe 409 en vez de chocar con el
+  // índice único del dueño.
+  if (isAdminSetup() || getSetupCodeHash(slug) !== codeHash) {
+    throw new AppError('SETUP_ALREADY_DONE', 'El sistema ya fue configurado', 409);
+  }
   const dueno = insertUserRow(
-    {
-      username: input.username,
-      displayName: input.displayName,
-      role: 'dueno',
-      secretHash: await hashPassword(input.password),
-      recoveryCodeHash: await hashRecoveryCode(recoveryCode),
-    },
+    { username: input.username, displayName: input.displayName, role: 'dueno', secretHash, recoveryCodeHash },
     meta,
   );
   setSetupCodeHash(slug, null);

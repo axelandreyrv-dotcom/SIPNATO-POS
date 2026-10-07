@@ -132,14 +132,12 @@ export async function createUser(actor: Actor, input: CreateUserInput, meta: Met
     throw new PermisoDenegado('No puedes crear usuarios con ese rol');
   }
   if (findUserByUsername(input.username)) throw new UsuarioYaExiste();
+  const secretHash = await hashPassword(input.secret);
+  // Se revisa otra vez tras el hash (asíncrono): otro request pudo crear el mismo usuario.
+  if (findUserByUsername(input.username)) throw new UsuarioYaExiste();
 
   const row = insertUserRow(
-    {
-      username: input.username,
-      displayName: input.displayName,
-      role: input.role,
-      secretHash: await hashPassword(input.secret),
-    },
+    { username: input.username, displayName: input.displayName, role: input.role, secretHash },
     meta,
   );
   return toRecord(row);
