@@ -15,3 +15,4 @@ export * from './schemas/factura.js';
 export * from './schemas/credito.js';
 export * from './schemas/product.js';
 export * from './schemas/business.js';
+export * from './schemas/notifications.js';

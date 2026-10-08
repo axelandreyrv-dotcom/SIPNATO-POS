@@ -79,6 +79,7 @@ const METHOD_BADGE: Record<string, string> = {
   tarjeta: 'bg-brand-warning/10 text-brand-warning',
   transferencia: 'bg-text-muted/10 text-text-secondary',
   sinpe: 'bg-brand-blue/10 text-brand-blue',
+  dolares: 'bg-brand-success/10 text-brand-success',
 };
 
 const METHOD_LABEL: Record<string, string> = {
@@ -86,6 +87,7 @@ const METHOD_LABEL: Record<string, string> = {
   tarjeta: 'Tarjeta',
   transferencia: 'Transfer.',
   sinpe: 'SINPE',
+  dolares: 'Dólares',
 };
 
 // ── Chart custom tooltip ───────────────────────────────────────────────────
@@ -133,6 +135,10 @@ function SummaryGrid({ data, loading }: { data: ReportSummary | undefined; loadi
       value: data?.byPaymentMethod.transferencia,
       color: 'text-text-secondary',
     },
+    // Solo si hubo cobros en dólares en el periodo (valorados en colones).
+    ...(data && data.byPaymentMethod.dolares > 0
+      ? [{ label: 'Dólares (en ₡)', value: data.byPaymentMethod.dolares, color: 'text-brand-success' }]
+      : []),
     { label: 'Gastos', value: data?.totalExpenses, color: 'text-brand-error', prefix: '−' },
     {
       label: 'Balance neto',
@@ -146,10 +152,13 @@ function SummaryGrid({ data, loading }: { data: ReportSummary | undefined; loadi
     },
   ];
 
+  // 6 celdas → 3 columnas; 7 (con dólares) → 4 columnas y el balance ocupa dos.
+  const wide = cells.length === 7;
+
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3">
-      {cells.map(({ label, value, color, prefix }) => (
-        <div key={label} className="bg-surface-card px-4 py-4">
+    <div className={['grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border', wide ? 'sm:grid-cols-4' : 'sm:grid-cols-3'].join(' ')}>
+      {cells.map(({ label, value, color, prefix }, i) => (
+        <div key={label} className={['bg-surface-card px-4 py-4', wide && i === cells.length - 1 ? 'col-span-2' : ''].join(' ')}>
           <p className="mb-1.5 text-xs text-text-muted">{label}</p>
           {loading || value === undefined ? (
             <div className="h-5 w-24 animate-pulse rounded bg-border" />
@@ -168,7 +177,7 @@ function SummaryGrid({ data, loading }: { data: ReportSummary | undefined; loadi
 // ── Main page ──────────────────────────────────────────────────────────────
 
 type Preset = 'hoy' | 'semana' | 'mes' | 'personalizado';
-type PmFilter = '' | 'efectivo' | 'tarjeta' | 'transferencia' | 'sinpe';
+type PmFilter = '' | 'efectivo' | 'tarjeta' | 'transferencia' | 'sinpe' | 'dolares';
 
 const PRESETS: { key: Preset; label: string }[] = [
   { key: 'hoy', label: 'Hoy' },
@@ -354,6 +363,7 @@ export function ReportesPage() {
               <option value="efectivo">Efectivo</option>
               <option value="tarjeta">Tarjeta</option>
               <option value="sinpe">SINPE</option>
+              <option value="dolares">Dólares</option>
               <option value="transferencia">Transferencia</option>
             </select>
           </div>

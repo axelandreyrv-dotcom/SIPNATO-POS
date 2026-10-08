@@ -10,7 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import type { CashRegisterCurrent, CashRegisterSummary } from '@sipnato/shared';
-import { formatColones } from '@sipnato/shared';
+import { formatColones, formatUsd } from '@sipnato/shared';
 import { fmtDate, fmtTime } from '../../lib/format';
 import { cashRegisterApi } from './api';
 
@@ -34,6 +34,7 @@ function TotalsGrid({ totals }: { totals: CashRegisterCurrent['totals'] }) {
     { label: 'Tarjeta', value: totals.salesTarjeta },
     { label: 'Transferencia', value: totals.salesTransferencia },
     { label: 'SINPE', value: totals.salesSinpe },
+    ...(totals.salesDolares > 0 ? [{ label: 'Dólares (en ₡)', value: totals.salesDolares }] : []),
     { label: 'Total ventas', value: totals.totalSales, accent: true },
     { label: 'Gastos', value: totals.totalExpenses, negative: true },
   ];
@@ -53,6 +54,24 @@ function TotalsGrid({ totals }: { totals: CashRegisterCurrent['totals'] }) {
           </p>
         </div>
       ))}
+    </div>
+  );
+}
+
+// Para el arqueo: los dólares se cuentan aparte y los vueltos de esos cobros salieron
+// del efectivo en colones.
+function UsdCashRow({ totals }: { totals: CashRegisterCurrent['totals'] }) {
+  if (totals.usdReceivedCents === 0) return null;
+  return (
+    <div className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-brand-success/30 bg-brand-success/30">
+      <div className="bg-surface-card px-4 py-3">
+        <p className="text-xs text-text-muted">Dólares en caja</p>
+        <p className="mt-1 text-base font-semibold tabular-nums text-brand-success">{formatUsd(totals.usdReceivedCents)}</p>
+      </div>
+      <div className="bg-surface-card px-4 py-3">
+        <p className="text-xs text-text-muted">Vueltos en colones por esos cobros</p>
+        <p className="mt-1 text-base font-semibold tabular-nums text-text-primary">−{formatColones(totals.usdChangeColones)}</p>
+      </div>
     </div>
   );
 }
@@ -194,6 +213,7 @@ function CloseModal({
 
       <p className="mb-4 text-sm text-text-muted">Resumen antes de cerrar:</p>
       <TotalsGrid totals={register.totals} />
+      <UsdCashRow totals={register.totals} />
       <NetRow amount={register.totals.netBalance} />
 
       {error && <p className="mt-3 text-xs text-brand-error" role="alert">{error}</p>}
@@ -334,6 +354,7 @@ function OpenRegisterCard({
       </div>
 
       <TotalsGrid totals={register.totals} />
+      <UsdCashRow totals={register.totals} />
       <NetRow amount={register.totals.netBalance} />
     </div>
   );

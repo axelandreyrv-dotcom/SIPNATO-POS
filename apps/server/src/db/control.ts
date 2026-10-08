@@ -44,6 +44,17 @@ controlDb.exec(`
   )
 `);
 
+// Tipo de cambio del BCCR: es el mismo para todos los negocios, por eso vive aquí y no en
+// la BD de cada negocio. buy/sell en centésimas de colón (₡505.23 = 50523).
+controlDb.exec(`
+  CREATE TABLE IF NOT EXISTS exchange_rates (
+    date       TEXT PRIMARY KEY,
+    buy        INTEGER NOT NULL,
+    sell       INTEGER NOT NULL,
+    fetched_at TEXT NOT NULL
+  )
+`);
+
 // control.db creadas antes de existir la columna.
 const tenantColumns = controlDb.prepare<[], { name: string }>("SELECT name FROM pragma_table_info('tenants')").all();
 if (!tenantColumns.some((c) => c.name === 'setup_code_hash')) {
@@ -104,6 +115,32 @@ export function getSetupCodeHash(slug: string): string | null {
 // null invalida el código (se usó o se reemplaza).
 export function setSetupCodeHash(slug: string, hash: string | null): boolean {
   return updateSetupCode.run(hash, slug).changes > 0;
+}
+
+// ─── Tipo de cambio ───────────────────────────────────────────────────────────
+
+export interface ExchangeRateRow {
+  date: string;
+  buy: number;
+  sell: number;
+  fetchedAt: string;
+}
+
+const upsertRate = controlDb.prepare<[string, number, number, string]>(`
+  INSERT INTO exchange_rates (date, buy, sell, fetched_at) VALUES (?, ?, ?, ?)
+  ON CONFLICT(date) DO UPDATE SET buy = excluded.buy, sell = excluded.sell, fetched_at = excluded.fetched_at
+`);
+const selectLatestRate = controlDb.prepare<[], { date: string; buy: number; sell: number; fetched_at: string }>(
+  'SELECT * FROM exchange_rates ORDER BY date DESC LIMIT 1',
+);
+
+export function saveExchangeRate(date: string, buy: number, sell: number): void {
+  upsertRate.run(date, buy, sell, new Date().toISOString());
+}
+
+export function latestExchangeRate(): ExchangeRateRow | null {
+  const row = selectLatestRate.get();
+  return row ? { date: row.date, buy: row.buy, sell: row.sell, fetchedAt: row.fetched_at } : null;
 }
 
 export function pingControlDb(): void {

@@ -33,11 +33,20 @@ function toSale(row: SaleRow, items: SaleItem[]): Sale {
     deletedAt: row.deletedAt ?? null,
     createdAt: row.createdAt,
     items,
+    usdReceivedCents: row.usdReceivedCents ?? null,
+    exchangeRate: row.exchangeRate ?? null,
+    changeColones: row.changeColones ?? null,
   };
 }
 
 export function createSaleRow(
-  input: { description: string | null; amount: number; paymentMethod: PaymentMethod; items: ResolvedSaleItem[] },
+  input: {
+    description: string | null;
+    amount: number;
+    paymentMethod: PaymentMethod;
+    items: ResolvedSaleItem[];
+    usd: { receivedCents: number; rate: number; changeColones: number } | null;
+  },
   cashRegisterId: number,
   meta: AuditMeta,
 ): CreateSaleResult {
@@ -64,6 +73,9 @@ export function createSaleRow(
         description: input.description,
         amount: input.amount,
         paymentMethod: input.paymentMethod,
+        usdReceivedCents: input.usd?.receivedCents ?? null,
+        exchangeRate: input.usd?.rate ?? null,
+        changeColones: input.usd?.changeColones ?? null,
         createdAt,
       })
       .returning()
@@ -106,6 +118,7 @@ export function createSaleRow(
         amount: input.amount,
         paymentMethod: input.paymentMethod,
         ...(input.items.length > 0 ? { items: input.items.length } : {}),
+        ...(input.usd ? { usd: input.usd } : {}),
       }),
       ip: meta.ip,
       userAgent: meta.userAgent,

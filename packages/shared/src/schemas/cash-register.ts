@@ -11,9 +11,14 @@ export type CashRegisterTotals = {
   salesTarjeta: number;
   salesTransferencia: number;
   salesSinpe: number;
+  // Ventas pagadas con dólares, valoradas en colones al tipo de cambio de cada venta.
+  salesDolares: number;
   totalSales: number;
   totalExpenses: number;
   netBalance: number;
+  // Dólares físicos en caja (centavos) y vueltos en colones que salieron por esas ventas.
+  usdReceivedCents: number;
+  usdChangeColones: number;
 };
 
 export type CashRegisterCurrent = {

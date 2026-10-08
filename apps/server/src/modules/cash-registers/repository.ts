@@ -28,6 +28,8 @@ export function computeRunningTotals(cashRegisterId: number): CashRegisterTotals
     .select({
       paymentMethod: sales.paymentMethod,
       total: sql<number>`COALESCE(SUM(${sales.amount}), 0)`,
+      usdCents: sql<number>`COALESCE(SUM(${sales.usdReceivedCents}), 0)`,
+      change: sql<number>`COALESCE(SUM(${sales.changeColones}), 0)`,
     })
     .from(sales)
     .where(
@@ -49,9 +51,12 @@ export function computeRunningTotals(cashRegisterId: number): CashRegisterTotals
     salesTarjeta: 0,
     salesTransferencia: 0,
     salesSinpe: 0,
+    salesDolares: 0,
     totalSales: 0,
     totalExpenses: expRow?.total ?? 0,
     netBalance: 0,
+    usdReceivedCents: 0,
+    usdChangeColones: 0,
   };
 
   for (const row of salesRows) {
@@ -61,6 +66,11 @@ export function computeRunningTotals(cashRegisterId: number): CashRegisterTotals
     else if (row.paymentMethod === 'tarjeta') totals.salesTarjeta = amount;
     else if (row.paymentMethod === 'transferencia') totals.salesTransferencia = amount;
     else if (row.paymentMethod === 'sinpe') totals.salesSinpe = amount;
+    else if (row.paymentMethod === 'dolares') {
+      totals.salesDolares = amount;
+      totals.usdReceivedCents = Number(row.usdCents);
+      totals.usdChangeColones = Number(row.change);
+    }
   }
 
   totals.netBalance = totals.totalSales - totals.totalExpenses;
@@ -81,6 +91,9 @@ export function closeCashRegisterRow(
       totalSalesCard: totals.salesTarjeta,
       totalSalesTransfer: totals.salesTransferencia,
       totalSalesSinpe: totals.salesSinpe,
+      totalSalesDolares: totals.salesDolares,
+      totalUsdCents: totals.usdReceivedCents,
+      totalUsdChange: totals.usdChangeColones,
       totalExpenses: totals.totalExpenses,
       netBalance: totals.netBalance,
     })

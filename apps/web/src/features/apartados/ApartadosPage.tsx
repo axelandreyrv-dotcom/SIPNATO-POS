@@ -19,6 +19,7 @@ import type {
 } from '@sipnato/shared';
 import { apartadosApi } from './api';
 import { useCan } from '../auth/useCurrentUser';
+import { WhatsAppNotify } from '../../components/WhatsAppNotify';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -108,7 +109,7 @@ function PaymentRow({ payment }: { payment: ApartadoWithPayments['payments'][num
 
 // ─── Add payment form ─────────────────────────────────────────────────────────
 
-function AddPaymentForm({ apartadoId, onSuccess }: { apartadoId: number; onSuccess: () => void }) {
+function AddPaymentForm({ apartadoId, onSuccess }: { apartadoId: number; onSuccess: (amount: number) => void }) {
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<ApartadoPaymentMethod>('efectivo');
@@ -125,10 +126,10 @@ function AddPaymentForm({ apartadoId, onSuccess }: { apartadoId: number; onSucce
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['apartados'] });
       void queryClient.invalidateQueries({ queryKey: ['apartado', apartadoId] });
+      onSuccess(parseInt(amount.replace(/\D/g, ''), 10));
       setAmount('');
       setNote('');
       setError(null);
-      onSuccess();
     },
     onError: (err: Error) => setError(err.message),
   });
@@ -186,6 +187,8 @@ function ApartadoRow({ ap }: { ap: Apartado }) {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  // Último abono registrado desde esta fila: ofrece el comprobante por WhatsApp.
+  const [lastPaid, setLastPaid] = useState<number | null>(null);
   const canCancel = useCan('cancelDocuments');
 
   const { data: detail, isFetching } = useQuery({
@@ -283,7 +286,24 @@ function ApartadoRow({ ap }: { ap: Apartado }) {
           {/* Actions */}
           {ap.status === 'activo' && (
             <>
-              <AddPaymentForm apartadoId={ap.id} onSuccess={() => {}} />
+              <AddPaymentForm apartadoId={ap.id} onSuccess={setLastPaid} />
+              {lastPaid !== null && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-brand-success/[0.06] px-3 py-2 text-xs text-text-secondary">
+                  <span className="mr-auto">Abono de {formatColones(lastPaid)} registrado.</span>
+                  <WhatsAppNotify
+                    event="abono"
+                    entityType="apartado"
+                    entityId={ap.id}
+                    phone={ap.customerPhone}
+                    vars={{
+                      cliente: ap.customerName,
+                      abono: formatColones(lastPaid),
+                      saldo: formatColones(Math.max(0, pending - lastPaid)),
+                    }}
+                    label="Enviar comprobante"
+                  />
+                </div>
+              )}
               <div className="mt-3 flex justify-end">
                 {!canCancel ? null : confirmCancel ? (
                   <div className="flex items-center gap-2">

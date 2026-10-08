@@ -37,6 +37,7 @@ export type DashboardData = {
       tarjeta: number;
       transferencia: number;
       sinpe: number;
+      dolares: number;
     };
     totalExpenses: number;
     netBalance: number;

@@ -76,6 +76,10 @@ export const cashRegisters = sqliteTable('cash_registers', {
   totalSalesCard: integer('total_sales_card'),
   totalSalesTransfer: integer('total_sales_transfer'),
   totalSalesSinpe: integer('total_sales_sinpe'),
+  // Ventas pagadas con dólares valoradas en ₡, USD en caja (centavos) y vueltos en ₡.
+  totalSalesDolares: integer('total_sales_dolares'),
+  totalUsdCents: integer('total_usd_cents'),
+  totalUsdChange: integer('total_usd_change'),
   totalExpenses: integer('total_expenses'),
   netBalance: integer('net_balance'),
   createdAt: text('created_at')
@@ -95,8 +99,12 @@ export const sales = sqliteTable(
     description: text('description'),
     amount: integer('amount').notNull(),
     paymentMethod: text('payment_method', {
-      enum: ['efectivo', 'tarjeta', 'transferencia', 'sinpe'],
+      enum: ['efectivo', 'tarjeta', 'transferencia', 'sinpe', 'dolares'],
     }).notNull(),
+    // Solo con payment_method 'dolares' (migración 0010).
+    usdReceivedCents: integer('usd_received_cents'),
+    exchangeRate: integer('exchange_rate'),
+    changeColones: integer('change_colones'),
     deletedAt: text('deleted_at'),
     createdAt: text('created_at')
       .notNull()
@@ -444,6 +452,25 @@ export const saleItems = sqliteTable(
   (t) => ({
     saleIdx: index('sale_items_sale_idx').on(t.saleId),
     productIdx: index('sale_items_product_idx').on(t.productId),
+  }),
+);
+
+// ─── customer_notifications ───────────────────────────────────────────────────
+// Avisos enviados a clientes por WhatsApp. Solo inserción: el mensaje lo envía la persona
+// desde su WhatsApp; aquí queda que se abrió el aviso, para quién y quién lo hizo.
+export const customerNotifications = sqliteTable(
+  'customer_notifications',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    event: text('event').notNull(),
+    entityType: text('entity_type').notNull(),
+    entityId: integer('entity_id').notNull(),
+    phone: text('phone'),
+    userId: integer('user_id').references(() => users.id),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => ({
+    entityIdx: index('customer_notifications_entity_idx').on(t.entityType, t.entityId),
   }),
 );
 

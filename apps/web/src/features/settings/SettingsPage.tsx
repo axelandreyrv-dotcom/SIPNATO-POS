@@ -4,49 +4,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, KeyRound, Loader2, Printer } from 'lucide-react';
 import type { Settings } from '@sipnato/shared';
 import { settingsApi } from './api';
+import { FieldLabel, Section, inputClass, textareaClass } from './ui';
+import { ExchangeRateSection, MessagesSection } from './CurrencyAndMessagesSections';
+import { ApiError } from '@/lib/api-client';
 import { BusinessProfileEditor } from '../business/BusinessProfileEditor';
 
-const inputClass = [
-  'h-9 w-full rounded-lg border px-3 text-sm text-text-primary',
-  'bg-surface-input outline-none transition-all duration-150',
-  'border-border focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20',
-  'placeholder:text-text-muted',
-].join(' ');
-
-const textareaClass = [
-  'w-full rounded-lg border px-3 py-2 text-sm text-text-primary',
-  'bg-surface-input outline-none transition-all duration-150 resize-none',
-  'border-border focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20',
-  'placeholder:text-text-muted',
-].join(' ');
-
-function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
-  return (
-    <label htmlFor={htmlFor} className="block text-sm font-medium text-text-secondary mb-1.5">
-      {children}
-    </label>
-  );
-}
-
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="py-8 sm:grid sm:grid-cols-3 sm:gap-8">
-      <div>
-        <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
-        <p className="mt-1 text-sm text-text-muted leading-relaxed">{description}</p>
-      </div>
-      <div className="mt-6 sm:col-span-2 sm:mt-0 space-y-4">{children}</div>
-    </div>
-  );
-}
 
 function PrintSection({ settings }: { settings: Settings | null }) {
   const [testPrint, setTestPrint] = useState(false);
@@ -159,13 +121,15 @@ export function SettingsPage() {
     mutationFn: settingsApi.update,
     onSuccess: (updated) => {
       queryClient.setQueryData(['settings'], updated);
+      // El tipo de cambio vigente depende del de respaldo configurado aquí.
+      void queryClient.invalidateQueries({ queryKey: ['exchange-rate'] });
       setForm(null); // Reset local overrides — server is source of truth
       setSaved(true);
       setSaveError(null);
       setTimeout(() => setSaved(false), 3000);
     },
-    onError: () => {
-      setSaveError('No se pudieron guardar los cambios. Intenta de nuevo.');
+    onError: (err) => {
+      setSaveError(err instanceof ApiError ? err.message : 'No se pudieron guardar los cambios. Intenta de nuevo.');
     },
   });
 
@@ -392,6 +356,9 @@ export function SettingsPage() {
               </div>
             )}
           </Section>
+
+          <ExchangeRateSection current={current} patch={patch} />
+          <MessagesSection current={current} patch={patch} />
         </div>
 
         {/* ── Footer: save ────────────────────────────────────────────────── */}
