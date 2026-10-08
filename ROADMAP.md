@@ -54,8 +54,8 @@
   - [x] `docker compose build` + `up -d`: servidor sano, tipo de cambio del BCCR cargado
   - [x] Cuenta del panel `axel` (contraseña temporal entregada en un archivo local)
   - [x] Respaldo externo diario (`backup.sh` en cron, 12:00 hora de Madrid)
-  - [ ] DNS: registro A `*` → 185.166.215.228 en Cloudflare (Solo DNS). `dosuxsoft.com` y `www` siguen en su servidor
-  - [ ] Certificado HTTPS de `admin.dosuxsoft.com` (se emite solo al existir el DNS)
+  - [x] DNS: registro A `*` → 185.166.215.228 en Cloudflare (Solo DNS). `dosuxsoft.com` y `www` siguen en su servidor
+  - [x] Certificado HTTPS de `admin.dosuxsoft.com` (Let's Encrypt, Caddy lo renueva) · `/health` en producción · subdominios inventados no reciben certificado
   - [ ] Cambiar la contraseña temporal del panel; mensualidad por defecto y "Cómo pagar"
   - [ ] Cambiar la contraseña de root del VPS (quedó expuesta en una captura) y, si se quiere, desactivar el acceso por contraseña (`DEPLOY.md` §2)
   - [ ] Checklist de seguridad post-despliegue (`DEPLOY.md` §12)
