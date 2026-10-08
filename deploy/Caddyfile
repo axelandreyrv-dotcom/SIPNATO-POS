@@ -58,8 +58,5 @@
     encode gzip zstd
 }
 
-# El dominio raíz no es un negocio. Los negocios se dan de alta desde admin.dosuxsoft.com (sin registro público).
-dosuxsoft.com, www.dosuxsoft.com {
-    header -Server
-    respond "Dosuxsoft POS" 200
-}
+# dosuxsoft.com y www NO se sirven aquí: apuntan a otro servidor (sitio web). Este VPS solo atiende
+# *.dosuxsoft.com (registro DNS comodín): admin.dosuxsoft.com y cada negocio.

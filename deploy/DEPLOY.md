@@ -3,10 +3,11 @@
 ## Requisitos previos
 
 - VPS Ubuntu 22.04 / 24.04 LTS (mínimo 1 vCPU, 1 GB RAM, 20 GB disco)
-- Dominio `dosuxsoft.com` apuntando al IP del VPS: registros A para `@`, `www` **y `*` (comodín)**.
-  Cada negocio vive en su propio subdominio (`taller.dosuxsoft.com`, `ferreteria.dosuxsoft.com`…).
-  En Cloudflare los tres registros deben quedar en **"Solo DNS"** (nube gris): Caddy emite
-  el certificado HTTPS de cada subdominio directamente con Let's Encrypt.
+- Registro DNS **A comodín `*`** de `dosuxsoft.com` apuntando al IP del VPS. Cubre `admin.dosuxsoft.com`
+  y cada negocio (`taller.dosuxsoft.com`, `ferreteria.dosuxsoft.com`…). `dosuxsoft.com` y `www` **no**
+  tienen que apuntar al VPS (hoy apuntan al sitio web, y el Caddyfile no los sirve).
+  En Cloudflare el registro debe quedar en **"Solo DNS"** (nube gris): Caddy emite el certificado HTTPS
+  de cada subdominio directamente con Let's Encrypt.
 - Docker + Docker Compose instalados en el VPS
 
 ---
