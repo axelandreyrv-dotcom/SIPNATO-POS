@@ -15,7 +15,9 @@ process.env['TENANT_BASE_DOMAIN'] = 'dosuxsoft.test';
 process.env['NODE_ENV'] = 'development';
 
 const { buildApp } = await import('../app.js');
-const { closeAllTenantDbs } = await import('../db/client.js');
+const { TEMPLATE_INFO } = await import('@sipnato/shared');
+const { closeAllTenantDbs, runWithTenant } = await import('../db/client.js');
+const { assignBusiness } = await import('../modules/business/service.js');
 const { closeControlDb, insertTenant, setSetupCodeHash } = await import('../db/control.js');
 const { COOKIE_NAME } = await import('../lib/constants.js');
 const { generateSetupCode, hashSetupCode } = await import('../lib/crypto.js');
@@ -44,8 +46,14 @@ describe('perfil del negocio y órdenes configurables', () => {
       ...(payload ? { payload } : {}),
     });
 
-  async function setupTenant(slug: string, template: string) {
+  const SYSTEM = { ip: null, userAgent: null };
+
+  // Como lo hace el panel al crear el negocio: el tipo y los módulos llegan asignados.
+  async function setupTenant(slug: string, template: 'taller' | 'tienda') {
     insertTenant(slug, slug);
+    runWithTenant(slug, () =>
+      assignBusiness({ template, modules: [...TEMPLATE_INFO[template].profile.modules] }, SYSTEM),
+    );
     const code = generateSetupCode();
     setSetupCodeHash(slug, await hashSetupCode(code));
     const res = await app.inject({
@@ -54,7 +62,6 @@ describe('perfil del negocio y órdenes configurables', () => {
       headers: { host: host(slug) },
       payload: {
         setupCode: code,
-        template,
         username: 'dueno',
         displayName: 'Dueño',
         password: 'clave-dueno-1',
@@ -100,7 +107,7 @@ describe('perfil del negocio y órdenes configurables', () => {
     rmSync(dataDir, { recursive: true, force: true });
   });
 
-  it('el setup aplica la plantilla elegida', async () => {
+  it('el negocio arranca con el tipo asignado por la plataforma', async () => {
     const taller = (await call('dueno', 'taller', 'GET', '/api/business')).json();
     assert.equal(taller.ordersLabel, 'Órdenes de trabajo');
     assert.deepEqual(
@@ -224,15 +231,51 @@ describe('perfil del negocio y órdenes configurables', () => {
     );
   });
 
-  it('desactivar y reactivar un módulo', async () => {
+  it('el dueño no cambia el tipo de negocio ni los módulos aunque los envíe', async () => {
     const profile = (await call('dueno', 'taller', 'GET', '/api/business')).json();
-    await call('dueno', 'taller', 'PUT', '/api/business', {
+    const res = await call('dueno', 'taller', 'PUT', '/api/business', {
       ...profile,
-      modules: profile.modules.filter((m: string) => m !== 'creditos'),
+      template: 'tienda',
+      modules: [],
+      ordersLabel: 'Trabajos',
     });
-    assert.equal((await call('caja', 'taller', 'GET', '/api/creditos')).statusCode, 404);
-    await call('dueno', 'taller', 'PUT', '/api/business', profile);
+    assert.equal(res.statusCode, 200, res.body);
+    const after = res.json();
+    assert.equal(after.ordersLabel, 'Trabajos', 'los nombres sí los edita');
+    assert.equal(after.template, 'taller');
+    assert.deepEqual(after.modules, profile.modules);
     assert.equal((await call('caja', 'taller', 'GET', '/api/creditos')).statusCode, 200);
+  });
+
+  it('la plataforma desactiva y reactiva un módulo', async () => {
+    const { modules } = (await call('dueno', 'taller', 'GET', '/api/business')).json();
+    runWithTenant('taller', () =>
+      assignBusiness(
+        { template: 'taller', modules: modules.filter((m: string) => m !== 'creditos') },
+        SYSTEM,
+      ),
+    );
+    assert.equal((await call('caja', 'taller', 'GET', '/api/creditos')).statusCode, 404);
+    runWithTenant('taller', () => assignBusiness({ template: 'taller', modules }, SYSTEM));
+    assert.equal((await call('caja', 'taller', 'GET', '/api/creditos')).statusCode, 200);
+  });
+
+  it('cambiar el tipo reemplaza nombres y campos; mismo tipo los conserva', async () => {
+    const before = (await call('dueno', 'taller', 'GET', '/api/business')).json();
+    const same = runWithTenant('taller', () =>
+      assignBusiness({ template: 'taller', modules: before.modules }, SYSTEM),
+    );
+    assert.equal(same.after.ordersLabel, before.ordersLabel);
+
+    const changed = runWithTenant('taller', () =>
+      assignBusiness({ template: 'electronica', modules: ['ordenes'] }, SYSTEM),
+    );
+    assert.equal(changed.after.ordersLabel, 'Órdenes de servicio');
+    assert.deepEqual(
+      changed.after.fields.map((f) => f.key),
+      ['marca', 'serie', 'accesorios', 'clave'],
+    );
+    assert.deepEqual(changed.after.modules, ['ordenes']);
   });
 });
 

@@ -17,11 +17,11 @@ tiendas y otros. Cada negocio tiene **su propia base de datos** y entra por su s
 | **Inventario** | Productos con código de barras, stock, entradas de mercadería y ajustes con motivo, historial. Vender sin stock avisa y permite |
 | **Órdenes de servicio** | Boletas con campos según el tipo de negocio (IMEI, placa, serie…), editables por el dueño |
 | **Clientes** | Historial de órdenes por cliente, búsqueda por nombre, teléfono o campos de la orden |
-| **Cotizaciones, facturas, apartados y créditos** | Con abonos, saldos y vencimientos. Cada negocio activa los módulos que usa |
+| **Cotizaciones, facturas, apartados y créditos** | Con abonos, saldos y vencimientos. Los módulos de cada negocio se asignan desde el panel |
 | **Gastos y reportes** | Gastos de la caja, reportes por período con gráfico diario y exportación CSV, dashboard del día |
 | **Avisos por WhatsApp** | Orden recibida / lista, recordatorio de cobro, comprobante de abono y cotización, con plantillas editables |
 | **Usuarios y roles** | Dueño, administradores y cajeros (con PIN). Acciones sensibles del cajero requieren autorización de un supervisor |
-| **Panel de la plataforma** | Alta de negocios con código de activación, cobro manual de la mensualidad (SINPE / transferencia), avisos de vencimiento y suspensión |
+| **Panel de la plataforma** | Alta de negocios con su tipo, módulos y código de activación, cobro manual de la mensualidad (SINPE / transferencia), avisos de vencimiento y suspensión |
 
 Los tickets de 80 mm y las cotizaciones se imprimen desde el navegador (`window.print()`) en la impresora
 predeterminada de Windows. No hay que instalar nada en la PC del negocio.

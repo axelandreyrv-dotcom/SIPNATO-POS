@@ -8,8 +8,10 @@ import {
   renderMessage,
   SUBSCRIPTION_PAYMENT_METHOD_LABELS,
   SUBSCRIPTION_PAYMENT_METHODS,
+  TEMPLATE_INFO,
   updateTenantSchema,
   whatsappLink,
+  type BusinessTemplate,
   type PlatformAuditEntry,
   type PlatformTenant,
   type PlatformTenantDetail,
@@ -19,6 +21,7 @@ import {
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import { platformApi } from './api';
 import { Link } from './router';
+import { BusinessTypeFields, type BusinessTypeValue } from './BusinessTypeFields';
 import { SetupCodePanel } from './SetupCodePanel';
 import {
   dangerButton,
@@ -132,6 +135,12 @@ function Detail({ detail }: { detail: PlatformTenantDetail }) {
           description="Cada pago extiende el vencimiento actual, aunque ya haya pasado: el atraso también se cobra."
         >
           <Payments tenant={t} payments={detail.payments} />
+        </Block>
+        <Block
+          title="Tipo de negocio y módulos"
+          description="Lo que el negocio ve en su menú. El dueño no puede cambiarlo; sí ajusta los campos de sus órdenes."
+        >
+          <BusinessForm tenant={t} />
         </Block>
         <Block
           title="Datos"
@@ -663,6 +672,79 @@ function TenantForm({ tenant: t }: { tenant: PlatformTenant }) {
 
 // ─── Acceso ───────────────────────────────────────────────────────────────────
 
+function BusinessForm({ tenant: t }: { tenant: PlatformTenant }) {
+  const invalidate = useInvalidate(t.slug);
+  const saved: BusinessTypeValue = { template: t.template, modules: t.modules };
+  const [value, setValue] = useState<BusinessTypeValue>(saved);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const dirty = JSON.stringify(value) !== JSON.stringify(saved);
+  const changesType = value.template !== t.template;
+
+  const mutation = useMutation({
+    mutationFn: () => platformApi.assignBusiness(t.slug, value),
+    onSuccess: () => {
+      invalidate();
+      setMessage({ ok: true, text: 'Guardado. El negocio lo verá al recargar.' });
+    },
+    onError: (err) => setMessage({ ok: false, text: errorText(err) }),
+  });
+
+  return (
+    <div className="space-y-4">
+      <BusinessTypeFields
+        idPrefix="tb"
+        value={value}
+        onChange={(v) => {
+          setValue(v);
+          setMessage(null);
+        }}
+      />
+      {changesType && (
+        <p
+          role="alert"
+          className="rounded-lg border border-brand-warning/30 bg-brand-warning/[0.07] px-3 py-2 text-sm text-text-primary"
+        >
+          Cambiar el tipo reemplaza los nombres y campos de las órdenes de este negocio por los de
+          la plantilla. Las órdenes ya creadas no cambian.
+        </p>
+      )}
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => mutation.mutate()}
+          disabled={!dirty || mutation.isPending}
+          className={changesType ? dangerButton : primaryButton}
+        >
+          {mutation.isPending && (
+            <Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden />
+          )}
+          {changesType ? 'Cambiar tipo de negocio' : 'Guardar módulos'}
+        </button>
+        {dirty && (
+          <button
+            type="button"
+            onClick={() => {
+              setValue(saved);
+              setMessage(null);
+            }}
+            className={secondaryButton}
+          >
+            Descartar
+          </button>
+        )}
+        {message && (
+          <p
+            role="status"
+            className={`text-sm ${message.ok ? 'text-text-secondary' : 'text-brand-error'}`}
+          >
+            {message.text}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Access({ tenant: t }: { tenant: PlatformTenant }) {
   const invalidate = useInvalidate(t.slug);
   const [code, setCode] = useState<string | null>(null);
@@ -765,6 +847,7 @@ function Access({ tenant: t }: { tenant: PlatformTenant }) {
 // ─── Actividad ────────────────────────────────────────────────────────────────
 
 const ACTION_LABELS: Record<string, string> = {
+  TENANT_BUSINESS_ASSIGNED: 'Tipo de negocio y módulos',
   TENANT_CREATED: 'Negocio creado',
   TENANT_UPDATED: 'Datos actualizados',
   TENANT_SUSPENDED: 'Suspendido',
@@ -786,6 +869,13 @@ const FIELD_LABELS: Record<string, string> = {
 function activityDetail(entry: PlatformAuditEntry): string | null {
   const p = entry.payload;
   if (!p) return null;
+  if (entry.action === 'TENANT_BUSINESS_ASSIGNED') {
+    const tpl = p['template'] as { from: BusinessTemplate; to: BusinessTemplate } | undefined;
+    if (tpl && tpl.from !== tpl.to) {
+      return `${TEMPLATE_INFO[tpl.from]?.name ?? tpl.from} → ${TEMPLATE_INFO[tpl.to]?.name ?? tpl.to}`;
+    }
+    return 'módulos';
+  }
   if (entry.action === 'PAYMENT_RECORDED' || entry.action === 'PAYMENT_VOIDED') {
     return typeof p['amount'] === 'number' ? formatColones(p['amount']) : null;
   }

@@ -1,5 +1,11 @@
 import { z } from 'zod';
 import { passwordSchema, usernameSchema } from './auth.js';
+import {
+  BUSINESS_TEMPLATES,
+  TOGGLEABLE_MODULES,
+  type BusinessTemplate,
+  type ModuleKey,
+} from './business.js';
 
 // Panel de superadministrador (Fase F): alta de negocios, cobro manual de la suscripción
 // (SINPE / transferencia) y avisos de vencimiento. Un atraso NUNCA bloquea al negocio:
@@ -130,6 +136,12 @@ export const createTenantSchema = z.object({
   // null = sin cobro (negocio propio, cortesía).
   paidUntil: isoDateSchema.nullable(),
   notes: optionalText(2000),
+  // Tipo de negocio y módulos: los decide la plataforma, no el dueño. Sin módulos = los de la plantilla.
+  template: z.enum(BUSINESS_TEMPLATES).default('generico'),
+  modules: z
+    .array(z.enum(TOGGLEABLE_MODULES))
+    .refine((m) => new Set(m).size === m.length, 'Hay módulos repetidos')
+    .optional(),
 });
 
 export const updateTenantSchema = z
@@ -208,8 +220,10 @@ export interface PlatformTenant {
   paidUntil: string | null;
   subscription: SubscriptionStatus;
   daysLeft: number | null;
-  // false = nadie ha usado aún el código de activación.
+  // false = el dueño todavía no creó su cuenta.
   activated: boolean;
+  template: BusinessTemplate;
+  modules: ModuleKey[];
 }
 
 export interface PlatformSummary {

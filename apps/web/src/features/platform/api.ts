@@ -1,4 +1,5 @@
 import type {
+  AssignBusinessInput,
   CreateTenantInput,
   PlatformSettings,
   PlatformSummary,
@@ -29,6 +30,11 @@ export const platformApi = {
   createTenant: (body: CreateTenantInput) =>
     apiFetch<{ tenant: PlatformTenant; setupCode: string }>('/platform/tenants', {
       method: 'POST',
+      body: json(body),
+    }),
+  assignBusiness: (slug: string, body: AssignBusinessInput) =>
+    apiFetch<{ tenant: PlatformTenant }>(`/platform/tenants/${slug}/business`, {
+      method: 'PUT',
       body: json(body),
     }),
   updateTenant: (slug: string, body: UpdateTenantInput) =>

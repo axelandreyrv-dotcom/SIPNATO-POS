@@ -3,6 +3,8 @@ import { count, desc, isNull } from 'drizzle-orm';
 import {
   addMonths,
   DEFAULT_REMINDER_MESSAGE,
+  TEMPLATE_INFO,
+  type AssignBusinessInput,
   subscriptionStatus,
   type CreateTenantInput,
   type PlatformSettings,
@@ -25,6 +27,8 @@ import {
   type TenantStatus,
 } from '../../db/control.js';
 import { sales, users } from '../../db/schema.js';
+import { getProfile } from '../business/repository.js';
+import { assignBusiness } from '../business/service.js';
 import { todayCR } from '../../lib/cr-time.js';
 import {
   DUMMY_HASH,
@@ -210,10 +214,19 @@ function hasOwner(slug: string): boolean {
   );
 }
 
+// Lo que el panel muestra de la BD del negocio: si ya tiene dueño, su tipo y sus módulos.
+function tenantInfo(slug: string): Pick<PlatformTenant, 'activated' | 'template' | 'modules'> {
+  return runWithTenant(slug, () => {
+    const { template, modules } = getProfile();
+    const activated = db.select({ id: users.id }).from(users).limit(1).get() !== undefined;
+    return { activated, template, modules };
+  });
+}
+
 function toPlatformTenant(
   t: TenantRecord,
   defaultPrice: number,
-  activated: boolean,
+  info: Pick<PlatformTenant, 'activated' | 'template' | 'modules'>,
   today: string,
 ): PlatformTenant {
   const { status: subscription, daysLeft } = subscriptionStatus(t.paidUntil, today);
@@ -230,7 +243,7 @@ function toPlatformTenant(
     paidUntil: t.paidUntil,
     subscription,
     daysLeft,
-    activated,
+    ...info,
   };
 }
 
@@ -245,7 +258,7 @@ function platformTenant(slug: string): PlatformTenant {
   return toPlatformTenant(
     tenant,
     getPlatformSettings().defaultMonthlyPrice,
-    hasOwner(slug),
+    tenantInfo(slug),
     todayCR(),
   );
 }
@@ -254,7 +267,7 @@ export function listPlatformTenants(): { tenants: PlatformTenant[]; summary: Pla
   const today = todayCR();
   const { defaultMonthlyPrice } = getPlatformSettings();
   const tenants = listTenants().map((t) =>
-    toPlatformTenant(t, defaultMonthlyPrice, hasOwner(t.slug), today),
+    toPlatformTenant(t, defaultMonthlyPrice, tenantInfo(t.slug), today),
   );
 
   const active = tenants.filter((t) => t.status === 'active');
@@ -339,10 +352,43 @@ export async function createTenant(
       meta,
     });
   });
-  // Crea el archivo de la BD y corre las migraciones ya, no en el primer acceso del dueño.
+  // Crea el archivo de la BD y corre las migraciones ya, no en el primer acceso del dueño,
+  // y deja asignados el tipo de negocio y los módulos (el dueño no los elige).
   openTenantDb(input.slug);
+  runWithTenant(input.slug, () =>
+    assignBusiness(
+      {
+        template: input.template,
+        modules: input.modules ?? [...TEMPLATE_INFO[input.template].profile.modules],
+      },
+      meta,
+    ),
+  );
 
   return { tenant: platformTenant(input.slug), setupCode: code };
+}
+
+// Tipo de negocio y módulos: solo desde aquí. Cambiar el tipo reemplaza nombres y campos de las
+// órdenes por los de la plantilla; las órdenes existentes conservan sus propias etiquetas.
+export function assignTenantBusiness(
+  admin: Superadmin,
+  slug: string,
+  input: AssignBusinessInput,
+  meta: Meta,
+): PlatformTenant {
+  requireTenant(slug);
+  const { before, after } = runWithTenant(slug, () => assignBusiness(input, meta));
+  insertPlatformAudit({
+    action: 'TENANT_BUSINESS_ASSIGNED',
+    tenantSlug: slug,
+    payload: {
+      template: { from: before.template, to: after.template },
+      modules: { from: before.modules, to: after.modules },
+    },
+    superadminId: admin.id,
+    meta,
+  });
+  return platformTenant(slug);
 }
 
 export function updateTenant(

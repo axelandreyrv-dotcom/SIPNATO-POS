@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { addMonths, createTenantSchema, formatColones, type PlatformTenant } from '@sipnato/shared';
 import { platformApi } from './api';
 import { Link } from './router';
+import { BusinessTypeFields, templateDefaults } from './BusinessTypeFields';
 import { SetupCodePanel } from './SetupCodePanel';
 import {
   errorText,
@@ -40,6 +41,7 @@ export function NewTenantPage() {
   const [paidUntil, setPaidUntil] = useState(() => addMonths(todayCR(), 1));
   const [price, setPrice] = useState('');
   const [notes, setNotes] = useState('');
+  const [business, setBusiness] = useState(() => templateDefaults('generico'));
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<{ tenant: PlatformTenant; setupCode: string } | null>(
     null,
@@ -65,6 +67,8 @@ export function NewTenantPage() {
       monthlyPrice: billed && price.trim() ? Number(price.replace(/\D/g, '')) : null,
       paidUntil: billed ? paidUntil : null,
       notes,
+      template: business.template,
+      modules: business.modules,
     });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? 'Revisa los datos');
@@ -143,6 +147,13 @@ export function NewTenantPage() {
               )}
             </p>
           </div>
+        </fieldset>
+
+        <fieldset>
+          <legend className="mb-3 text-sm font-semibold text-text-primary">
+            Tipo de negocio y módulos
+          </legend>
+          <BusinessTypeFields idPrefix="nt" value={business} onChange={setBusiness} />
         </fieldset>
 
         <fieldset className="space-y-4">

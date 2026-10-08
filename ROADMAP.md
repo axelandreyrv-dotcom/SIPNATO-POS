@@ -45,7 +45,9 @@
 ### Estado actual (2026-10-08)
 
 - Código de las Fases A–F, la revisión técnica (`/grill-me`) y la revisión general fusionados en `main`
-  (PR #1 → #2 → #3, con merge commit). Ramas de trabajo eliminadas. 85/85 tests.
+  (PR #1 → #2 → #3, con merge commit). Ramas de trabajo eliminadas.
+- 2026-10-08: el **tipo de negocio y los módulos se asignan desde el panel** (al crear el negocio y en su
+  detalle); el dueño solo los ve y sigue editando los campos y nombres de sus órdenes. 88/88 tests.
 - **Próximo paso — desplegar en el servidor** (ver `deploy/ACTUALIZAR-VPS.md`, "Primera actualización a la versión multi-negocio"):
   - [ ] Respaldo manual de la BD actual (`dosuxsoft.db`)
   - [ ] `BCCR_API_TOKEN` en `deploy/.env`

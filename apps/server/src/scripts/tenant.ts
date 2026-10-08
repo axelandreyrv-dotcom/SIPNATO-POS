@@ -2,7 +2,8 @@
  * Administración de negocios (tenants) — ejecutar con acceso directo al servidor.
  * Lo habitual es usar el panel de superadministrador (admin.<dominio>); esto queda como respaldo.
  *
- *   tenant create <slug> "<nombre>"   crea el negocio y su BD, e imprime el código de activación
+ *   tenant create <slug> "<nombre>"   crea el negocio y su BD (tipo "Otro tipo de negocio"; se cambia en
+ *                                     el panel) e imprime el código de activación
  *   tenant setup-code <slug>          emite un código de activación nuevo (solo si aún no hay admin)
  *   tenant list                       lista negocios y su estado
  *   tenant suspend <slug>             bloquea el acceso (los datos se conservan)
@@ -21,6 +22,8 @@ import {
   setTenantStatus,
 } from '../db/control.js';
 import { users } from '../db/schema.js';
+import { TEMPLATE_INFO } from '@sipnato/shared';
+import { assignBusiness } from '../modules/business/service.js';
 import { issueSetupCode } from '../modules/platform/service.js';
 
 const [command, slug, ...rest] = process.argv.slice(2);
@@ -48,9 +51,18 @@ switch (command) {
 
     insertTenant(slug, name);
     openTenantDb(slug);
+    runWithTenant(slug, () =>
+      assignBusiness(
+        { template: 'generico', modules: [...TEMPLATE_INFO.generico.profile.modules] },
+        { ip: null, userAgent: null },
+      ),
+    );
     const code = await issueSetupCode(slug);
     console.log(`\n[tenant] ✅ Negocio "${name}" creado.`);
     console.log(`         BD: ${tenantDbPath(slug)}`);
+    console.log(
+      '         Tipo: "Otro tipo de negocio". Cámbialo con sus módulos en el panel (admin.).',
+    );
     printSetupCode(slug, code);
     break;
   }

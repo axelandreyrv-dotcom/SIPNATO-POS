@@ -1,21 +1,18 @@
 import { useState } from 'react';
 import { useRouter } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, CheckCircle, Loader2, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, CheckCircle, Loader2, Lock, Plus, Trash2 } from 'lucide-react';
 import {
-  BUSINESS_TEMPLATES,
-  businessProfileSchema,
   fieldKeyFromLabel,
   MODULE_LABELS,
   ORDER_FIELD_TYPE_LABELS,
   ORDER_FIELD_TYPES,
-  profileFromTemplate,
+  ownerProfileSchema,
   TEMPLATE_INFO,
   TOGGLEABLE_MODULES,
-  type BusinessProfile,
-  type BusinessTemplate,
   type OrderField,
   type OrderFieldType,
+  type OwnerProfileInput,
 } from '@sipnato/shared';
 import { ApiError } from '@/lib/api-client';
 import { useBusiness } from '../auth/useCurrentUser';
@@ -162,19 +159,24 @@ function FieldRow({
 
 export function BusinessProfileEditor() {
   const router = useRouter();
-  const saved = useBusiness();
-  const [draft, setDraft] = useState<BusinessProfile>(saved);
-  const [pendingTemplate, setPendingTemplate] = useState<BusinessTemplate | null>(null);
+  const business = useBusiness();
+  // Solo lo que edita el dueño. Tipo de negocio y módulos los asigna Dosuxsoft desde su panel.
+  const saved: OwnerProfileInput = {
+    ordersLabel: business.ordersLabel,
+    itemLabel: business.itemLabel,
+    fields: business.fields,
+  };
+  const [draft, setDraft] = useState<OwnerProfileInput>(saved);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
-  // Fuerza a remontar las filas (y su texto de opciones) al aplicar una plantilla.
+  // Fuerza a remontar las filas (y su texto de opciones) al descartar cambios.
   const [revision, setRevision] = useState(0);
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const parsed = businessProfileSchema.safeParse(draft);
+      const parsed = ownerProfileSchema.safeParse(draft);
       if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'Revisa los campos');
       return businessApi.update(parsed.data);
     },
@@ -191,7 +193,7 @@ export function BusinessProfileEditor() {
       ),
   });
 
-  function update(patch: Partial<BusinessProfile>) {
+  function update(patch: Partial<OwnerProfileInput>) {
     setDraft((d) => ({ ...d, ...patch }));
     setDone(false);
   }
@@ -216,82 +218,49 @@ export function BusinessProfileEditor() {
     update({ fields: [...draft.fields, { key, label, type: 'text', required: false }] });
   }
 
-  function applyTemplate(t: BusinessTemplate) {
-    setDraft(profileFromTemplate(t));
-    setPendingTemplate(null);
-    setRevision((r) => r + 1);
-  }
-
   return (
     <div className="divide-y divide-border">
       <Block
-        title="Tipo de negocio"
-        description="La plantilla propone los campos de las órdenes y los módulos. Después puedes ajustarlos."
+        title="Tipo de negocio y módulos"
+        description="Los asigna Dosuxsoft según tu plan. Si necesitas otro tipo o un módulo más, escríbenos."
       >
-        <div
-          role="radiogroup"
-          aria-label="Tipo de negocio"
-          className="overflow-hidden rounded-xl border border-border"
-        >
-          {BUSINESS_TEMPLATES.map((t) => {
-            const selected = draft.template === t;
-            return (
-              <button
-                key={t}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                onClick={() => (selected ? undefined : setPendingTemplate(t))}
-                className={[
-                  'flex w-full items-start gap-3 border-b border-border px-4 py-3 text-left transition-colors last:border-0',
-                  selected ? 'bg-brand-blue/[0.06]' : 'hover:bg-surface-bg',
-                ].join(' ')}
-              >
-                <span
+        <div className="rounded-xl border border-border bg-surface-card px-4 py-3">
+          <div className="flex items-start gap-3">
+            <Lock
+              size={16}
+              strokeWidth={1.5}
+              className="mt-0.5 shrink-0 text-text-muted"
+              aria-hidden
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-text-primary">
+                {TEMPLATE_INFO[business.template].name}
+              </p>
+              <p className="text-xs text-text-muted">
+                {TEMPLATE_INFO[business.template].description}
+              </p>
+            </div>
+          </div>
+          <ul className="m-0 mt-3 flex list-none flex-wrap gap-1.5 p-0" aria-label="Módulos">
+            {TOGGLEABLE_MODULES.map((m) => {
+              const on = business.modules.includes(m);
+              return (
+                <li
+                  key={m}
                   className={[
-                    'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
-                    selected ? 'border-brand-blue' : 'border-border',
+                    'rounded-md px-2 py-1 text-xs',
+                    on
+                      ? 'bg-brand-blue/10 font-medium text-brand-blue'
+                      : 'bg-border/50 text-text-muted line-through',
                   ].join(' ')}
                 >
-                  {selected && <span className="h-2 w-2 rounded-full bg-brand-blue" />}
-                </span>
-                <span>
-                  <span className="block text-sm font-medium text-text-primary">
-                    {TEMPLATE_INFO[t].name}
-                  </span>
-                  <span className="block text-xs text-text-muted">
-                    {TEMPLATE_INFO[t].description}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
+                  {m === 'ordenes' ? business.ordersLabel || MODULE_LABELS[m] : MODULE_LABELS[m]}
+                  <span className="sr-only">{on ? ' (activo)' : ' (no incluido)'}</span>
+                </li>
+              );
+            })}
+          </ul>
         </div>
-        {pendingTemplate && (
-          <div
-            className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-warning/30 bg-brand-warning/[0.07] px-4 py-3"
-            role="alert"
-          >
-            <p className="flex-1 text-sm text-text-primary">
-              Usar <strong>{TEMPLATE_INFO[pendingTemplate].name}</strong> reemplaza los nombres,
-              campos y módulos de abajo. Las órdenes ya creadas no cambian.
-            </p>
-            <button
-              type="button"
-              onClick={() => applyTemplate(pendingTemplate)}
-              className="h-9 rounded-lg bg-brand-blue px-3 text-sm font-medium text-white hover:brightness-110"
-            >
-              Usar plantilla
-            </button>
-            <button
-              type="button"
-              onClick={() => setPendingTemplate(null)}
-              className="h-9 rounded-lg px-3 text-sm text-text-secondary hover:bg-surface-bg"
-            >
-              Cancelar
-            </button>
-          </div>
-        )}
       </Block>
 
       <Block
@@ -367,34 +336,6 @@ export function BusinessProfileEditor() {
         </div>
       </Block>
 
-      <Block
-        title="Módulos"
-        description="Los módulos apagados desaparecen del menú y quedan bloqueados. Sus datos se conservan."
-      >
-        <div className="grid gap-2 sm:grid-cols-2">
-          {TOGGLEABLE_MODULES.map((m) => (
-            <label
-              key={m}
-              className="flex cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2.5 text-sm text-text-primary hover:bg-surface-bg"
-            >
-              <input
-                type="checkbox"
-                checked={draft.modules.includes(m)}
-                onChange={(e) =>
-                  update({
-                    modules: e.target.checked
-                      ? [...draft.modules, m]
-                      : draft.modules.filter((x) => x !== m),
-                  })
-                }
-                className="h-4 w-4 accent-[var(--color-brand-blue)]"
-              />
-              {m === 'ordenes' ? draft.ordersLabel || MODULE_LABELS[m] : MODULE_LABELS[m]}
-            </label>
-          ))}
-        </div>
-      </Block>
-
       <div className="flex flex-wrap items-center justify-end gap-3 py-6">
         {error && (
           <p role="alert" className="mr-auto text-sm text-brand-error">
@@ -428,7 +369,7 @@ export function BusinessProfileEditor() {
           {mutation.isPending && (
             <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
           )}
-          Guardar tipo de negocio
+          Guardar órdenes de servicio
         </button>
       </div>
     </div>

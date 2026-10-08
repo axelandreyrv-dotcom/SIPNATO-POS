@@ -221,6 +221,67 @@ describe('panel de superadministrador', () => {
     );
   });
 
+  it('el panel asigna tipo de negocio y módulos; el dueño solo los ve', async () => {
+    const created = await app.inject({
+      method: 'POST',
+      url: '/platform/tenants',
+      headers: asAdmin(),
+      payload: {
+        slug: 'mecanica',
+        name: 'Mecánica',
+        paidUntil: null,
+        template: 'taller',
+        modules: ['ordenes', 'inventario'],
+      },
+    });
+    assert.equal(created.statusCode, 201, created.body);
+    assert.equal(created.json().tenant.template, 'taller');
+    assert.deepEqual(created.json().tenant.modules, ['ordenes', 'inventario']);
+
+    // Sin módulos: los de la plantilla.
+    const porDefecto = await app.inject({
+      method: 'POST',
+      url: '/platform/tenants',
+      headers: asAdmin(),
+      payload: { slug: 'boutique', name: 'Boutique', paidUntil: null, template: 'tienda' },
+    });
+    assert.equal(porDefecto.json().tenant.modules.includes('ordenes'), false);
+
+    const reassigned = await app.inject({
+      method: 'PUT',
+      url: '/platform/tenants/mecanica/business',
+      headers: asAdmin(),
+      payload: { template: 'electronica', modules: ['ordenes', 'creditos'] },
+    });
+    assert.equal(reassigned.statusCode, 200, reassigned.body);
+    assert.equal(reassigned.json().tenant.template, 'electronica');
+
+    const invalid = await app.inject({
+      method: 'PUT',
+      url: '/platform/tenants/mecanica/business',
+      headers: asAdmin(),
+      payload: { template: 'nave-espacial', modules: [] },
+    });
+    assert.equal(invalid.statusCode, 400);
+
+    const detail = (
+      await app.inject({ method: 'GET', url: '/platform/tenants/mecanica', headers: asAdmin() })
+    ).json();
+    const assigned = detail.activity.find(
+      (a: { action: string }) => a.action === 'TENANT_BUSINESS_ASSIGNED',
+    );
+    assert.deepEqual(assigned.payload.template, { from: 'taller', to: 'electronica' });
+
+    // Desde el subdominio de un negocio la ruta no existe.
+    const fromTenant = await app.inject({
+      method: 'PUT',
+      url: '/platform/tenants/mecanica/business',
+      headers: { host: host('mecanica'), cookie: `${PLATFORM_COOKIE_NAME}=${platformToken}` },
+      payload: { template: 'tienda', modules: [] },
+    });
+    assert.equal(fromTenant.statusCode, 404);
+  });
+
   it('la sesión de un negocio no abre el panel', async () => {
     const res = await app.inject({
       method: 'GET',

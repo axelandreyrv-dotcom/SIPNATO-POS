@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import { businessProfileSchema } from '@sipnato/shared';
+import { ownerProfileSchema } from '@sipnato/shared';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
-import { getProfile, saveProfile } from './repository.js';
+import { getProfile } from './repository.js';
+import { updateOwnerProfile } from './service.js';
 
 export default async function businessRoutes(app: FastifyInstance) {
   // ── GET /api/business ─────────────────────────────────────────────────────
@@ -9,8 +10,9 @@ export default async function businessRoutes(app: FastifyInstance) {
   app.get('/', { preHandler: [requireAuth] }, async () => getProfile());
 
   // ── PUT /api/business ─────────────────────────────────────────────────────
+  // Solo nombres y campos de las órdenes: el tipo de negocio y los módulos los asigna la plataforma.
   app.put('/', { preHandler: [requireAuth, requireRole('dueno')] }, async (request, reply) => {
-    const body = businessProfileSchema.safeParse(request.body);
+    const body = ownerProfileSchema.safeParse(request.body);
     if (!body.success) {
       return reply.status(400).send({
         error: {
@@ -19,10 +21,9 @@ export default async function businessRoutes(app: FastifyInstance) {
         },
       });
     }
-    saveProfile(body.data, {
+    return updateOwnerProfile(body.data, {
       ip: request.ip ?? null,
       userAgent: request.headers['user-agent'] ?? null,
     });
-    return getProfile();
   });
 }

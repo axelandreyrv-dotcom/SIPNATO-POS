@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 // ─── Módulos activables ───────────────────────────────────────────────────────
 // Dashboard, POS, Caja, Clientes, Gastos, Notas, Reportes, Usuarios y Configuración
-// están siempre activos. Estos los propone la plantilla y el dueño los ajusta.
+// están siempre activos. Estos los asigna la plataforma (panel admin.), junto con el tipo
+// de negocio; el dueño solo los ve.
 export const TOGGLEABLE_MODULES = [
   'ordenes',
   'cotizaciones',
@@ -85,6 +86,30 @@ export const businessProfileSchema = z
 
 export type BusinessProfile = z.infer<typeof businessProfileSchema>;
 
+// Lo que edita el dueño: nombres y campos de las órdenes. Tipo y módulos los asigna la plataforma.
+export const ownerProfileSchema = z
+  .object({
+    ordersLabel: z.string().trim().min(1, 'Indica cómo se llaman las órdenes').max(40),
+    itemLabel: z.string().trim().min(1, 'Indica qué se recibe (equipo, vehículo…)').max(40),
+    fields: z.array(orderFieldSchema).max(15, 'Máximo 15 campos'),
+  })
+  .refine((p) => new Set(p.fields.map((f) => f.key)).size === p.fields.length, {
+    message: 'Hay campos repetidos',
+    path: ['fields'],
+  });
+
+export type OwnerProfileInput = z.infer<typeof ownerProfileSchema>;
+
+// Lo que asigna la plataforma desde el panel.
+export const assignBusinessSchema = z.object({
+  template: z.enum(BUSINESS_TEMPLATES),
+  modules: z
+    .array(z.enum(TOGGLEABLE_MODULES))
+    .refine((m) => new Set(m).size === m.length, 'Hay módulos repetidos'),
+});
+
+export type AssignBusinessInput = z.infer<typeof assignBusinessSchema>;
+
 const ALL_BUT = (...off: ModuleKey[]) => TOGGLEABLE_MODULES.filter((m) => !off.includes(m));
 
 export const TEMPLATE_INFO: Record<
@@ -165,6 +190,16 @@ export function profileFromTemplate(template: BusinessTemplate): BusinessProfile
     fields: profile.fields.map((f) => ({ ...f })),
     modules: [...profile.modules],
   };
+}
+
+// Cambiar de tipo reemplaza nombres y campos por los de la nueva plantilla (las órdenes ya
+// creadas guardan su propia copia de las etiquetas). Mismo tipo: solo cambian los módulos.
+export function applyAssignment(
+  current: BusinessProfile,
+  input: AssignBusinessInput,
+): BusinessProfile {
+  const base = input.template === current.template ? current : profileFromTemplate(input.template);
+  return { ...base, template: input.template, modules: [...input.modules] };
 }
 
 // Clave estable a partir del nombre visible: "Número de serie" → "numero_de_serie".

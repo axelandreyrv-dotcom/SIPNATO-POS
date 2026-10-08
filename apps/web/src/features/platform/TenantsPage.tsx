@@ -1,7 +1,12 @@
 import { useDeferredValue, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight, Plus, Search } from 'lucide-react';
-import { formatColones, type PlatformSummary, type PlatformTenant } from '@sipnato/shared';
+import {
+  formatColones,
+  TEMPLATE_INFO,
+  type PlatformSummary,
+  type PlatformTenant,
+} from '@sipnato/shared';
 import { platformApi } from './api';
 import { Link } from './router';
 import {
@@ -197,7 +202,9 @@ function TenantRow({ tenant: t }: { tenant: PlatformTenant }) {
       >
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-text-primary">{t.name}</p>
-          <p className="truncate text-xs text-text-muted">{tenantHost(t.slug)}</p>
+          <p className="truncate text-xs text-text-muted">
+            {tenantHost(t.slug)} · {TEMPLATE_INFO[t.template].name}
+          </p>
         </div>
 
         <div className="col-start-1 row-start-2 flex flex-wrap items-center gap-2 sm:col-start-auto sm:row-start-auto">

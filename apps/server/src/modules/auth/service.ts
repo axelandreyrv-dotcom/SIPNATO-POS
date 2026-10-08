@@ -1,5 +1,4 @@
-import { profileFromTemplate, type SetupInput } from '@sipnato/shared';
-import { saveProfile } from '../business/repository.js';
+import type { SetupInput } from '@sipnato/shared';
 import {
   generateRecoveryCode,
   hashPassword,
@@ -66,7 +65,6 @@ export async function setupAdmin(
     meta,
   );
   setSetupCodeHash(slug, null);
-  saveProfile(profileFromTemplate(input.template), meta);
 
   const { token } = await createSession(dueno.id, meta.ip, meta.userAgent);
   insertAuditLog({ action: 'ADMIN_SETUP', userId: dueno.id, ...auditMeta(meta) });

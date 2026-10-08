@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { z } from 'zod';
 import {
+  assignBusinessSchema,
   createTenantSchema,
   platformChangePasswordSchema,
   platformLoginSchema,
@@ -15,6 +16,7 @@ import { SESSION_DURATION_MS } from '../../lib/session.js';
 import { requirePlatformAuth } from '../../middleware/platform-auth.js';
 import {
   changeSuperadminPassword,
+  assignTenantBusiness,
   changeTenantStatus,
   createTenant,
   getPlatformSettings,
@@ -113,6 +115,17 @@ export default async function platformRoutes(app: FastifyInstance) {
 
   // ── Negocios ───────────────────────────────────────────────────────────────
   app.get('/tenants', { preHandler: [requirePlatformAuth] }, async () => listPlatformTenants());
+
+  app.put(
+    '/tenants/:slug/business',
+    { preHandler: [requirePlatformAuth] },
+    async (request, reply) => {
+      const slug = slugParam(request, reply);
+      const body = slug && parse(assignBusinessSchema, request.body, reply);
+      if (!slug || !body) return;
+      return { tenant: assignTenantBusiness(request.superadmin, slug, body, meta(request)) };
+    },
+  );
 
   app.post('/tenants', { preHandler: [requirePlatformAuth] }, async (request, reply) => {
     const body = parse(createTenantSchema, request.body, reply);

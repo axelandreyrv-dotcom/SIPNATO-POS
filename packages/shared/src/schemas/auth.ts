@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { BUSINESS_TEMPLATES } from './business.js';
 
 // ─── Campos comunes ───────────────────────────────────────────────────────────
 
@@ -40,8 +39,7 @@ export function secretSchemaFor(role: UserRole) {
 export const setupSchema = z
   .object({
     setupCode: z.string().trim().min(1, 'Ingresa el código de activación').max(64),
-    // Plantilla inicial: campos de las órdenes y módulos activos. Se ajusta luego en Configuración.
-    template: z.enum(BUSINESS_TEMPLATES).default('generico'),
+    // El tipo de negocio y los módulos ya vienen asignados desde el panel de la plataforma.
     username: usernameSchema,
     displayName: displayNameSchema,
     password: passwordSchema,

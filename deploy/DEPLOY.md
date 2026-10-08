@@ -154,8 +154,9 @@ En **Configuración → Cobro** poner la mensualidad por defecto y cómo pagar (
 Otros comandos: `superadmin.js reset <usuario>` (contraseña nueva, desbloquea y cierra sesiones),
 `disable` / `enable` / `list`.
 
-En **Nuevo negocio** se elige el subdominio, el contacto para el cobro y hasta cuándo está pagado; el
-panel muestra el código de activación con un botón para enviarlo por WhatsApp. Cada pago se registra
+En **Nuevo negocio** se elige el subdominio, el **tipo de negocio y sus módulos**, el contacto para el
+cobro y hasta cuándo está pagado; el panel muestra el código de activación con un botón para enviarlo
+por WhatsApp. El tipo y los módulos se cambian después desde el detalle del negocio: el dueño solo los ve. Cada pago se registra
 en el negocio y corre su vencimiento. Un atraso **no bloquea** al negocio: el dueño y los
 administradores ven un aviso, y la suspensión es manual desde el panel.
 
@@ -209,7 +210,8 @@ docker compose -f deploy/docker-compose.yml logs server --tail=50
 ```
 
 El admin de la versión anterior pasa a ser el dueño con usuario **`dueno`** y su misma contraseña.
-El código de activación que imprimió el paso 1 no se usa (el negocio ya tiene dueño).
+El código de activación que imprimió el paso 1 no se usa (el negocio ya tiene dueño). La BD migrada
+conserva su tipo ("Reparación de celulares"); se puede ajustar en el panel.
 
 ---
 
