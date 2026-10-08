@@ -4,7 +4,10 @@
     "lib": ["ES2022"],
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
-    "composite": true
+    "composite": true,
+    // Emitir fuera de apps/web: un vite.config.js junto al .ts tiene prioridad en Vite
+    // y deja la config de desarrollo congelada en una versión vieja.
+    "outDir": "./node_modules/.tmp/tsconfig-node"
   },
   "include": ["vite.config.ts"]
 }

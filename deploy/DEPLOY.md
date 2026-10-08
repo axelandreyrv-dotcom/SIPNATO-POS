@@ -3,7 +3,10 @@
 ## Requisitos previos
 
 - VPS Ubuntu 22.04 / 24.04 LTS (mínimo 1 vCPU, 1 GB RAM, 20 GB disco)
-- Dominio `dosuxsoft.com` apuntando al IP del VPS (registro A para `@` y `www`)
+- Dominio `dosuxsoft.com` apuntando al IP del VPS: registros A para `@`, `www` **y `*` (comodín)**.
+  Cada negocio vive en su propio subdominio (`taller.dosuxsoft.com`, `ferreteria.dosuxsoft.com`…).
+  En Cloudflare los tres registros deben quedar en **"Solo DNS"** (nube gris): Caddy emite
+  el certificado HTTPS de cada subdominio directamente con Let's Encrypt.
 - Docker + Docker Compose instalados en el VPS
 
 ---
@@ -83,9 +86,9 @@ cp .env.example .env
 nano .env
 ```
 
-Completar `SESSION_SECRET` con un valor aleatorio seguro:
+Completar `SESSION_SECRET` con un valor aleatorio seguro (el VPS no trae Node instalado; `openssl` sí):
 ```bash
-node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+openssl rand -hex 48
 ```
 
 El archivo `.env` final debe verse así:
@@ -110,28 +113,71 @@ docker compose ps
 docker compose logs -f
 ```
 
-Caddy obtiene el certificado HTTPS automáticamente en el primer inicio (requiere que el DNS ya apunte al VPS).
+Caddy obtiene el certificado HTTPS de `dosuxsoft.com`/`www` al iniciar, y el de cada negocio
+la primera vez que alguien abre su subdominio (requiere que el DNS ya apunte al VPS).
 
 ---
 
 ## 7. Verificar el despliegue
 
+Primero crear al menos un negocio (sección 8), luego:
+
 ```bash
 # Health check del servidor (ruta directa — no lleva /api)
-curl https://www.dosuxsoft.com/health
+curl https://taller.dosuxsoft.com/health
 
 # Debe responder: {"status":"ok","db":"ok","env":"production",...}
 ```
 
-Abrir `https://www.dosuxsoft.com` en el navegador → debe aparecer la pantalla de login.
+Abrir `https://taller.dosuxsoft.com` en el navegador → debe aparecer `/setup` (negocio nuevo) o el login.
 
 ---
 
-## 8. Setup inicial de la cuenta admin
+## 8. Crear negocios y su cuenta admin
 
-En la primera visita, el sistema redirige a `/setup` para crear el usuario administrador.
+Cada negocio tiene **su propia base de datos** (`/app/data/tenants/<slug>.db`), sus propias
+sesiones y sus propios backups. Nada se comparte entre negocios.
 
-> Guardar el **recovery code** que aparece UNA sola vez. Es la única forma de recuperar acceso si olvidás la contraseña.
+```bash
+# Crear un negocio (slug = subdominio: minúsculas, dígitos y guiones)
+docker exec -it deploy-server-1 node apps/server/dist/scripts/tenant.js create taller "Taller Axel"
+
+# Listar / suspender / reactivar
+docker exec -it deploy-server-1 node apps/server/dist/scripts/tenant.js list
+docker exec -it deploy-server-1 node apps/server/dist/scripts/tenant.js suspend taller
+docker exec -it deploy-server-1 node apps/server/dist/scripts/tenant.js activate taller
+```
+
+`create` imprime un **código de activación** (`XXXX-XXXX-XXXX-XXXX`). Entregarlo al dueño del negocio
+junto con su dirección: `/setup` lo exige, así nadie más puede reclamar la cuenta de un negocio recién
+creado. Es de un solo uso; si se pierde antes de usarlo:
+
+```bash
+docker exec -it deploy-server-1 node apps/server/dist/scripts/tenant.js setup-code taller
+```
+
+Luego abrir `https://taller.dosuxsoft.com` → redirige a `/setup` para ingresar el código y crear el
+usuario del **dueño** (nombre, usuario y contraseña). El primer acceso tarda unos segundos mientras
+Caddy emite el certificado HTTPS. Después, el dueño crea administradores y cajeros desde **Usuarios**.
+
+> Guardar el **recovery code** que aparece UNA sola vez. Es la única forma de recuperar acceso si el dueño olvida la contraseña. Admins y cajeros no tienen recovery code: los restablece el dueño (o un admin, para cajeros) desde Usuarios.
+
+**Al actualizar desde una versión anterior a la Fase B:** el admin único de cada negocio pasa a ser
+el dueño con el usuario **`dueno`** y su misma contraseña. Todas las sesiones se cierran.
+
+Un subdominio que no corresponde a un negocio activo muestra "Negocio no encontrado" o
+"Acceso suspendido", y Caddy no emite certificados para él.
+
+### Migrar una base de datos de la versión anterior (un solo negocio)
+
+Si existe un `dosuxsoft.db` de antes de la Fase A, se convierte en un negocio así:
+
+```bash
+docker exec -it deploy-server-1 node apps/server/dist/scripts/tenant.js create taller "Taller Axel"
+docker compose -f deploy/docker-compose.yml stop server
+docker cp dosuxsoft.db deploy-server-1:/app/data/tenants/taller.db
+docker compose -f deploy/docker-compose.yml start server   # aplica migraciones pendientes al abrir
+```
 
 ---
 
@@ -152,7 +198,7 @@ Agregar:
 
 (10:00 UTC = 4:00 AM Costa Rica)
 
-El script guarda los backups en `/opt/dosuxsoft/backups/dosuxsoft-YYYY-MM-DD.db` con rotación de 30 días.
+El script guarda los backups en `/opt/dosuxsoft/backups/<negocio>/YYYY-MM-DD.db` con rotación de 30 días por negocio.
 
 ---
 
@@ -185,11 +231,11 @@ Si perdiste acceso y no podés ingresar con contraseña ni recovery code:
 # Conectarse al VPS por SSH
 ssh root@<IP_DEL_VPS>
 
-# Ejecutar el script dentro del contenedor
-docker exec -it deploy-server-1 node apps/server/dist/scripts/reset-admin.js
+# Ejecutar el script dentro del contenedor, indicando el negocio
+docker exec -it deploy-server-1 node apps/server/dist/scripts/reset-admin.js taller
 ```
 
-El script imprime una contraseña temporal y un nuevo recovery code. Cambiar la contraseña inmediatamente al iniciar sesión.
+El script restablece al **dueño** de ese negocio: imprime su usuario, una contraseña temporal y un nuevo recovery code. Cambiar la contraseña inmediatamente al iniciar sesión (Mi cuenta).
 
 ---
 
@@ -197,7 +243,7 @@ El script imprime una contraseña temporal y un nuevo recovery code. Cambiar la 
 
 - [ ] `NODE_ENV=production` activo (verificar en `/api/health`)
 - [ ] HTTPS forzado — Caddy redirige HTTP → HTTPS automáticamente
-- [ ] Headers de seguridad activos — verificar en [securityheaders.com](https://securityheaders.com/?q=https://www.dosuxsoft.com)
+- [ ] Headers de seguridad activos — verificar en [securityheaders.com](https://securityheaders.com/?q=https://taller.dosuxsoft.com)
 - [ ] SSH por clave confirmado — contraseña deshabilitada
 - [ ] UFW activo: `ufw status` muestra solo 22, 80, 443
 - [ ] SESSION_SECRET ≠ valor de desarrollo
@@ -221,7 +267,8 @@ git pull
 docker compose -f deploy/docker-compose.yml build
 docker compose -f deploy/docker-compose.yml up -d
 
-# Restaurar un backup (el nombre del contenedor depende de la carpeta deploy/)
-docker cp dosuxsoft-2026-06-15.db deploy-server-1:/app/data/dosuxsoft.db
-docker compose -f deploy/docker-compose.yml restart server
+# Restaurar el backup de UN negocio (los demás no se tocan)
+docker compose -f deploy/docker-compose.yml stop server
+docker cp taller/2026-06-15.db deploy-server-1:/app/data/tenants/taller.db
+docker compose -f deploy/docker-compose.yml start server
 ```

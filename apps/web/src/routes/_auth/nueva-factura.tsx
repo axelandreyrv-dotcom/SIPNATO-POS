@@ -5,10 +5,12 @@ import { formatColones } from '@sipnato/shared';
 import { createFactura } from '../../features/facturas/api';
 import { useFacturaPrint } from '../../features/facturas/FacturaPrintView';
 import { Route as authRoute } from '../_auth';
+import { requireModule } from '../../features/auth/useCurrentUser';
 
 export const Route = createRoute({
   getParentRoute: () => authRoute,
   path: '/nueva-factura',
+  beforeLoad: ({ context }) => requireModule(context, 'facturas'),
   component: NuevaFacturaPage,
 });
 

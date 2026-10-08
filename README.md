@@ -152,8 +152,9 @@ deploy/
 |---|---|---|
 | `SESSION_SECRET` | Secreto para firmar sesiones (min 64 chars) | valor de dev inseguro |
 | `ALLOWED_ORIGIN` | Origen CORS permitido | `http://localhost:5173` |
-| `DATABASE_PATH` | Ruta al archivo SQLite | `./data/dosuxsoft.db` |
-| `BACKUP_PATH` | Directorio de backups | `./data/backups` |
+| `DATA_DIR` | `control.db` + `tenants/<slug>.db` + `backups/<slug>/` | `./data` |
+| `TENANT_BASE_DOMAIN` | Dominio base: cada negocio vive en `<slug>.<dominio>` | `localhost` |
+| `DEV_TENANT` | Solo dev: negocio para `localhost` sin subdominio | — |
 | `LOG_PATH` | Directorio de logs | `./logs` |
 | `PORT` | Puerto Fastify | `3000` |
 

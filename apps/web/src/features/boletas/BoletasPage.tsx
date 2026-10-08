@@ -6,9 +6,11 @@ import type { BoletaWithCustomer } from '@sipnato/shared';
 import { fmtDateTime } from '../../lib/format';
 import { boletasApi } from './api';
 import { useBoletaPrint } from './BoletaPrintView';
+import { useBusiness } from '../auth/useCurrentUser';
 
 function BoletaRow({ boleta, onPrint }: { boleta: BoletaWithCustomer; onPrint: (b: BoletaWithCustomer) => void }) {
   const [expanded, setExpanded] = useState(false);
+  const { itemLabel } = useBusiness();
 
   return (
     <div className="border-b border-border last:border-0">
@@ -24,9 +26,9 @@ function BoletaRow({ boleta, onPrint }: { boleta: BoletaWithCustomer; onPrint: (
           <p className="truncate text-sm font-medium text-text-primary">{boleta.customerName}</p>
           <p className="text-xs text-text-muted">{boleta.customerPhone} · {boleta.deviceModel}</p>
         </div>
-        {boleta.imei && (
-          <span className="hidden shrink-0 text-xs tabular-nums text-text-muted sm:block">
-            {boleta.imei}
+        {boleta.fields[0] && (
+          <span className="hidden max-w-40 shrink-0 truncate text-xs tabular-nums text-text-muted sm:block">
+            {boleta.fields[0].value}
           </span>
         )}
         <span className="shrink-0 text-xs text-text-muted">
@@ -43,21 +45,16 @@ function BoletaRow({ boleta, onPrint }: { boleta: BoletaWithCustomer; onPrint: (
         <div className="border-t border-border/60 bg-surface-bg px-4 py-4">
           <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <dt className="text-xs text-text-muted">Modelo</dt>
+              <dt className="text-xs text-text-muted">{itemLabel}</dt>
               <dd className="text-sm text-text-primary">{boleta.deviceModel}</dd>
             </div>
-            {boleta.imei && (
-              <div>
-                <dt className="text-xs text-text-muted">IMEI</dt>
-                <dd className="font-mono text-sm text-text-primary">{boleta.imei}</dd>
+            {/* Etiquetas guardadas en la orden: siguen siendo correctas aunque el campo cambie después */}
+            {boleta.fields.map((f) => (
+              <div key={f.key}>
+                <dt className="text-xs text-text-muted">{f.label}</dt>
+                <dd className="break-words text-sm text-text-primary">{f.value}</dd>
               </div>
-            )}
-            {boleta.unlockPassword && (
-              <div>
-                <dt className="text-xs text-text-muted">Contraseña desbloqueo</dt>
-                <dd className="text-sm text-text-primary">{boleta.unlockPassword}</dd>
-              </div>
-            )}
+            ))}
             <div className="sm:col-span-2">
               <dt className="text-xs text-text-muted">Descripción</dt>
               <dd className="whitespace-pre-wrap text-sm text-text-primary">{boleta.description}</dd>
@@ -83,6 +80,7 @@ export function BoletasPage() {
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
   const { printBoleta, printPortal } = useBoletaPrint();
+  const { ordersLabel } = useBusiness();
 
   const { data, isLoading } = useQuery({
     queryKey: ['boletas', 'list', search],
@@ -101,8 +99,7 @@ export function BoletasPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-text-primary">Boletas</h1>
-          <p className="mt-1 text-sm text-text-muted">Registro de ingreso de equipos.</p>
+          <h1 className="text-xl font-semibold text-text-primary">{ordersLabel}</h1>
         </div>
         <Link
           to="/nueva-boleta"
@@ -121,7 +118,7 @@ export function BoletasPage() {
             type="text"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar por cliente, celular, IMEI o número de boleta..."
+            placeholder="Buscar por cliente, teléfono, cualquier dato o número..."
             className="h-10 w-full rounded-lg border border-border bg-surface-input pl-9 pr-4 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
           />
           {search && (
@@ -154,11 +151,11 @@ export function BoletasPage() {
       ) : !data?.boletas.length ? (
         <div className="flex h-24 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border">
           <p className="text-sm text-text-muted">
-            {search ? `Sin resultados para "${search}"` : 'Sin boletas registradas aún'}
+            {search ? `Sin resultados para "${search}"` : 'Todavía no hay registros'}
           </p>
           {!search && (
             <Link to="/nueva-boleta" className="text-xs font-medium text-brand-blue hover:underline">
-              Crear primera boleta →
+              Crear el primero →
             </Link>
           )}
         </div>
@@ -166,7 +163,7 @@ export function BoletasPage() {
         <div>
           {data.total > 0 && (
             <p className="mb-2 text-xs text-text-muted">
-              {data.total} {data.total === 1 ? 'boleta' : 'boletas'}
+              {data.total} en total
               {search && ` para "${search}"`}
             </p>
           )}

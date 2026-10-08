@@ -3,8 +3,10 @@ import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, Loader2, Trash2, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { formatColones } from '@sipnato/shared';
-import type { Expense } from '@sipnato/shared';
+import type { Expense, SupervisorAuth } from '@sipnato/shared';
 import { fmtTime } from '../../lib/format';
+import { SupervisorAuthDialog, supervisorAuthErrorMessage } from '../../components/SupervisorAuthDialog';
+import { useCan } from '../auth/useCurrentUser';
 import { cashRegisterApi } from '../cash-register/api';
 import { salesApi } from '../pos/api';
 import { expensesApi } from './api';
@@ -148,13 +150,33 @@ export function ExpensesPage() {
     },
   });
 
+  // Gasto que un cajero quiere eliminar: espera la autorización de un admin/dueño.
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const canDeleteDirectly = useCan('deleteMoneyDirectly');
+
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => expensesApi.delete(id),
+    mutationFn: ({ id, authorization }: { id: number; authorization?: SupervisorAuth }) =>
+      expensesApi.delete(id, authorization),
     onSuccess: () => {
+      setPendingDeleteId(null);
+      setAuthError(null);
       queryClient.invalidateQueries({ queryKey: ['expenses', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['cash-register', 'current'] });
     },
+    onError: (err: unknown) => {
+      if (pendingDeleteId !== null) setAuthError(supervisorAuthErrorMessage(err));
+    },
   });
+
+  function handleDeleteRequest(id: number) {
+    if (canDeleteDirectly) {
+      deleteMutation.mutate({ id });
+    } else {
+      setAuthError(null);
+      setPendingDeleteId(id);
+    }
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -304,13 +326,24 @@ export function ExpensesPage() {
               <ExpenseRow
                 key={expense.id}
                 expense={expense}
-                onDelete={(id) => deleteMutation.mutate(id)}
-                isDeleting={deleteMutation.isPending && deleteMutation.variables === expense.id}
+                onDelete={handleDeleteRequest}
+                isDeleting={deleteMutation.isPending && deleteMutation.variables?.id === expense.id}
               />
             ))}
           </div>
         )}
       </div>
+
+      {pendingDeleteId !== null && (
+        <SupervisorAuthDialog
+          title="Autorizar eliminación"
+          description="Eliminar un gasto requiere que un administrador o el dueño lo autorice."
+          onConfirm={(authorization) => deleteMutation.mutate({ id: pendingDeleteId, authorization })}
+          onClose={() => { setPendingDeleteId(null); setAuthError(null); }}
+          isLoading={deleteMutation.isPending}
+          error={authError}
+        />
+      )}
     </div>
   );
 }

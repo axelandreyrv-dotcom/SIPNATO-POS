@@ -3,12 +3,13 @@ import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import Fastify from 'fastify';
 import { config } from './config.js';
-import { sqlite } from './db/client.js';
+import { findTenant, pingControlDb } from './db/control.js';
 import { AppError } from './lib/errors.js';
 import { startAutoCloseCron } from './jobs/auto-close.js';
 import { startBackupCron } from './jobs/backup.js';
 import { startCleanupJobs } from './jobs/cleanup-sessions.js';
 import { registerSecurityHeaders } from './middleware/security-headers.js';
+import { registerTenantResolution, slugFromHostname } from './middleware/tenant.js';
 import authRoutes from './modules/auth/routes.js';
 import cashRegisterRoutes from './modules/cash-registers/routes.js';
 import boletasRoutes from './modules/boletas/routes.js';
@@ -23,8 +24,13 @@ import dashboardRoutes from './modules/dashboard/routes.js';
 import apartadosRoutes from './modules/apartados/routes.js';
 import facturasRoutes from './modules/facturas/routes.js';
 import creditosRoutes from './modules/creditos/routes.js';
+import usersRoutes from './modules/users/routes.js';
+import productsRoutes from './modules/products/routes.js';
+import businessRoutes from './modules/business/routes.js';
+import { registerModuleRoutes } from './middleware/module.js';
 
-export async function buildApp() {
+export async function buildApp(opts: { startJobs?: boolean } = {}) {
+  const { startJobs = true } = opts;
   const app = Fastify({
     trustProxy: true,
     logger:
@@ -41,9 +47,13 @@ export async function buildApp() {
     credentials: true,
   });
 
+  // Debe registrarse antes del rate limit: el límite se cuenta por negocio + IP.
+  registerTenantResolution(app);
+
   await app.register(rateLimit, {
     max: 200,
     timeWindow: '1 minute',
+    keyGenerator: (req) => `${req.tenantSlug ?? '-'}:${req.ip}`,
     // Per-route overrides are set in route config.rateLimit
   });
 
@@ -60,31 +70,47 @@ export async function buildApp() {
   });
 
   // ── Background jobs ────────────────────────────────────────────────────────
-  startCleanupJobs(app.log);
-  startAutoCloseCron(app.log);
-  startBackupCron(app.log);
+  if (startJobs) {
+    startCleanupJobs(app.log);
+    startAutoCloseCron(app.log);
+    startBackupCron(app.log);
+  }
 
   // ── Routes ─────────────────────────────────────────────────────────────────
   await app.register(authRoutes, { prefix: '/auth' });
   await app.register(cashRegisterRoutes, { prefix: '/api/cash-registers' });
-  await app.register(boletasRoutes, { prefix: '/api/boletas' });
   await app.register(customersRoutes, { prefix: '/api/customers' });
   await app.register(expensesRoutes, { prefix: '/api/expenses' });
   await app.register(salesRoutes, { prefix: '/api/sales' });
   await app.register(notesRoutes, { prefix: '/api/notes' });
-  await app.register(quotesRoutes, { prefix: '/api/quotes' });
   await app.register(settingsRoutes, { prefix: '/api/settings' });
   await app.register(reportsRoutes, { prefix: '/api/reports' });
   await app.register(dashboardRoutes, { prefix: '/api/dashboard' });
-  await app.register(apartadosRoutes, { prefix: '/api/apartados' });
-  await app.register(facturasRoutes, { prefix: '/api/facturas' });
-  await app.register(creditosRoutes, { prefix: '/api/creditos' });
+  await app.register(usersRoutes, { prefix: '/api/users' });
+  await app.register(businessRoutes, { prefix: '/api/business' });
+
+  // Módulos que cada negocio activa o desactiva (perfil del negocio).
+  await registerModuleRoutes(app, 'ordenes', boletasRoutes, '/api/boletas');
+  await registerModuleRoutes(app, 'cotizaciones', quotesRoutes, '/api/quotes');
+  await registerModuleRoutes(app, 'facturas', facturasRoutes, '/api/facturas');
+  await registerModuleRoutes(app, 'apartados', apartadosRoutes, '/api/apartados');
+  await registerModuleRoutes(app, 'creditos', creditosRoutes, '/api/creditos');
+  await registerModuleRoutes(app, 'inventario', productsRoutes, '/api/products');
+
+  // Caddy (on-demand TLS) pregunta aquí antes de emitir un certificado para un subdominio.
+  // Solo accesible dentro de la red Docker: el Caddyfile no expone /internal/*.
+  app.get('/internal/tls-check', async (request, reply) => {
+    const { domain } = request.query as { domain?: string };
+    const slug = domain ? slugFromHostname(domain, config.TENANT_BASE_DOMAIN) : null;
+    const tenant = slug ? findTenant(slug) : null;
+    return reply.status(tenant?.status === 'active' ? 200 : 404).send();
+  });
 
   // Health check — no auth, no rate limit (excluded via global 200/min default)
   app.get('/health', async () => {
     let dbStatus: 'ok' | 'error' = 'ok';
     try {
-      sqlite.prepare('SELECT 1').get();
+      pingControlDb();
     } catch {
       dbStatus = 'error';
     }

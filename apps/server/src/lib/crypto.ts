@@ -34,6 +34,26 @@ export function verifyRecoveryCode(code: string, hash: string): Promise<boolean>
   return argon2.verify(hash, code);
 }
 
+// ─── Setup codes ──────────────────────────────────────────────────────────────
+// Código de activación de un negocio nuevo: 64 bits, en grupos de 4 para dictarlo
+// o copiarlo sin errores. Se hashea con argon2id porque el usuario lo escribe.
+
+export function generateSetupCode(): string {
+  return randomBytes(8).toString('hex').toUpperCase().match(/.{4}/g)!.join('-');
+}
+
+export function normalizeSetupCode(code: string): string {
+  return code.replace(/[\s-]/g, '').toUpperCase();
+}
+
+export function hashSetupCode(code: string): Promise<string> {
+  return argon2.hash(normalizeSetupCode(code), ARGON2_OPTIONS);
+}
+
+export function verifySetupCode(code: string, hash: string): Promise<boolean> {
+  return argon2.verify(hash, normalizeSetupCode(code));
+}
+
 // ─── Session tokens ───────────────────────────────────────────────────────────
 // 256-bit random token stored in the cookie. Hashed with SHA-256 for DB lookup.
 // SHA-256 is appropriate here — the token is already high-entropy so brute-force

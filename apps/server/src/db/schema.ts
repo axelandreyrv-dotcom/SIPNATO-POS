@@ -1,15 +1,25 @@
 import { check, index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
-// ─── admin ────────────────────────────────────────────────────────────────────
-// Single row — created once at /auth/setup. id is always 1.
-// CHECK (id = 1) enforced at DB level: a second INSERT is physically impossible.
-export const admin = sqliteTable(
-  'admin',
+// ─── users ────────────────────────────────────────────────────────────────────
+// Un dueño por negocio (creado en /auth/setup; índice único parcial en la migración 0007),
+// más administradores y cajeros. secret_hash = argon2id de la contraseña (dueño/admin) o
+// del PIN de 6 dígitos (cajero). Nunca se borran: se desactivan (el audit_log los referencia).
+export const USER_ROLES = ['dueno', 'admin', 'cajero'] as const;
+
+export const users = sqliteTable(
+  'users',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-    passwordHash: text('password_hash').notNull(),
-    recoveryCodeHash: text('recovery_code_hash').notNull(),
+    username: text('username').notNull(),
+    displayName: text('display_name').notNull(),
+    role: text('role', { enum: USER_ROLES }).notNull(),
+    secretHash: text('secret_hash').notNull(),
+    // Solo el dueño tiene recovery code.
+    recoveryCodeHash: text('recovery_code_hash'),
+    active: integer('active', { mode: 'boolean' }).notNull().default(true),
+    failedAttempts: integer('failed_attempts').notNull().default(0),
+    lockedUntil: text('locked_until'),
     createdAt: text('created_at')
       .notNull()
       .default(sql`(datetime('now'))`),
@@ -17,8 +27,9 @@ export const admin = sqliteTable(
       .notNull()
       .default(sql`(datetime('now'))`),
   },
-  () => ({
-    singleRow: check('admin_single_row', sql`id = 1`),
+  (t) => ({
+    usernameIdx: uniqueIndex('users_username_idx').on(t.username),
+    roleCheck: check('users_role_check', sql`${t.role} IN ('dueno', 'admin', 'cajero')`),
   }),
 );
 
@@ -27,6 +38,9 @@ export const sessions = sqliteTable(
   'sessions',
   {
     id: text('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
     tokenHash: text('token_hash').notNull(),
     expiresAt: text('expires_at').notNull(),
     lastActiveAt: text('last_active_at').notNull(),
@@ -38,6 +52,7 @@ export const sessions = sqliteTable(
   },
   (t) => ({
     tokenHashIdx: uniqueIndex('sessions_token_hash_idx').on(t.tokenHash),
+    userIdx: index('sessions_user_idx').on(t.userId),
   }),
 );
 
@@ -134,7 +149,7 @@ export const customers = sqliteTable(
   }),
 );
 
-// ─── boletas ──────────────────────────────────────────────────────────────────
+// ─── boletas (órdenes de servicio) ────────────────────────────────────────────
 export const boletas = sqliteTable(
   'boletas',
   {
@@ -143,11 +158,12 @@ export const boletas = sqliteTable(
       .notNull()
       .references(() => customers.id),
     consecutive: integer('consecutive').notNull(),
+    // Artículo recibido (modelo del equipo, vehículo...). Etiqueta según el perfil del negocio.
     deviceModel: text('device_model').notNull(),
-    imei: text('imei'),
-    // Stored as plain text — this is the customer's device PIN, not a system secret.
-    // The UI must display a clear "not stored securely" notice.
-    unlockPassword: text('unlock_password'),
+    // JSON OrderFieldValue[] con la etiqueta de cada campo al momento de crear la orden.
+    // Los campos tipo "secret" (contraseña del equipo del cliente) van en texto plano:
+    // no es un secreto del sistema y la UI lo advierte.
+    fields: text('fields').notNull().default('[]'),
     description: text('description').notNull(),
     createdAt: text('created_at')
       .notNull()
@@ -157,10 +173,21 @@ export const boletas = sqliteTable(
       .default(sql`(datetime('now'))`),
   },
   (t) => ({
-    imeiIdx: index('boletas_imei_idx').on(t.imei),
     consecutiveIdx: index('boletas_consecutive_idx').on(t.consecutive),
   }),
 );
+
+// ─── business_profile ─────────────────────────────────────────────────────────
+// Una fila (id = 1): tipo de negocio, campos de las órdenes y módulos activos.
+export const businessProfile = sqliteTable('business_profile', {
+  id: integer('id').primaryKey(),
+  template: text('template').notNull(),
+  ordersLabel: text('orders_label').notNull(),
+  itemLabel: text('item_label').notNull(),
+  fields: text('fields').notNull(),
+  modules: text('modules').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
 
 // ─── quotes ───────────────────────────────────────────────────────────────────
 export const quotes = sqliteTable('quotes', {
@@ -340,6 +367,86 @@ export const creditoPayments = sqliteTable(
   }),
 );
 
+// ─── products ─────────────────────────────────────────────────────────────────
+// `stock` es el saldo de stock_movements, actualizado en la misma transacción que
+// cada movimiento. Puede quedar negativo: vender sin stock registrado se avisa, no se bloquea.
+export const products = sqliteTable(
+  'products',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    name: text('name').notNull(),
+    // Código interno o de barras. Único cuando existe (índice parcial en la migración 0008).
+    code: text('code'),
+    category: text('category'),
+    price: integer('price').notNull(),
+    cost: integer('cost'),
+    trackStock: integer('track_stock', { mode: 'boolean' }).notNull().default(true),
+    stock: integer('stock').notNull().default(0),
+    minStock: integer('min_stock').notNull().default(0),
+    active: integer('active', { mode: 'boolean' }).notNull().default(true),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => ({
+    nameIdx: index('products_name_idx').on(t.name),
+  }),
+);
+
+// ─── stock_movements ──────────────────────────────────────────────────────────
+// Historial de existencias. Solo inserción. quantity es la variación con signo.
+export const STOCK_MOVEMENT_TYPES = ['entrada', 'ajuste', 'venta', 'anulacion_venta'] as const;
+
+export const stockMovements = sqliteTable(
+  'stock_movements',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    productId: integer('product_id')
+      .notNull()
+      .references(() => products.id),
+    type: text('type', { enum: STOCK_MOVEMENT_TYPES }).notNull(),
+    quantity: integer('quantity').notNull(),
+    stockAfter: integer('stock_after').notNull(),
+    unitCost: integer('unit_cost'),
+    reason: text('reason'),
+    saleId: integer('sale_id').references(() => sales.id),
+    userId: integer('user_id').references(() => users.id),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (t) => ({
+    productIdx: index('stock_movements_product_idx').on(t.productId),
+  }),
+);
+
+// ─── sale_items ───────────────────────────────────────────────────────────────
+// Líneas de una venta con carrito. Precio y costo se copian al vender: cambiar el
+// precio del producto después no altera ventas pasadas. product_id NULL = línea libre.
+export const saleItems = sqliteTable(
+  'sale_items',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    saleId: integer('sale_id')
+      .notNull()
+      .references(() => sales.id),
+    productId: integer('product_id').references(() => products.id),
+    description: text('description').notNull(),
+    quantity: integer('quantity').notNull(),
+    unitPrice: integer('unit_price').notNull(),
+    unitCost: integer('unit_cost'),
+    total: integer('total').notNull(),
+    sortOrder: integer('sort_order').notNull().default(0),
+  },
+  (t) => ({
+    saleIdx: index('sale_items_sale_idx').on(t.saleId),
+    productIdx: index('sale_items_product_idx').on(t.productId),
+  }),
+);
+
 // ─── counters ─────────────────────────────────────────────────────────────────
 // Single row per document type — incremented inside a transaction.
 export const counters = sqliteTable('counters', {
@@ -355,6 +462,8 @@ export const auditLog = sqliteTable('audit_log', {
   entityType: text('entity_type'),
   entityId: text('entity_id'),
   payloadSnapshot: text('payload_snapshot'),
+  // Quién hizo la acción. NULL = sistema (cron) o intento sin sesión (login fallido).
+  userId: integer('user_id').references(() => users.id),
   ip: text('ip'),
   userAgent: text('user_agent'),
   createdAt: text('created_at')

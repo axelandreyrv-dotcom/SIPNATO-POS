@@ -9,7 +9,7 @@ export default async function boletasRoutes(app: FastifyInstance) {
   app.post('/', { preHandler: [requireAuth] }, async (request, reply) => {
     const body = createBoletaSchema.safeParse(request.body);
     if (!body.success) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
+      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: body.error.issues[0]?.message ?? 'Datos inválidos' } });
     }
 
     try {

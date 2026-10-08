@@ -1,52 +1,44 @@
 import { createReadStream, existsSync } from 'fs';
-import { join } from 'path';
 import type { FastifyInstance } from 'fastify';
-import { settingsSchema, setSalesPinSchema } from '@sipnato/shared';
+import { settingsSchema } from '@sipnato/shared';
 import { AppError } from '../../lib/errors.js';
-import { config } from '../../config.js';
-import { requireAuth } from '../../middleware/auth.js';
-import { getSettings, updateSettings, getSalesPinSet, setSalesPin } from './service.js';
+import { latestBackupPath } from '../../jobs/backup.js';
+import { requireAuth, requireRole } from '../../middleware/auth.js';
+import { getSettings, updateSettings } from './service.js';
 
 export default async function settingsRoutes(app: FastifyInstance) {
   // ── GET /api/settings ────────────────────────────────────────────────────
+  // Todos los roles: los tickets impresos usan nombre, teléfono y pies de página del negocio.
   app.get('/', { preHandler: [requireAuth] }, async () => {
-    return { ...getSettings(), salesDeletePinSet: getSalesPinSet() };
-  });
-
-  // ── POST /api/settings/sales-pin ─────────────────────────────────────────
-  app.post('/sales-pin', { preHandler: [requireAuth] }, async (request, reply) => {
-    const body = setSalesPinSchema.safeParse(request.body);
-    if (!body.success) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'PIN inválido — debe ser exactamente 4 dígitos numéricos' } });
-    }
-    await setSalesPin(body.data.pin, {
-      ip: request.ip ?? null,
-      userAgent: request.headers['user-agent'] ?? null,
-    });
-    return reply.send({ ok: true, pinSet: body.data.pin !== null });
+    return getSettings();
   });
 
   // ── GET /api/settings/backup/download ───────────────────────────────────
-  // Rate limit: 5 descargas por hora (CLAUDE.md §6.3 + §6.4)
+  // Solo el dueño. Rate limit: 5 descargas por hora (CLAUDE.md §6.3 + §6.4)
   app.get(
     '/backup/download',
-    { preHandler: [requireAuth], config: { rateLimit: { max: 5, timeWindow: '1 hour' } } },
-    async (_request, reply) => {
-      const latestPath = join(config.BACKUP_PATH, 'dosuxsoft-latest.db');
+    {
+      preHandler: [requireAuth, requireRole('dueno')],
+      config: { rateLimit: { max: 5, timeWindow: '1 hour' } },
+    },
+    async (request, reply) => {
+      // Ruta derivada solo del negocio resuelto por el servidor — nunca de parámetros del cliente.
+      const slug = request.tenantSlug!;
+      const latestPath = latestBackupPath(slug);
       if (!existsSync(latestPath)) {
         return reply.status(404).send({ error: { code: 'BACKUP_NOT_FOUND', message: 'No hay backup disponible aún.' } });
       }
       const date = new Date().toISOString().slice(0, 10);
       return reply
         .header('Content-Type', 'application/octet-stream')
-        .header('Content-Disposition', `attachment; filename="dosuxsoft-${date}.db"`)
+        .header('Content-Disposition', `attachment; filename="dosuxsoft-${slug}-${date}.db"`)
         .header('Cache-Control', 'no-store')
         .send(createReadStream(latestPath));
     },
   );
 
   // ── PUT /api/settings ────────────────────────────────────────────────────
-  app.put('/', { preHandler: [requireAuth] }, async (request, reply) => {
+  app.put('/', { preHandler: [requireAuth, requireRole('dueno')] }, async (request, reply) => {
     const body = settingsSchema.safeParse(request.body);
     if (!body.success) {
       return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });

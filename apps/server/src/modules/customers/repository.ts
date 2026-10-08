@@ -88,7 +88,7 @@ export function getCustomerBoletasRows(customerId: number): BoletaSummary[] {
       id: boletas.id,
       consecutive: boletas.consecutive,
       deviceModel: boletas.deviceModel,
-      imei: boletas.imei,
+      fields: boletas.fields,
       description: boletas.description,
       createdAt: boletas.createdAt,
     })
@@ -101,7 +101,7 @@ export function getCustomerBoletasRows(customerId: number): BoletaSummary[] {
     id: r.id,
     consecutive: r.consecutive,
     deviceModel: r.deviceModel,
-    imei: r.imei ?? null,
+    fields: JSON.parse(r.fields) as BoletaSummary['fields'],
     description: r.description,
     createdAt: r.createdAt,
   }));

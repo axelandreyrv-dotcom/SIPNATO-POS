@@ -3,9 +3,13 @@ import { z } from 'zod';
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
-  DATABASE_PATH: z.string().default('./data/dosuxsoft.db'),
-  BACKUP_PATH: z.string().default('./data/backups'),
+  // control.db + tenants/<slug>.db + backups/<slug>/ viven bajo este directorio
+  DATA_DIR: z.string().default('./data'),
   LOG_PATH: z.string().default('./logs'),
+  // Cada negocio vive en <slug>.<TENANT_BASE_DOMAIN>. En dev, "localhost" → taller.localhost:5173
+  TENANT_BASE_DOMAIN: z.string().default('localhost'),
+  // Solo desarrollo: negocio usado cuando el host no trae subdominio (http://localhost:5173)
+  DEV_TENANT: z.string().optional(),
   // Dev usa un default explícito para no bloquear `pnpm dev` sin .env
   SESSION_SECRET: z
     .string()

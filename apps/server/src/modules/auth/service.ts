@@ -1,140 +1,139 @@
+import { profileFromTemplate, type SetupInput } from '@sipnato/shared';
+import { saveProfile } from '../business/repository.js';
 import {
   generateRecoveryCode,
-  generateSessionToken,
   hashPassword,
   hashRecoveryCode,
-  hashSessionToken,
-  verifyPassword,
   verifyRecoveryCode,
+  verifySetupCode,
 } from '../../lib/crypto.js';
-import { createSession, revokeAllSessions, revokeSession } from '../../lib/session.js';
-import { AppError } from '../../lib/errors.js';
-import {
-  createAdmin,
-  findAdmin,
-  insertAuditLog,
-  isAdminSetup,
-  updateAdminCredentials,
-} from './repository.js';
+import { createSession, revokeSession, revokeUserSessions } from '../../lib/session.js';
+import { AppError, CredencialesInvalidas, UsuarioBloqueado } from '../../lib/errors.js';
+import { currentTenant } from '../../db/client.js';
+import { getSetupCodeHash, setSetupCodeHash } from '../../db/control.js';
+import { findDueno, insertUserRow, updateUserRow } from '../users/repository.js';
+import { verifyCredentials } from '../users/service.js';
+import { insertAuditLog, isAdminSetup } from './repository.js';
+
+interface Meta {
+  ip: string | null;
+  userAgent: string | null;
+}
+
+function auditMeta(meta: Meta) {
+  return {
+    ...(meta.ip !== null ? { ip: meta.ip } : {}),
+    ...(meta.userAgent !== null ? { userAgent: meta.userAgent } : {}),
+  };
+}
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
+// Crea al dueño del negocio. Solo funciona una vez y con el código de activación.
 
 export async function setupAdmin(
-  password: string,
-  ip: string | null,
-  userAgent: string | null,
+  input: SetupInput,
+  meta: Meta,
 ): Promise<{ recoveryCode: string; sessionToken: string }> {
-  if (await isAdminSetup()) {
+  if (isAdminSetup()) {
     throw new AppError('SETUP_ALREADY_DONE', 'El sistema ya fue configurado', 409);
   }
 
-  const passwordHash = await hashPassword(password);
+  // Sin código vigente (nunca emitido o ya usado) el setup queda cerrado: falla cerrado.
+  const { slug } = currentTenant();
+  const codeHash = getSetupCodeHash(slug);
+  if (!codeHash || !(await verifySetupCode(input.setupCode, codeHash))) {
+    throw new AppError('SETUP_CODE_INVALID', 'Código de activación inválido', 403);
+  }
+
   const recoveryCode = generateRecoveryCode();
-  const recoveryCodeHash = await hashRecoveryCode(recoveryCode);
+  const dueno = insertUserRow(
+    {
+      username: input.username,
+      displayName: input.displayName,
+      role: 'dueno',
+      secretHash: await hashPassword(input.password),
+      recoveryCodeHash: await hashRecoveryCode(recoveryCode),
+    },
+    meta,
+  );
+  setSetupCodeHash(slug, null);
+  saveProfile(profileFromTemplate(input.template), meta);
 
-  await createAdmin(passwordHash, recoveryCodeHash);
-
-  const { token } = await createSession(ip, userAgent);
-
-  await insertAuditLog({
-    action: 'ADMIN_SETUP',
-    ...(ip !== null ? { ip } : {}),
-    ...(userAgent !== null ? { userAgent } : {}),
-  });
+  const { token } = await createSession(dueno.id, meta.ip, meta.userAgent);
+  insertAuditLog({ action: 'ADMIN_SETUP', userId: dueno.id, ...auditMeta(meta) });
 
   return { recoveryCode, sessionToken: token };
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
 
-export async function loginAdmin(
-  password: string,
-  ip: string | null,
-  userAgent: string | null,
+export async function loginUser(
+  username: string,
+  secret: string,
+  meta: Meta,
 ): Promise<{ sessionToken: string }> {
-  const adminRow = await findAdmin();
-
-  // Always call verifyPassword to prevent timing attacks (even if no admin).
-  const dummyHash =
-    '$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-  const hashToVerify = adminRow?.passwordHash ?? dummyHash;
-  const valid = await verifyPassword(password, hashToVerify);
-
-  if (!adminRow || !valid) {
-    await insertAuditLog({
-      action: 'LOGIN_FAILED',
-      ...(ip !== null ? { ip } : {}),
-      ...(userAgent !== null ? { userAgent } : {}),
-    });
-    // Generic error — never reveal whether admin exists or password is wrong.
-    throw new AppError('INVALID_CREDENTIALS', 'Credenciales inválidas', 401);
+  let userId: number;
+  try {
+    userId = (await verifyCredentials(username, secret)).id;
+  } catch (err) {
+    if (err instanceof CredencialesInvalidas || err instanceof UsuarioBloqueado) {
+      insertAuditLog({
+        action: err instanceof UsuarioBloqueado ? 'LOGIN_LOCKED' : 'LOGIN_FAILED',
+        payloadSnapshot: JSON.stringify({ username }),
+        ...auditMeta(meta),
+      });
+    }
+    throw err;
   }
 
-  const { token } = await createSession(ip, userAgent);
-  await insertAuditLog({
-    action: 'LOGIN_SUCCESS',
-    ...(ip !== null ? { ip } : {}),
-    ...(userAgent !== null ? { userAgent } : {}),
-  });
-
+  const { token } = await createSession(userId, meta.ip, meta.userAgent);
+  insertAuditLog({ action: 'LOGIN_SUCCESS', userId, ...auditMeta(meta) });
   return { sessionToken: token };
 }
 
 // ─── Logout ───────────────────────────────────────────────────────────────────
 
-export async function logoutAdmin(
-  sessionToken: string,
-  ip: string | null,
-  userAgent: string | null,
-): Promise<void> {
+export async function logoutUser(sessionToken: string, meta: Meta): Promise<void> {
   await revokeSession(sessionToken);
-  await insertAuditLog({
-    action: 'LOGOUT',
-    ...(ip !== null ? { ip } : {}),
-    ...(userAgent !== null ? { userAgent } : {}),
-  });
+  insertAuditLog({ action: 'LOGOUT', ...auditMeta(meta) });
 }
 
 // ─── Recover ──────────────────────────────────────────────────────────────────
+// Solo el dueño tiene recovery code. Admins y cajeros los restablece un superior.
 
 export async function recoverAdmin(
   recoveryCode: string,
   newPassword: string,
-  ip: string | null,
-  userAgent: string | null,
-): Promise<{ newRecoveryCode: string; sessionToken: string }> {
-  const adminRow = await findAdmin();
+  meta: Meta,
+): Promise<{ newRecoveryCode: string; sessionToken: string; username: string }> {
+  const dueno = findDueno();
 
   // Always verify to prevent timing attacks.
   const dummyHash =
     '$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-  const hashToVerify = adminRow?.recoveryCodeHash ?? dummyHash;
-  const valid = await verifyRecoveryCode(recoveryCode, hashToVerify);
+  const valid = await verifyRecoveryCode(recoveryCode, dueno?.recoveryCodeHash ?? dummyHash);
 
-  if (!adminRow || !valid) {
-    await insertAuditLog({
-      action: 'RECOVER_FAILED',
-      ...(ip !== null ? { ip } : {}),
-      ...(userAgent !== null ? { userAgent } : {}),
-    });
+  if (!dueno || !valid) {
+    insertAuditLog({ action: 'RECOVER_FAILED', ...auditMeta(meta) });
     throw new AppError('INVALID_CREDENTIALS', 'Código de recuperación inválido', 401);
   }
 
-  const newPasswordHash = await hashPassword(newPassword);
   const newRecoveryCode = generateRecoveryCode();
-  const newRecoveryCodeHash = await hashRecoveryCode(newRecoveryCode);
+  updateUserRow(
+    dueno.id,
+    {
+      secretHash: await hashPassword(newPassword),
+      recoveryCodeHash: await hashRecoveryCode(newRecoveryCode),
+    },
+    'RECOVER_SUCCESS',
+    {},
+    meta,
+  );
 
-  // Revoke all sessions before creating new one (CLAUDE.md §6.1)
-  await revokeAllSessions();
-  await updateAdminCredentials(newPasswordHash, newRecoveryCodeHash);
+  // Revoke all of the owner's sessions before creating a new one (CLAUDE.md §6.1)
+  revokeUserSessions(dueno.id);
+  const { token } = await createSession(dueno.id, meta.ip, meta.userAgent);
 
-  const { token } = await createSession(ip, userAgent);
-
-  await insertAuditLog({
-    action: 'RECOVER_SUCCESS',
-    ...(ip !== null ? { ip } : {}),
-    ...(userAgent !== null ? { userAgent } : {}),
-  });
-
-  return { newRecoveryCode, sessionToken: token };
+  // Se devuelve el usuario porque quien recupera acceso pudo haberlo olvidado también.
+  return { newRecoveryCode, sessionToken: token, username: dueno.username };
 }

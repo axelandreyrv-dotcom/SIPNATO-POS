@@ -1,3 +1,4 @@
+import type { Actor } from '../../db/client.js';
 import { CajaNoAbierta, GastoNoEnCajaActiva, GastoNoEncontrado } from '../../lib/errors.js';
 import { findOpenRegister } from '../cash-registers/repository.js';
 import type { CreateExpenseInput, Expense, ExpenseList } from '@sipnato/shared';
@@ -20,7 +21,7 @@ export function createExpense(input: CreateExpenseInput, meta: Meta): Expense {
   return createExpenseRow(input, register.id, meta);
 }
 
-export function deleteExpense(id: number, meta: Meta): void {
+export function deleteExpense(id: number, meta: Meta, authorizedBy: Actor): void {
   const register = findOpenRegister();
   if (!register) throw new CajaNoAbierta();
 
@@ -28,7 +29,11 @@ export function deleteExpense(id: number, meta: Meta): void {
   if (!expense || expense.deletedAt !== null) throw new GastoNoEncontrado();
   if (expense.cashRegisterId !== register.id) throw new GastoNoEnCajaActiva();
 
-  softDeleteExpenseRow(id, meta, { description: expense.description, amount: expense.amount });
+  softDeleteExpenseRow(id, meta, {
+    description: expense.description,
+    amount: expense.amount,
+    authorizedBy: { id: authorizedBy.id, username: authorizedBy.username },
+  });
 }
 
 export function listExpenses(): ExpenseList {

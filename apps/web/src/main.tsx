@@ -23,15 +23,20 @@ import { Route as apartadosRoute } from './routes/_auth/apartados';
 import { Route as facturasRoute } from './routes/_auth/facturas';
 import { Route as nuevaFacturaRoute } from './routes/_auth/nueva-factura';
 import { Route as creditosRoute } from './routes/_auth/creditos';
+import { Route as usuariosRoute } from './routes/_auth/usuarios';
+import { Route as inventarioRoute } from './routes/_auth/inventario';
+import { Route as miCuentaRoute } from './routes/_auth/mi-cuenta';
 import { Route as notFoundRoute } from './routes/_auth/$';
 import { Route as loginRoute } from './routes/login';
 import { Route as setupRoute } from './routes/setup';
 import { Route as recoverRoute } from './routes/recover';
+import { Route as noDisponibleRoute } from './routes/no-disponible';
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
   setupRoute,
   recoverRoute,
+  noDisponibleRoute,
   authRoute.addChildren([
     boletasRoute,
     cajaRoute,
@@ -49,6 +54,9 @@ const routeTree = rootRoute.addChildren([
     facturasRoute,
     nuevaFacturaRoute,
     creditosRoute,
+    usuariosRoute,
+    inventarioRoute,
+    miCuentaRoute,
     settingsRoute,
     notFoundRoute,
   ]),

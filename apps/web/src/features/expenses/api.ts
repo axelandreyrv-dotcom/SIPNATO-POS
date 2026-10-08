@@ -1,5 +1,5 @@
 import { apiFetch } from '../../lib/api-client';
-import type { CreateExpenseInput, Expense, ExpenseList } from '@sipnato/shared';
+import type { CreateExpenseInput, Expense, ExpenseList, SupervisorAuth } from '@sipnato/shared';
 
 export const expensesApi = {
   create(data: CreateExpenseInput): Promise<Expense> {
@@ -9,9 +9,11 @@ export const expensesApi = {
     });
   },
 
-  delete(id: number): Promise<{ ok: boolean }> {
+  // `authorization`: credenciales de un admin/dueño cuando quien elimina es un cajero.
+  delete(id: number, authorization?: SupervisorAuth): Promise<{ ok: boolean }> {
     return apiFetch<{ ok: boolean }>(`/api/expenses/${id}`, {
       method: 'DELETE',
+      body: JSON.stringify(authorization ? { authorization } : {}),
     });
   },
 

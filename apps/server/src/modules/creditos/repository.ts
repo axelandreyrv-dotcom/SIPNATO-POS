@@ -1,5 +1,5 @@
 import { eq, sql, isNull, desc } from 'drizzle-orm';
-import { db } from '../../db/client.js';
+import { currentActorId, db } from '../../db/client.js';
 import { creditos, creditoPayments, counters, auditLog } from '../../db/schema.js';
 import type { CreateCredito, AddCreditoPayment, Credito, CreditoPayment, CreditoWithPayments } from '@sipnato/shared';
 
@@ -71,6 +71,7 @@ export function insertCreditoRow(
       payloadSnapshot: JSON.stringify(data),
       ip: meta.ip ?? null,
       userAgent: meta.userAgent ?? null,
+      userId: currentActorId(),
     }).run();
 
     return mapCreditoRow({ ...row, paidAmount: 0 });
@@ -203,6 +204,7 @@ export function addCreditoPaymentRow(
       payloadSnapshot: JSON.stringify({ amount: data.amount, note: data.note, newPaid, newStatus }),
       ip: meta.ip ?? null,
       userAgent: meta.userAgent ?? null,
+      userId: currentActorId(),
     }).run();
 
     const updated = tx
@@ -236,6 +238,7 @@ export function cancelCreditoRow(
       payloadSnapshot: null,
       ip: meta.ip ?? null,
       userAgent: meta.userAgent ?? null,
+      userId: currentActorId(),
     }).run();
   });
 }

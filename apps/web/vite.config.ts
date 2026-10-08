@@ -1,7 +1,12 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type ProxyOptions } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { resolve } from 'path';
+
+// El servidor identifica el negocio por el subdominio (taller.localhost:5174), así que el
+// proxy debe conservar el Host original, igual que Caddy en producción. La forma corta
+// '/api': 'http://...' activa changeOrigin y lo reescribiría a localhost:3000.
+const apiProxy: ProxyOptions = { target: 'http://localhost:3000', changeOrigin: false };
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -17,9 +22,9 @@ export default defineConfig({
   server: {
     port: parseInt(process.env['PORT'] ?? '5173'),
     proxy: {
-      '/api': 'http://localhost:3000',
-      '/auth': 'http://localhost:3000',
-      '/health': 'http://localhost:3000',
+      '/api': apiProxy,
+      '/auth': apiProxy,
+      '/health': apiProxy,
     },
   },
 });

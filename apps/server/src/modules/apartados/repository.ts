@@ -1,5 +1,5 @@
 import { eq, sql, isNull, desc } from 'drizzle-orm';
-import { db } from '../../db/client.js';
+import { currentActorId, db } from '../../db/client.js';
 import { apartados, apartadoPayments, counters, auditLog } from '../../db/schema.js';
 import type { CreateApartadoInput, AddApartadoPaymentInput, Apartado, ApartadoPayment, ApartadoWithPayments } from '@sipnato/shared';
 
@@ -87,6 +87,7 @@ export function insertApartadoRow(
         }),
         ip: meta.ip ?? null,
         userAgent: meta.userAgent ?? null,
+        userId: currentActorId(),
       })
       .run();
 
@@ -225,6 +226,7 @@ export function addPaymentRow(
         }),
         ip: meta.ip ?? null,
         userAgent: meta.userAgent ?? null,
+        userId: currentActorId(),
       })
       .run();
 
@@ -263,6 +265,7 @@ export function cancelApartadoRow(
         payloadSnapshot: JSON.stringify({ consecutive: row.consecutive }),
         ip: meta.ip ?? null,
         userAgent: meta.userAgent ?? null,
+        userId: currentActorId(),
       })
       .run();
 

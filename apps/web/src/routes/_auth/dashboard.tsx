@@ -30,6 +30,7 @@ import type {
 import { fmtTime } from '../../lib/format';
 import { dashboardApi } from '../../features/dashboard/api';
 import { Route as authRoute } from '../_auth';
+import { useBusiness, useModuleEnabled } from '../../features/auth/useCurrentUser';
 
 export const Route = createRoute({
   getParentRoute: () => authRoute,
@@ -125,9 +126,14 @@ function KpiStrip({ data }: { data: DashboardData }) {
   const { totalSales, totalExpenses, netBalance, boletasCount, salesDeltaPct } = data.today;
   const balanceColor =
     netBalance > 0 ? 'text-brand-success' : netBalance < 0 ? 'text-brand-error' : 'text-text-primary';
+  const { ordersLabel, modules } = useBusiness();
+  const showOrders = modules.includes('ordenes');
 
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-4">
+    <div className={[
+      'grid gap-px overflow-hidden rounded-xl border border-border bg-border',
+      showOrders ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-1 sm:grid-cols-3',
+    ].join(' ')}>
       <div className="bg-surface-card px-4 py-4">
         <p className="text-xs text-text-muted">Ventas hoy</p>
         <p className="mt-1 text-2xl font-semibold tabular-nums text-text-primary">
@@ -155,11 +161,13 @@ function KpiStrip({ data }: { data: DashboardData }) {
         <p className="mt-1 text-xs text-text-muted">ingresos − gastos</p>
       </div>
 
-      <div className="bg-surface-card px-4 py-4">
-        <p className="text-xs text-text-muted">Boletas hoy</p>
-        <p className="mt-1 text-2xl font-semibold tabular-nums text-text-primary">{boletasCount}</p>
-        <p className="mt-1 text-xs text-text-muted">equipos ingresados</p>
-      </div>
+      {showOrders && (
+        <div className="bg-surface-card px-4 py-4">
+          <p className="text-xs text-text-muted">{ordersLabel} hoy</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums text-text-primary">{boletasCount}</p>
+          <p className="mt-1 text-xs text-text-muted">ingresos registrados</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -488,6 +496,7 @@ function DashboardPage() {
     refetchInterval: 60_000,
     staleTime: 30_000,
   });
+  const apartadosEnabled = useModuleEnabled('apartados');
 
   const todayLabel = longDateFmt.format(new Date());
 
@@ -540,10 +549,14 @@ function DashboardPage() {
             <PaymentMethods data={data} />
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+          {apartadosEnabled ? (
+            <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+              <RecentMovements data={data} />
+              <ApartadosCard data={data} />
+            </div>
+          ) : (
             <RecentMovements data={data} />
-            <ApartadosCard data={data} />
-          </div>
+          )}
         </div>
       )}
     </div>

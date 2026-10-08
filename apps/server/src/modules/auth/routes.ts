@@ -1,11 +1,10 @@
-import type { FastifyInstance } from 'fastify';
-import { loginSchema, recoverSchema, setupSchema } from '@sipnato/shared';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { loginSchema, recoverSchema, setupSchema, type CurrentUser } from '@sipnato/shared';
 import { COOKIE_NAME } from '../../lib/constants.js';
-import { AppError } from '../../lib/errors.js';
 import { SESSION_DURATION_MS } from '../../lib/session.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { isAdminSetup } from './repository.js';
-import { loginAdmin, logoutAdmin, recoverAdmin, setupAdmin } from './service.js';
+import { loginUser, logoutUser, recoverAdmin, setupAdmin } from './service.js';
 
 function cookieOpts(maxAge: number) {
   return {
@@ -17,12 +16,17 @@ function cookieOpts(maxAge: number) {
   };
 }
 
+function meta(request: FastifyRequest) {
+  return { ip: request.ip ?? null, userAgent: request.headers['user-agent'] ?? null };
+}
+
+const validationError = (message = 'Datos inválidos') => ({ error: { code: 'VALIDATION_ERROR', message } });
+
 export default async function authRoutes(app: FastifyInstance) {
   // ── GET /auth/status ─────────────────────────────────────────────────────
   // Public — tells the frontend whether setup is needed.
   app.get('/status', async () => {
-    const setup = await isAdminSetup();
-    return { setup };
+    return { setup: isAdminSetup() };
   });
 
   // ── POST /auth/setup ──────────────────────────────────────────────────────
@@ -30,26 +34,15 @@ export default async function authRoutes(app: FastifyInstance) {
     config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
   }, async (request, reply) => {
     const body = setupSchema.safeParse(request.body);
-    if (!body.success) return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
+    if (!body.success) return reply.status(400).send(validationError(body.error.issues[0]?.message));
 
-    try {
-      const { recoveryCode, sessionToken } = await setupAdmin(
-        body.data.password,
-        request.ip ?? null,
-        request.headers['user-agent'] ?? null,
-      );
+    const { recoveryCode, sessionToken } = await setupAdmin(body.data, meta(request));
 
-      reply.setCookie(COOKIE_NAME, sessionToken, cookieOpts(SESSION_DURATION_MS / 1000));
-      return reply.status(201).send({
-        recoveryCode,
-        message: 'Guarda este código en un lugar seguro. No se mostrará de nuevo.',
-      });
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
+    reply.setCookie(COOKIE_NAME, sessionToken, cookieOpts(SESSION_DURATION_MS / 1000));
+    return reply.status(201).send({
+      recoveryCode,
+      message: 'Guarda este código en un lugar seguro. No se mostrará de nuevo.',
+    });
   });
 
   // ── POST /auth/login ──────────────────────────────────────────────────────
@@ -57,29 +50,18 @@ export default async function authRoutes(app: FastifyInstance) {
     config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
   }, async (request, reply) => {
     const body = loginSchema.safeParse(request.body);
-    if (!body.success) return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
+    if (!body.success) return reply.status(400).send(validationError());
 
-    try {
-      const { sessionToken } = await loginAdmin(
-        body.data.password,
-        request.ip ?? null,
-        request.headers['user-agent'] ?? null,
-      );
+    const { sessionToken } = await loginUser(body.data.username, body.data.password, meta(request));
 
-      reply.setCookie(COOKIE_NAME, sessionToken, cookieOpts(SESSION_DURATION_MS / 1000));
-      return reply.send({ ok: true });
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
+    reply.setCookie(COOKIE_NAME, sessionToken, cookieOpts(SESSION_DURATION_MS / 1000));
+    return reply.send({ ok: true });
   });
 
   // ── POST /auth/logout ─────────────────────────────────────────────────────
   app.post('/logout', { preHandler: [requireAuth] }, async (request, reply) => {
     const token = request.cookies[COOKIE_NAME] ?? '';
-    await logoutAdmin(token, request.ip ?? null, request.headers['user-agent'] ?? null);
+    await logoutUser(token, meta(request));
     reply.clearCookie(COOKIE_NAME, { path: '/' });
     return reply.send({ ok: true });
   });
@@ -89,31 +71,24 @@ export default async function authRoutes(app: FastifyInstance) {
     config: { rateLimit: { max: 3, timeWindow: '30 minutes' } },
   }, async (request, reply) => {
     const body = recoverSchema.safeParse(request.body);
-    if (!body.success) return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
+    if (!body.success) return reply.status(400).send(validationError(body.error.issues[0]?.message));
 
-    try {
-      const { newRecoveryCode, sessionToken } = await recoverAdmin(
-        body.data.recoveryCode,
-        body.data.newPassword,
-        request.ip ?? null,
-        request.headers['user-agent'] ?? null,
-      );
+    const { newRecoveryCode, sessionToken, username } = await recoverAdmin(
+      body.data.recoveryCode,
+      body.data.newPassword,
+      meta(request),
+    );
 
-      reply.setCookie(COOKIE_NAME, sessionToken, cookieOpts(SESSION_DURATION_MS / 1000));
-      return reply.send({
-        newRecoveryCode,
-        message: 'Contraseña actualizada. Guarda el nuevo código de recuperación.',
-      });
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
+    reply.setCookie(COOKIE_NAME, sessionToken, cookieOpts(SESSION_DURATION_MS / 1000));
+    return reply.send({
+      newRecoveryCode,
+      username,
+      message: 'Contraseña actualizada. Guarda el nuevo código de recuperación.',
+    });
   });
 
   // ── GET /auth/me ──────────────────────────────────────────────────────────
-  app.get('/me', { preHandler: [requireAuth] }, async () => {
-    return { authenticated: true };
+  app.get('/me', { preHandler: [requireAuth] }, async (request): Promise<{ authenticated: true; user: CurrentUser }> => {
+    return { authenticated: true, user: request.user };
   });
 }
