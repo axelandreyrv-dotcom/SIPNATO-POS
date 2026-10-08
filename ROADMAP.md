@@ -52,7 +52,7 @@
   - [x] Acceso por llave SSH (`~/.ssh/dosuxsoft_vps`)
   - [x] Docker, proyecto en `/opt/dosuxsoft`, `BCCR_API_TOKEN` en `deploy/.env`
   - [x] `docker compose build` + `up -d`: servidor sano, tipo de cambio del BCCR cargado
-  - [x] Cuenta del panel `axel` (contraseña temporal entregada en un archivo local)
+  - [x] Cuenta del panel `admin` (contraseña entregada en un archivo local)
   - [x] Respaldo externo diario (`backup.sh` en cron, 12:00 hora de Madrid)
   - [x] DNS: registro A `*` → 185.166.215.228 en Cloudflare (Solo DNS). `dosuxsoft.com` y `www` siguen en su servidor
   - [x] Certificado HTTPS de `admin.dosuxsoft.com` (Let's Encrypt, Caddy lo renueva) · `/health` en producción · subdominios inventados no reciben certificado

@@ -91,7 +91,7 @@ git clone https://github.com/axelandreyrv-dotcom/SIPNATO-POS.git /opt/dosuxsoft
 cd /opt/dosuxsoft/deploy
 cp .env.example .env     # BCCR_API_TOKEN (opcional)
 docker compose build && docker compose up -d
-docker exec -it deploy-server-1 node apps/server/dist/scripts/superadmin.js create axel
+docker exec -it deploy-server-1 node apps/server/dist/scripts/superadmin.js create admin
 ```
 
 ---

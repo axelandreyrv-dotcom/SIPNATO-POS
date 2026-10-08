@@ -147,7 +147,7 @@ Los negocios se crean, cobran y suspenden desde **`https://admin.dosuxsoft.com`*
 (solo por consola, no hay alta por web):
 
 ```bash
-docker exec -it deploy-server-1 node apps/server/dist/scripts/superadmin.js create axel
+docker exec -it deploy-server-1 node apps/server/dist/scripts/superadmin.js create admin
 ```
 
 Imprime una contraseña temporal: entrar al panel y cambiarla en **Configuración → Mi contraseña**.
@@ -276,7 +276,7 @@ docker exec -it deploy-server-1 node apps/server/dist/scripts/reset-admin.js tal
 
 El script restablece al **dueño** de ese negocio: imprime su usuario, una contraseña temporal y un nuevo recovery code. Cambiar la contraseña inmediatamente al iniciar sesión (Mi cuenta).
 
-Para la cuenta del panel: `docker exec -it deploy-server-1 node apps/server/dist/scripts/superadmin.js reset axel`.
+Para la cuenta del panel: `docker exec -it deploy-server-1 node apps/server/dist/scripts/superadmin.js reset admin`.
 
 ---
 
