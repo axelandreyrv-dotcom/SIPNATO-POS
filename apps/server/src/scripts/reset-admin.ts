@@ -25,7 +25,9 @@ import { hashPassword, generateRecoveryCode, hashRecoveryCode } from '../lib/cry
 
 const slug = process.argv[2];
 if (!slug || !findTenant(slug)) {
-  console.error('\n[reset-admin] Uso: reset-admin <slug>  — el negocio debe existir (ver: tenant list).\n');
+  console.error(
+    '\n[reset-admin] Uso: reset-admin <slug>  — el negocio debe existir (ver: tenant list).\n',
+  );
   process.exit(1);
 }
 
@@ -38,7 +40,9 @@ const newRecoveryCodeHash = await hashRecoveryCode(newRecoveryCode);
 const username = runWithTenant(slug, () => {
   const dueno = db.select().from(users).where(eq(users.role, 'dueno')).get();
   if (!dueno) {
-    console.error(`\n[reset-admin] ERROR: "${slug}" no tiene dueño configurado. Usar /setup en la app.\n`);
+    console.error(
+      `\n[reset-admin] ERROR: "${slug}" no tiene dueño configurado. Usar /setup en la app.\n`,
+    );
     process.exit(1);
   }
 
@@ -57,13 +61,15 @@ const username = runWithTenant(slug, () => {
       .where(eq(users.id, dueno.id))
       .run();
 
-    tx.insert(auditLog).values({
-      action: 'BREAK_GLASS_RESET',
-      entityType: 'user',
-      entityId: String(dueno.id),
-      ip: null,
-      userAgent: 'reset-admin-script',
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'BREAK_GLASS_RESET',
+        entityType: 'user',
+        entityId: String(dueno.id),
+        ip: null,
+        userAgent: 'reset-admin-script',
+      })
+      .run();
   });
 
   return dueno.username;

@@ -3,7 +3,13 @@ import { z } from 'zod';
 // Avisos a clientes por WhatsApp: el sistema arma el mensaje y abre WhatsApp con él;
 // quien atiende toca Enviar desde el WhatsApp del negocio. No hay envío automático.
 
-export const NOTIFICATION_EVENTS = ['orden_recibida', 'orden_lista', 'cobro_credito', 'abono', 'cotizacion'] as const;
+export const NOTIFICATION_EVENTS = [
+  'orden_recibida',
+  'orden_lista',
+  'cobro_credito',
+  'abono',
+  'cotizacion',
+] as const;
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[number];
 
 // Clave en settings de cada plantilla.

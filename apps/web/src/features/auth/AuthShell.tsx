@@ -1,5 +1,11 @@
-import type { ReactNode } from 'react';
-import { MeshGradientCharacter } from '../../components/ui/MeshGradientCharacter';
+import { lazy, Suspense, type ReactNode } from 'react';
+
+// Decorativo y pesado (shaders + framer-motion): se carga aparte para no sumarlo a todas las pantallas.
+const MeshGradientCharacter = lazy(() =>
+  import('../../components/ui/MeshGradientCharacter').then((m) => ({
+    default: m.MeshGradientCharacter,
+  })),
+);
 
 interface AuthShellProps {
   children: ReactNode;
@@ -28,24 +34,21 @@ export function AuthShell({ children }: AuthShellProps) {
         {/* Wordmark */}
         <div className="relative z-10">
           <div className="mb-2 flex items-center gap-2.5">
-            <img
-              src="/logo.png"
-              alt=""
-              width={32}
-              height={32}
-              aria-hidden
-              className="shrink-0"
-            />
+            <img src="/logo.png" alt="" width={32} height={32} aria-hidden className="shrink-0" />
             <span className="text-lg font-semibold tracking-tight text-white">Dosuxsoft</span>
           </div>
         </div>
 
         {/* Center — character + tagline */}
         <div className="relative z-10 space-y-6">
-          <MeshGradientCharacter />
+          <Suspense fallback={<div className="mx-auto aspect-[231/289] w-40" aria-hidden />}>
+            <MeshGradientCharacter />
+          </Suspense>
           <div className="space-y-2">
             <p className="text-2xl font-semibold leading-tight tracking-tight text-white">
-              Tu negocio,<br />tu sistema.
+              Tu negocio,
+              <br />
+              tu sistema.
             </p>
             <p className="text-sm text-white/50">
               Gestión de ventas, caja y clientes en un solo lugar.
@@ -54,9 +57,7 @@ export function AuthShell({ children }: AuthShellProps) {
         </div>
 
         {/* Footer detail */}
-        <p className="relative z-10 text-xs text-white/25">
-          Costa Rica · Dosuxsoft
-        </p>
+        <p className="relative z-10 text-xs text-white/25">Costa Rica · Dosuxsoft</p>
       </aside>
 
       {/* ── Form panel ────────────────────────────────────────────── */}

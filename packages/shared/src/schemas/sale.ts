@@ -16,7 +16,13 @@ export const saleItemInputSchema = z.union([
 
 // 'dolares': efectivo recibido en USD. La venta se registra en colones; el servidor
 // convierte con el tipo de cambio vigente y calcula el vuelto en colones.
-export const PAYMENT_METHODS = ['efectivo', 'tarjeta', 'transferencia', 'sinpe', 'dolares'] as const;
+export const PAYMENT_METHODS = [
+  'efectivo',
+  'tarjeta',
+  'transferencia',
+  'sinpe',
+  'dolares',
+] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {

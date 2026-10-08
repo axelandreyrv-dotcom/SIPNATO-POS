@@ -68,9 +68,7 @@ export function listReportSales(params: SalesQueryParams): ReportSaleList {
   };
 }
 
-export function exportReportSales(
-  params: Omit<SalesQueryParams, 'page'>,
-): ReportSaleRow[] {
+export function exportReportSales(params: Omit<SalesQueryParams, 'page'>): ReportSaleRow[] {
   const { fromUtc, toUtc } = crDayRangeToUtc(params.from, params.to);
 
   const conditions = [
@@ -166,13 +164,7 @@ export function getReportDaily(from: string, to: string): DailyEntry[] {
       count: sql<number>`COUNT(*)`,
     })
     .from(sales)
-    .where(
-      and(
-        isNull(sales.deletedAt),
-        gte(sales.createdAt, fromUtc),
-        lte(sales.createdAt, toUtc),
-      ),
-    )
+    .where(and(isNull(sales.deletedAt), gte(sales.createdAt, fromUtc), lte(sales.createdAt, toUtc)))
     .groupBy(crDay)
     .orderBy(crDay)
     .all();

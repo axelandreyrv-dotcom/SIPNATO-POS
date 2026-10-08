@@ -38,9 +38,6 @@ importers:
       '@fastify/cookie':
         specifier: ^11.0.2
         version: 11.0.2
-      '@fastify/cors':
-        specifier: ^11.2.0
-        version: 11.2.0
       '@fastify/rate-limit':
         specifier: ^11.0.0
         version: 11.0.0
@@ -62,12 +59,6 @@ importers:
       node-cron:
         specifier: ^3.0.3
         version: 3.0.3
-      pino:
-        specifier: ^9.4.0
-        version: 9.14.0
-      tsx:
-        specifier: ^4.19.0
-        version: 4.22.4
       zod:
         specifier: ^3.23.0
         version: 3.25.76
@@ -87,6 +78,9 @@ importers:
       pino-pretty:
         specifier: ^11.3.0
         version: 11.3.0
+      tsx:
+        specifier: ^4.19.0
+        version: 4.22.4
       typescript:
         specifier: '*'
         version: 5.9.3
@@ -880,9 +874,6 @@ packages:
 
   '@fastify/cookie@11.0.2':
     resolution: {integrity: sha512-GWdwdGlgJxyvNv+QcKiGNevSspMQXncjMZ1J8IvuDQk0jvkzgWWZFNC2En3s+nHndZBGV8IbLwOI/sxCZw/mzA==}
-
-  '@fastify/cors@11.2.0':
-    resolution: {integrity: sha512-LbLHBuSAdGdSFZYTLVA3+Ch2t+sA6nq3Ejc6XLAKiQ6ViS2qFnvicpj0htsx03FyYeLs04HfRNBsz/a8SvbcUw==}
 
   '@fastify/error@4.2.0':
     resolution: {integrity: sha512-RSo3sVDXfHskiBZKBPRgnQTtIqpi/7zhJOEmAxCiBcM7d0uwdGdxLlsCaLzGs8v8NnxIRlfG0N51p5yFaOentQ==}
@@ -1849,6 +1840,7 @@ packages:
   eslint@9.39.4:
     resolution: {integrity: sha512-XoMjdBOwe/esVgEvLmNsD3IRHkm7fbKIUGvrleloJXUZgDHig2IPWNniv+GwjyJXzuNqVjlr5+4yVUZjycJwfQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -3290,11 +3282,6 @@ snapshots:
     dependencies:
       cookie: 1.1.1
       fastify-plugin: 5.1.0
-
-  '@fastify/cors@11.2.0':
-    dependencies:
-      fastify-plugin: 5.1.0
-      toad-cache: 3.7.1
 
   '@fastify/error@4.2.0': {}
 

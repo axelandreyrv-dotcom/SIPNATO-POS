@@ -1,5 +1,6 @@
 /**
  * Administración de negocios (tenants) — ejecutar con acceso directo al servidor.
+ * Lo habitual es usar el panel de superadministrador (admin.<dominio>); esto queda como respaldo.
  *
  *   tenant create <slug> "<nombre>"   crea el negocio y su BD, e imprime el código de activación
  *   tenant setup-code <slug>          emite un código de activación nuevo (solo si aún no hay admin)
@@ -17,11 +18,10 @@ import {
   insertTenant,
   isValidSlug,
   listTenants,
-  setSetupCodeHash,
   setTenantStatus,
 } from '../db/control.js';
 import { users } from '../db/schema.js';
-import { generateSetupCode, hashSetupCode } from '../lib/crypto.js';
+import { issueSetupCode } from '../modules/platform/service.js';
 
 const [command, slug, ...rest] = process.argv.slice(2);
 
@@ -30,15 +30,11 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-async function issueSetupCode(tenantSlug: string): Promise<string> {
-  const code = generateSetupCode();
-  setSetupCodeHash(tenantSlug, await hashSetupCode(code));
-  return code;
-}
-
 function printSetupCode(tenantSlug: string, code: string): void {
   console.log(`         Código de activación: ${code}`);
-  console.log(`         Entrégalo al dueño junto con https://${tenantSlug}.<dominio> — lo pide /setup`);
+  console.log(
+    `         Entrégalo al dueño junto con https://${tenantSlug}.<dominio> — lo pide /setup`,
+  );
   console.log('         una sola vez. Si se pierde: tenant setup-code <slug>\n');
 }
 
@@ -46,7 +42,8 @@ switch (command) {
   case 'create': {
     const name = rest.join(' ').trim();
     if (!slug || !name) fail('Uso: tenant create <slug> "<nombre>"');
-    if (!isValidSlug(slug)) fail(`Slug inválido o reservado: "${slug}" (minúsculas, dígitos y guiones, máx. 32)`);
+    if (!isValidSlug(slug))
+      fail(`Slug inválido o reservado: "${slug}" (minúsculas, dígitos y guiones, máx. 32)`);
     if (findTenant(slug)) fail(`El negocio "${slug}" ya existe.`);
 
     insertTenant(slug, name);
@@ -59,8 +56,11 @@ switch (command) {
   }
 
   case 'setup-code': {
-    if (!slug || !findTenant(slug)) fail('Uso: tenant setup-code <slug>  — el negocio debe existir.');
-    const hasDueno = runWithTenant(slug, () => db.select({ id: users.id }).from(users).limit(1).get());
+    if (!slug || !findTenant(slug))
+      fail('Uso: tenant setup-code <slug>  — el negocio debe existir.');
+    const hasDueno = runWithTenant(slug, () =>
+      db.select({ id: users.id }).from(users).limit(1).get(),
+    );
     if (hasDueno) fail(`"${slug}" ya tiene dueño. Para recuperar acceso usar reset-admin ${slug}.`);
     const code = await issueSetupCode(slug);
     console.log(`\n[tenant] Nuevo código para "${slug}" (el anterior quedó invalidado).`);
@@ -85,5 +85,7 @@ switch (command) {
   }
 
   default:
-    fail('Comandos: create <slug> "<nombre>" | setup-code <slug> | list | suspend <slug> | activate <slug>');
+    fail(
+      'Comandos: create <slug> "<nombre>" | setup-code <slug> | list | suspend <slug> | activate <slug>',
+    );
 }

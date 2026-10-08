@@ -2,11 +2,9 @@ import { apiFetch } from '@/lib/api-client';
 import type { CurrentUser, LoginInput, RecoverInput, SetupInput } from '@sipnato/shared';
 
 export const authApi = {
-  getStatus: () =>
-    apiFetch<{ setup: boolean }>('/auth/status'),
+  getStatus: () => apiFetch<{ setup: boolean }>('/auth/status'),
 
-  getMe: () =>
-    apiFetch<{ authenticated: boolean; user: CurrentUser }>('/auth/me'),
+  getMe: () => apiFetch<{ authenticated: boolean; user: CurrentUser }>('/auth/me'),
 
   setup: (data: SetupInput) =>
     apiFetch<{ recoveryCode: string; message: string }>('/auth/setup', {
@@ -20,8 +18,7 @@ export const authApi = {
       body: JSON.stringify(data),
     }),
 
-  logout: () =>
-    apiFetch<{ ok: boolean }>('/auth/logout', { method: 'POST' }),
+  logout: () => apiFetch<{ ok: boolean }>('/auth/logout', { method: 'POST' }),
 
   recover: (data: RecoverInput) =>
     apiFetch<{ newRecoveryCode: string; username: string; message: string }>('/auth/recover', {

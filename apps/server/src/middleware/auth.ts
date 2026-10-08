@@ -10,10 +10,7 @@ declare module 'fastify' {
   }
 }
 
-export async function requireAuth(
-  request: FastifyRequest,
-  reply: FastifyReply,
-): Promise<void> {
+export async function requireAuth(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const token = request.cookies[COOKIE_NAME];
 
   if (!token) {
@@ -24,7 +21,9 @@ export async function requireAuth(
 
   if (!result) {
     reply.clearCookie(COOKIE_NAME, { path: '/' });
-    return reply.status(401).send({ error: { code: 'SESSION_EXPIRED', message: 'Sesión expirada' } });
+    return reply
+      .status(401)
+      .send({ error: { code: 'SESSION_EXPIRED', message: 'Sesión expirada' } });
   }
 
   await touchSession(result.session.id);
@@ -37,7 +36,9 @@ export async function requireAuth(
 export function requireRole(...roles: UserRole[]) {
   return async function checkRole(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     if (!roles.includes(request.user.role)) {
-      return reply.status(403).send({ error: { code: 'FORBIDDEN', message: 'No tienes permiso para esta acción' } });
+      return reply
+        .status(403)
+        .send({ error: { code: 'FORBIDDEN', message: 'No tienes permiso para esta acción' } });
     }
   };
 }

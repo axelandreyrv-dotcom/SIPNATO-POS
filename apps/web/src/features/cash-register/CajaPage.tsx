@@ -1,14 +1,7 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-  Landmark,
-  Loader2,
-  X,
-} from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Landmark, Loader2, X } from 'lucide-react';
 import type { CashRegisterCurrent, CashRegisterSummary } from '@sipnato/shared';
 import { formatColones, formatUsd } from '@sipnato/shared';
 import { fmtDate, fmtTime } from '../../lib/format';
@@ -21,7 +14,7 @@ const btnBase =
   'flex flex-1 h-9 items-center justify-center gap-1.5 rounded-lg text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
 
 const btnPrimary = btnBase + ' bg-brand-blue';
-const btnDanger  = btnBase + ' bg-brand-error';
+const btnDanger = btnBase + ' bg-brand-error';
 
 const btnSecondary =
   'flex flex-1 h-9 items-center justify-center rounded-lg border border-border text-sm text-text-secondary transition-colors hover:bg-surface-bg';
@@ -66,11 +59,15 @@ function UsdCashRow({ totals }: { totals: CashRegisterCurrent['totals'] }) {
     <div className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-brand-success/30 bg-brand-success/30">
       <div className="bg-surface-card px-4 py-3">
         <p className="text-xs text-text-muted">Dólares en caja</p>
-        <p className="mt-1 text-base font-semibold tabular-nums text-brand-success">{formatUsd(totals.usdReceivedCents)}</p>
+        <p className="mt-1 text-base font-semibold tabular-nums text-brand-success">
+          {formatUsd(totals.usdReceivedCents)}
+        </p>
       </div>
       <div className="bg-surface-card px-4 py-3">
         <p className="text-xs text-text-muted">Vueltos en colones por esos cobros</p>
-        <p className="mt-1 text-base font-semibold tabular-nums text-text-primary">−{formatColones(totals.usdChangeColones)}</p>
+        <p className="mt-1 text-base font-semibold tabular-nums text-text-primary">
+          −{formatColones(totals.usdChangeColones)}
+        </p>
       </div>
     </div>
   );
@@ -123,7 +120,9 @@ function Modal({
 function ModalHeader({ id, title, onClose }: { id: string; title: string; onClose: () => void }) {
   return (
     <div className="mb-5 flex items-center justify-between">
-      <h2 id={id} className="text-base font-semibold text-text-primary">{title}</h2>
+      <h2 id={id} className="text-base font-semibold text-text-primary">
+        {title}
+      </h2>
       <button
         type="button"
         onClick={onClose}
@@ -154,7 +153,10 @@ function OpenModal({
       <ModalHeader id="open-caja-title" title="Abrir Caja" onClose={onClose} />
 
       <div className="mb-5">
-        <label htmlFor="opening-amount" className="mb-1.5 block text-sm font-medium text-text-secondary">
+        <label
+          htmlFor="opening-amount"
+          className="mb-1.5 block text-sm font-medium text-text-secondary"
+        >
           Monto inicial en efectivo
         </label>
         <div className="relative">
@@ -171,10 +173,16 @@ function OpenModal({
             className={inputCls + ' pl-7'}
           />
         </div>
-        <p className="mt-1 text-xs text-text-muted">Efectivo físico presente al abrir. Puede ser ₡0.</p>
+        <p className="mt-1 text-xs text-text-muted">
+          Efectivo físico presente al abrir. Puede ser ₡0.
+        </p>
       </div>
 
-      {error && <p className="mb-3 text-xs text-brand-error" role="alert">{error}</p>}
+      {error && (
+        <p className="mb-3 text-xs text-brand-error" role="alert">
+          {error}
+        </p>
+      )}
 
       <div className="flex gap-2">
         <button type="button" onClick={onClose} className={btnSecondary}>
@@ -186,7 +194,9 @@ function OpenModal({
           onClick={() => onConfirm(amount)}
           className={btnPrimary}
         >
-          {isLoading && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+          {isLoading && (
+            <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
+          )}
           Abrir Caja
         </button>
       </div>
@@ -216,19 +226,20 @@ function CloseModal({
       <UsdCashRow totals={register.totals} />
       <NetRow amount={register.totals.netBalance} />
 
-      {error && <p className="mt-3 text-xs text-brand-error" role="alert">{error}</p>}
+      {error && (
+        <p className="mt-3 text-xs text-brand-error" role="alert">
+          {error}
+        </p>
+      )}
 
       <div className="mt-5 flex gap-2">
         <button type="button" onClick={onClose} className={btnSecondary}>
           Cancelar
         </button>
-        <button
-          type="button"
-          disabled={isLoading}
-          onClick={onConfirm}
-          className={btnDanger}
-        >
-          {isLoading && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+        <button type="button" disabled={isLoading} onClick={onConfirm} className={btnDanger}>
+          {isLoading && (
+            <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
+          )}
           Confirmar cierre
         </button>
       </div>
@@ -277,7 +288,12 @@ function HistoryRow({ register }: { register: CashRegisterSummary }) {
         {expanded ? (
           <ChevronUp size={14} strokeWidth={1.5} className="shrink-0 text-text-muted" aria-hidden />
         ) : (
-          <ChevronDown size={14} strokeWidth={1.5} className="shrink-0 text-text-muted" aria-hidden />
+          <ChevronDown
+            size={14}
+            strokeWidth={1.5}
+            className="shrink-0 text-text-muted"
+            aria-hidden
+          />
         )}
       </button>
 
@@ -459,7 +475,12 @@ export function CajaPage() {
       {/* Warning if there are closed registers but none open */}
       {!isLoading && !current && (history?.registers.length ?? 0) > 0 && (
         <div className="mt-4 flex items-start gap-2 rounded-lg border border-brand-warning/20 bg-brand-warning/[0.06] px-4 py-3">
-          <AlertTriangle size={14} strokeWidth={1.5} className="mt-0.5 shrink-0 text-brand-warning" aria-hidden />
+          <AlertTriangle
+            size={14}
+            strokeWidth={1.5}
+            className="mt-0.5 shrink-0 text-brand-warning"
+            aria-hidden
+          />
           <p className="text-xs text-text-secondary">
             Recuerda abrir la caja antes de registrar ventas o gastos del día.
           </p>

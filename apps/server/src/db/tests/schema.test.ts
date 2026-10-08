@@ -9,7 +9,7 @@ import { tmpdir } from 'os';
 import { rmSync } from 'fs';
 import { fileURLToPath } from 'url';
 import * as schema from '../schema.js';
-import { cashRegisters, counters, expenses, sales } from '../schema.js';
+import { sales } from '../schema.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const migrationsFolder = join(__dirname, '..', 'migrations');
@@ -25,11 +25,10 @@ function makeTestDb() {
 }
 
 describe('counters — consecutivos transaccionales', () => {
-  let db: ReturnType<typeof makeTestDb>['db'];
   let sqlite: ReturnType<typeof makeTestDb>['sqlite'];
 
   before(() => {
-    ({ db, sqlite } = makeTestDb());
+    ({ sqlite } = makeTestDb());
     sqlite.prepare("INSERT INTO counters (type, current_value) VALUES ('sale', 0)").run();
   });
 
@@ -55,9 +54,9 @@ describe('counters — consecutivos transaccionales', () => {
         .prepare("UPDATE counters SET current_value = current_value + 1 WHERE type = 'sale'")
         .run();
       return (
-        sqlite
-          .prepare("SELECT current_value FROM counters WHERE type = 'sale'")
-          .get() as { current_value: number }
+        sqlite.prepare("SELECT current_value FROM counters WHERE type = 'sale'").get() as {
+          current_value: number;
+        }
       ).current_value;
     });
 
@@ -82,11 +81,7 @@ describe('soft-delete — ventas', () => {
       )
       .run();
 
-    sqlite
-      .prepare(
-        "INSERT INTO counters (type, current_value) VALUES ('sale', 0)",
-      )
-      .run();
+    sqlite.prepare("INSERT INTO counters (type, current_value) VALUES ('sale', 0)").run();
   });
 
   after(() => sqlite.close());
@@ -99,10 +94,7 @@ describe('soft-delete — ventas', () => {
       paymentMethod: 'efectivo',
     });
 
-    const rows = await db
-      .select()
-      .from(sales)
-      .where(isNull(sales.deletedAt));
+    const rows = await db.select().from(sales).where(isNull(sales.deletedAt));
 
     assert.strictEqual(rows.length, 1);
   });
@@ -116,10 +108,7 @@ describe('soft-delete — ventas', () => {
       deletedAt: new Date().toISOString(),
     });
 
-    const activeRows = await db
-      .select()
-      .from(sales)
-      .where(isNull(sales.deletedAt));
+    const activeRows = await db.select().from(sales).where(isNull(sales.deletedAt));
 
     assert.strictEqual(activeRows.length, 1, 'solo la venta sin deleted_at debe aparecer');
   });

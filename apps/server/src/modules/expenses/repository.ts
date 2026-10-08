@@ -40,15 +40,17 @@ export function createExpenseRow(
 
     if (!row) throw new Error('Failed to create expense');
 
-    tx.insert(auditLog).values({
-      action: 'EXPENSE_CREATED',
-      entityType: 'expense',
-      entityId: String(row.id),
-      payloadSnapshot: JSON.stringify({ description: input.description, amount: input.amount }),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'EXPENSE_CREATED',
+        entityType: 'expense',
+        entityId: String(row.id),
+        payloadSnapshot: JSON.stringify({ description: input.description, amount: input.amount }),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
 
     return mapRow(row);
   });
@@ -69,19 +71,24 @@ export function softDeleteExpenseRow(
   db.transaction((tx) => {
     tx.update(expenses).set({ deletedAt }).where(eq(expenses.id, id)).run();
 
-    tx.insert(auditLog).values({
-      action: 'EXPENSE_DELETED',
-      entityType: 'expense',
-      entityId: String(id),
-      payloadSnapshot: JSON.stringify(snapshot),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'EXPENSE_DELETED',
+        entityType: 'expense',
+        entityId: String(id),
+        payloadSnapshot: JSON.stringify(snapshot),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
   });
 }
 
-export function listExpensesRows(cashRegisterId: number): { expenses: Expense[]; totalAmount: number } {
+export function listExpensesRows(cashRegisterId: number): {
+  expenses: Expense[];
+  totalAmount: number;
+} {
   const rows = db
     .select()
     .from(expenses)

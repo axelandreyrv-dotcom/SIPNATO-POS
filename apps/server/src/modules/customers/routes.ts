@@ -17,14 +17,18 @@ export default async function customersRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const parsed = parseInt(id, 10);
     if (isNaN(parsed)) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
+      return reply
+        .status(400)
+        .send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
     }
 
     try {
       return getCustomer(parsed);
     } catch (err) {
       if (err instanceof AppError) {
-        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+        return reply
+          .status(err.statusCode)
+          .send({ error: { code: err.code, message: err.message } });
       }
       throw err;
     }

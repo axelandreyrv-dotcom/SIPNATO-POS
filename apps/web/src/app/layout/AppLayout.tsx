@@ -27,6 +27,7 @@ import { Logo } from '../../components/branding/Logo';
 import { useDarkMode } from '../../lib/hooks/useDarkMode';
 import { authApi } from '../../features/auth/api';
 import { useBusiness, useCurrentUser } from '../../features/auth/useCurrentUser';
+import { SubscriptionNotice } from '../../features/subscription/SubscriptionNotice';
 
 // `module`: solo aparece si el negocio lo tiene activo (perfil del negocio).
 const NAV_ITEMS: ReadonlyArray<{
@@ -44,14 +45,26 @@ const NAV_ITEMS: ReadonlyArray<{
   { to: '/boletas', label: 'Boletas', icon: FileText, exact: false, module: 'ordenes' },
   { to: '/clientes', label: 'Clientes', icon: Users, exact: false },
   { to: '/gastos', label: 'Gastos', icon: TrendingDown, exact: false },
-  { to: '/cotizaciones', label: 'Cotizaciones', icon: FileOutput, exact: false, module: 'cotizaciones' },
+  {
+    to: '/cotizaciones',
+    label: 'Cotizaciones',
+    icon: FileOutput,
+    exact: false,
+    module: 'cotizaciones',
+  },
   { to: '/facturas', label: 'Facturas', icon: Receipt, exact: false, module: 'facturas' },
   { to: '/apartados', label: 'Apartados', icon: Package, exact: false, module: 'apartados' },
   { to: '/creditos', label: 'Créditos', icon: CreditCard, exact: false, module: 'creditos' },
   { to: '/notas', label: 'Notas', icon: NotebookPen, exact: false },
   { to: '/reportes', label: 'Reportes', icon: BarChart3, exact: false },
   { to: '/usuarios', label: 'Usuarios', icon: UserCog, exact: false, permission: 'manageUsers' },
-  { to: '/settings', label: 'Configuración', icon: Settings, exact: false, permission: 'manageSettings' },
+  {
+    to: '/settings',
+    label: 'Configuración',
+    icon: Settings,
+    exact: false,
+    permission: 'manageSettings',
+  },
 ];
 
 interface NavItemProps {
@@ -86,14 +99,12 @@ function NavItem({ to, label, icon: Icon, exact, onClick }: NavItemProps) {
   );
 }
 
-
 function SidebarNav({ onNav }: { onNav?: () => void }) {
   const { isDark, toggle } = useDarkMode();
   const user = useCurrentUser();
   const { location } = useRouterState();
   const business = useBusiness();
-  const items = NAV_ITEMS
-    .filter((item) => !item.permission || can(user.role, item.permission))
+  const items = NAV_ITEMS.filter((item) => !item.permission || can(user.role, item.permission))
     .filter((item) => !item.module || business.modules.includes(item.module))
     .map((item) => (item.module === 'ordenes' ? { ...item, label: business.ordersLabel } : item));
   const onAccount = location.pathname === '/mi-cuenta';
@@ -110,10 +121,7 @@ function SidebarNav({ onNav }: { onNav?: () => void }) {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* Nav items */}
-      <nav
-        className="flex-1 overflow-y-auto px-3 py-2"
-        aria-label="Navegación principal"
-      >
+      <nav className="flex-1 overflow-y-auto px-3 py-2" aria-label="Navegación principal">
         <ul className="space-y-0.5 list-none p-0 m-0">
           {items.map((item) => (
             <li key={item.to}>
@@ -142,7 +150,9 @@ function SidebarNav({ onNav }: { onNav?: () => void }) {
             {user.displayName.trim().charAt(0).toUpperCase()}
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-sm font-medium text-white">{user.displayName}</span>
+            <span className="block truncate text-sm font-medium text-white">
+              {user.displayName}
+            </span>
             <span className="block text-xs text-white/50">{ROLE_LABELS[user.role]}</span>
           </span>
         </Link>
@@ -210,13 +220,14 @@ export function AppLayout() {
 
       {/* ── Mobile: slide-in drawer ───────────────────────────────────────── */}
       {drawerOpen && (
-        <div className="fixed inset-0 z-50 sm:hidden" role="dialog" aria-modal aria-label="Menú de navegación">
+        <div
+          className="fixed inset-0 z-50 sm:hidden"
+          role="dialog"
+          aria-modal
+          aria-label="Menú de navegación"
+        >
           {/* Scrim */}
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={closeDrawer}
-            aria-hidden
-          />
+          <div className="absolute inset-0 bg-black/50" onClick={closeDrawer} aria-hidden />
           {/* Panel */}
           <aside className="absolute left-0 top-0 flex h-full w-72 flex-col bg-brand-navy shadow-[0_8px_32px_-4px_oklch(0%_0_0/0.22)]">
             <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
@@ -240,6 +251,7 @@ export function AppLayout() {
         className="flex-1 overflow-auto pt-14 sm:pt-0 bg-surface-bg vt-page"
         inert={drawerOpen || undefined}
       >
+        <SubscriptionNotice />
         <Outlet />
       </main>
     </div>

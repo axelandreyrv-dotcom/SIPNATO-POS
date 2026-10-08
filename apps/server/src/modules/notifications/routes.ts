@@ -18,30 +18,49 @@ export default async function notificationsRoutes(app: FastifyInstance) {
   app.post('/', { preHandler: [requireAuth] }, async (request, reply) => {
     const body = recordNotificationSchema.safeParse(request.body);
     if (!body.success) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
+      return reply
+        .status(400)
+        .send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
     }
-    db.insert(customerNotifications).values({
-      ...body.data,
-      userId: currentActorId(),
-      createdAt: new Date().toISOString(),
-    }).run();
+    db.insert(customerNotifications)
+      .values({
+        ...body.data,
+        userId: currentActorId(),
+        createdAt: new Date().toISOString(),
+      })
+      .run();
     return reply.status(201).send({ ok: true });
   });
 
   // ── GET /api/notifications?entityType=&entityId= ──────────────────────────
-  app.get('/', { preHandler: [requireAuth] }, async (request, reply): Promise<CustomerNotification[]> => {
-    const q = request.query as { entityType?: string; entityId?: string };
-    const entityId = Number(q.entityId);
-    if (!q.entityType || !Number.isInteger(entityId)) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Parámetros inválidos' } });
-    }
-    return db
-      .select({ event: customerNotifications.event, createdAt: customerNotifications.createdAt, username: users.username })
-      .from(customerNotifications)
-      .leftJoin(users, eq(users.id, customerNotifications.userId))
-      .where(and(eq(customerNotifications.entityType, q.entityType), eq(customerNotifications.entityId, entityId)))
-      .orderBy(desc(customerNotifications.id))
-      .limit(20)
-      .all() as CustomerNotification[];
-  });
+  app.get(
+    '/',
+    { preHandler: [requireAuth] },
+    async (request, reply): Promise<CustomerNotification[]> => {
+      const q = request.query as { entityType?: string; entityId?: string };
+      const entityId = Number(q.entityId);
+      if (!q.entityType || !Number.isInteger(entityId)) {
+        return reply
+          .status(400)
+          .send({ error: { code: 'VALIDATION_ERROR', message: 'Parámetros inválidos' } });
+      }
+      return db
+        .select({
+          event: customerNotifications.event,
+          createdAt: customerNotifications.createdAt,
+          username: users.username,
+        })
+        .from(customerNotifications)
+        .leftJoin(users, eq(users.id, customerNotifications.userId))
+        .where(
+          and(
+            eq(customerNotifications.entityType, q.entityType),
+            eq(customerNotifications.entityId, entityId),
+          ),
+        )
+        .orderBy(desc(customerNotifications.id))
+        .limit(20)
+        .all() as CustomerNotification[];
+    },
+  );
 }

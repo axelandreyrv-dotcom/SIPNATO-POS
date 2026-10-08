@@ -6,3 +6,8 @@ build
 *.db-shm
 *.db-journal
 pnpm-lock.yaml
+# Markdown: Prettier rellena las tablas largas (CLAUDE.md, ROADMAP.md) y las vuelve ilegibles
+*.md
+# Migraciones: SQL escrito a mano, ya aplicado en producción
+apps/server/src/db/migrations
+.claude

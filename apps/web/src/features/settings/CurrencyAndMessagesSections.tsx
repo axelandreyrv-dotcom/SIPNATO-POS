@@ -14,7 +14,11 @@ import { FieldLabel, Section, inputClass, textareaClass } from './ui';
 type Patch = (changes: Partial<Settings>) => void;
 
 export function ExchangeRateSection({ current, patch }: { current: Settings; patch: Patch }) {
-  const { data: info } = useQuery({ queryKey: ['exchange-rate'], queryFn: exchangeRateApi.get, staleTime: 60_000 });
+  const { data: info } = useQuery({
+    queryKey: ['exchange-rate'],
+    queryFn: exchangeRateApi.get,
+    staleTime: 60_000,
+  });
 
   return (
     <Section
@@ -24,7 +28,8 @@ export function ExchangeRateSection({ current, patch }: { current: Settings; pat
       <div className="rounded-lg border border-border bg-surface-bg px-4 py-3 text-sm">
         {info?.source === 'bccr' ? (
           <p className="text-text-primary">
-            BCCR del {info.date}: compra <strong className="tabular-nums">{formatExchangeRate(info.bccrBuy!)}</strong>
+            BCCR del {info.date}: compra{' '}
+            <strong className="tabular-nums">{formatExchangeRate(info.bccrBuy!)}</strong>
             {' · '}venta <span className="tabular-nums">{formatExchangeRate(info.bccrSell!)}</span>
           </p>
         ) : info?.source === 'manual' ? (
@@ -50,7 +55,8 @@ export function ExchangeRateSection({ current, patch }: { current: Settings; pat
           className={`${inputClass} max-w-40 tabular-nums`}
         />
         <p className="mt-1.5 text-xs text-text-muted">
-          Solo se usa si el BCCR no tiene un dato de los últimos días. Déjalo vacío para no cobrar en dólares en ese caso.
+          Solo se usa si el BCCR no tiene un dato de los últimos días. Déjalo vacío para no cobrar
+          en dólares en ese caso.
         </p>
       </div>
     </Section>
@@ -85,7 +91,9 @@ export function MessagesSection({ current, patch }: { current: Settings; patch: 
               rows={3}
               maxLength={1000}
               value={value || DEFAULT_MESSAGES[event]}
-              onChange={(e) => patch({ [key]: e.target.value === DEFAULT_MESSAGES[event] ? '' : e.target.value })}
+              onChange={(e) =>
+                patch({ [key]: e.target.value === DEFAULT_MESSAGES[event] ? '' : e.target.value })
+              }
               className={textareaClass}
             />
             <p className="mt-1 text-xs text-text-muted">

@@ -36,10 +36,7 @@ export function addPayment(
   return addPaymentRow(id, data, meta);
 }
 
-export function cancelApartado(
-  id: number,
-  meta: { ip?: string; userAgent?: string },
-) {
+export function cancelApartado(id: number, meta: { ip?: string; userAgent?: string }) {
   const apartado = getApartadoWithPaymentsRow(id);
   if (!apartado) throw new ApartadoNoEncontrado();
   if (apartado.status !== 'activo') throw new ApartadoNoActivo();

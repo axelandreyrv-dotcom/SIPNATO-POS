@@ -1,4 +1,9 @@
-import type { ChangeOwnSecretInput, CreateUserInput, UpdateUserInput, UserRecord } from '@sipnato/shared';
+import type {
+  ChangeOwnSecretInput,
+  CreateUserInput,
+  UpdateUserInput,
+  UserRecord,
+} from '@sipnato/shared';
 import { apiFetch } from '../../lib/api-client';
 
 export const usersApi = {
@@ -11,5 +16,8 @@ export const usersApi = {
     apiFetch<UserRecord>(`/api/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   changeOwnSecret: (data: ChangeOwnSecretInput) =>
-    apiFetch<{ ok: boolean }>('/api/users/me/secret', { method: 'POST', body: JSON.stringify(data) }),
+    apiFetch<{ ok: boolean }>('/api/users/me/secret', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };

@@ -86,16 +86,14 @@ cp .env.example .env
 nano .env
 ```
 
-Completar `SESSION_SECRET` con un valor aleatorio seguro (el VPS no trae Node instalado; `openssl` sí):
-```bash
-openssl rand -hex 48
+La única variable es el token del BCCR para el tipo de cambio del dólar (opcional: sin él, cada
+negocio usa el tipo de cambio de respaldo de su Configuración):
+```
+BCCR_API_TOKEN=<token del servicio web del BCCR>
 ```
 
-El archivo `.env` final debe verse así:
-```
-SESSION_SECRET=<96 caracteres hexadecimales aleatorios>
-ALLOWED_ORIGIN=https://www.dosuxsoft.com
-```
+No hay secretos que generar: las sesiones son tokens aleatorios guardados con hash en la base de
+cada negocio. El archivo `.env` debe existir aunque quede vacío.
 
 ---
 
@@ -113,6 +111,8 @@ docker compose ps
 docker compose logs -f
 ```
 
+Los logs quedan en Docker (`docker compose logs server`), rotados a 5 archivos de 20 MB.
+
 Caddy obtiene el certificado HTTPS de `dosuxsoft.com`/`www` al iniciar, y el de cada negocio
 la primera vez que alguien abre su subdominio (requiere que el DNS ya apunte al VPS).
 
@@ -129,7 +129,8 @@ curl https://taller.dosuxsoft.com/health
 # Debe responder: {"status":"ok","db":"ok","env":"production",...}
 ```
 
-Abrir `https://taller.dosuxsoft.com` en el navegador → debe aparecer `/setup` (negocio nuevo) o el login.
+Abrir `https://admin.dosuxsoft.com` → login del panel. Abrir `https://taller.dosuxsoft.com` → `/setup`
+(negocio nuevo) o el login.
 
 ---
 
@@ -137,6 +138,28 @@ Abrir `https://taller.dosuxsoft.com` en el navegador → debe aparecer `/setup` 
 
 Cada negocio tiene **su propia base de datos** (`/app/data/tenants/<slug>.db`), sus propias
 sesiones y sus propios backups. Nada se comparte entre negocios.
+
+### Panel de la plataforma (recomendado)
+
+Los negocios se crean, cobran y suspenden desde **`https://admin.dosuxsoft.com`**. El DNS comodín
+`*.dosuxsoft.com` ya lo cubre y Caddy emite su certificado. Primero crear la cuenta del panel
+(solo por consola, no hay alta por web):
+
+```bash
+docker exec -it deploy-server-1 node apps/server/dist/scripts/superadmin.js create axel
+```
+
+Imprime una contraseña temporal: entrar al panel y cambiarla en **Configuración → Mi contraseña**.
+En **Configuración → Cobro** poner la mensualidad por defecto y cómo pagar (SINPE, cuenta).
+Otros comandos: `superadmin.js reset <usuario>` (contraseña nueva, desbloquea y cierra sesiones),
+`disable` / `enable` / `list`.
+
+En **Nuevo negocio** se elige el subdominio, el contacto para el cobro y hasta cuándo está pagado; el
+panel muestra el código de activación con un botón para enviarlo por WhatsApp. Cada pago se registra
+en el negocio y corre su vencimiento. Un atraso **no bloquea** al negocio: el dueño y los
+administradores ven un aviso, y la suspensión es manual desde el panel.
+
+### Por consola (respaldo)
 
 ```bash
 # Crear un negocio (slug = subdominio: minúsculas, dígitos y guiones)
@@ -170,14 +193,23 @@ Un subdominio que no corresponde a un negocio activo muestra "Negocio no encontr
 
 ### Migrar una base de datos de la versión anterior (un solo negocio)
 
-Si existe un `dosuxsoft.db` de antes de la Fase A, se convierte en un negocio así:
+Si el volumen tiene un `/app/data/dosuxsoft.db` de antes de la Fase A, se convierte en el negocio `taller`:
 
 ```bash
+cd /opt/dosuxsoft
+# 1. Registrar el negocio (crea una BD vacía que se reemplaza en el paso 3)
 docker exec -it deploy-server-1 node apps/server/dist/scripts/tenant.js create taller "Taller Axel"
+# 2. Detener el servidor para que nada tenga la BD abierta
 docker compose -f deploy/docker-compose.yml stop server
-docker cp dosuxsoft.db deploy-server-1:/app/data/tenants/taller.db
-docker compose -f deploy/docker-compose.yml start server   # aplica migraciones pendientes al abrir
+# 3. Copiar la BD anterior sobre la del negocio (dentro del volumen)
+docker compose -f deploy/docker-compose.yml run --rm --no-deps --entrypoint sh server   -c "cp /app/data/dosuxsoft.db /app/data/tenants/taller.db && rm -f /app/data/tenants/taller.db-wal /app/data/tenants/taller.db-shm"
+# 4. Arrancar: guarda backups/taller/pre-migracion-<fecha>.db y aplica las migraciones pendientes
+docker compose -f deploy/docker-compose.yml start server
+docker compose -f deploy/docker-compose.yml logs server --tail=50
 ```
+
+El admin de la versión anterior pasa a ser el dueño con usuario **`dueno`** y su misma contraseña.
+El código de activación que imprimió el paso 1 no se usa (el negocio ya tiene dueño).
 
 ---
 
@@ -198,7 +230,9 @@ Agregar:
 
 (10:00 UTC = 4:00 AM Costa Rica)
 
-El script guarda los backups en `/opt/dosuxsoft/backups/<negocio>/YYYY-MM-DD.db` con rotación de 30 días por negocio.
+El script guarda los backups en `/opt/dosuxsoft/backups/<negocio>/YYYY-MM-DD.db` con rotación de 30 días
+por negocio, y el registro de la plataforma (negocios, pagos de la mensualidad, cuentas del panel) en
+`/opt/dosuxsoft/backups/_control/`.
 
 ---
 
@@ -223,7 +257,7 @@ En el módulo POS, cada fila de venta tiene el ícono de impresora. Al hacer cli
 
 ---
 
-## 12. Recuperación de emergencia (break-glass)
+## 11. Recuperación de emergencia (break-glass)
 
 Si perdiste acceso y no podés ingresar con contraseña ni recovery code:
 
@@ -237,18 +271,20 @@ docker exec -it deploy-server-1 node apps/server/dist/scripts/reset-admin.js tal
 
 El script restablece al **dueño** de ese negocio: imprime su usuario, una contraseña temporal y un nuevo recovery code. Cambiar la contraseña inmediatamente al iniciar sesión (Mi cuenta).
 
+Para la cuenta del panel: `docker exec -it deploy-server-1 node apps/server/dist/scripts/superadmin.js reset axel`.
+
 ---
 
-## 13. Checklist de seguridad post-despliegue
+## 12. Checklist de seguridad post-despliegue
 
-- [ ] `NODE_ENV=production` activo (verificar en `/api/health`)
+- [ ] `NODE_ENV=production` activo (verificar en `https://taller.dosuxsoft.com/health`)
 - [ ] HTTPS forzado — Caddy redirige HTTP → HTTPS automáticamente
 - [ ] Headers de seguridad activos — verificar en [securityheaders.com](https://securityheaders.com/?q=https://taller.dosuxsoft.com)
 - [ ] SSH por clave confirmado — contraseña deshabilitada
 - [ ] UFW activo: `ufw status` muestra solo 22, 80, 443
-- [ ] SESSION_SECRET ≠ valor de desarrollo
+- [ ] Cuenta del panel creada y su contraseña temporal cambiada
 - [ ] Backup del día 1 descargado y restaurado en local (probar restore, no solo backup)
-- [ ] Recovery code del admin guardado en lugar seguro
+- [ ] Recovery code de cada dueño guardado en lugar seguro
 
 ---
 
@@ -269,6 +305,7 @@ docker compose -f deploy/docker-compose.yml up -d
 
 # Restaurar el backup de UN negocio (los demás no se tocan)
 docker compose -f deploy/docker-compose.yml stop server
-docker cp taller/2026-06-15.db deploy-server-1:/app/data/tenants/taller.db
+docker cp /opt/dosuxsoft/backups/taller/2026-06-15.db deploy-server-1:/app/data/tenants/taller.db
+docker compose -f deploy/docker-compose.yml run --rm --no-deps --entrypoint sh server   -c "rm -f /app/data/tenants/taller.db-wal /app/data/tenants/taller.db-shm"
 docker compose -f deploy/docker-compose.yml start server
 ```

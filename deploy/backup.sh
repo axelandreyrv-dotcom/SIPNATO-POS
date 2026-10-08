@@ -4,7 +4,8 @@
 # Cron: 0 10 * * * /opt/dosuxsoft/deploy/backup.sh
 # (10:00 UTC = 04:00 AM Costa Rica — 1h después del backup interno)
 #
-# Copia backups/<slug>/latest.db de CADA negocio a /opt/dosuxsoft/backups/<slug>/YYYY-MM-DD.db
+# Copia backups/<slug>/latest.db de CADA negocio a /opt/dosuxsoft/backups/<slug>/YYYY-MM-DD.db,
+# y backups/_control/latest.db (registro de negocios, pagos y cuentas del panel) a /opt/dosuxsoft/backups/_control/
 
 set -euo pipefail
 

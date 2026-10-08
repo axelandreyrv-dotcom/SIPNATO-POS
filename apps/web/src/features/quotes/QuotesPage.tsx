@@ -2,7 +2,16 @@ import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, ChevronRight, Download, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Download,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { formatColones } from '@sipnato/shared';
 import type { Quote, QuoteWithItems, Settings } from '@sipnato/shared';
 import { fmtDate } from '../../lib/format';
@@ -11,7 +20,13 @@ import { quotesApi } from './api';
 import { WhatsAppNotify } from '../../components/WhatsAppNotify';
 
 // ── Print view (portal, only visible on print) ───────────────────────────────
-function QuotePrintView({ quote, settings }: { quote: QuoteWithItems; settings: Settings | undefined }) {
+function QuotePrintView({
+  quote,
+  settings,
+}: {
+  quote: QuoteWithItems;
+  settings: Settings | undefined;
+}) {
   const date = new Date(quote.createdAt).toLocaleDateString('es-CR', {
     year: 'numeric',
     month: 'long',
@@ -31,9 +46,18 @@ function QuotePrintView({ quote, settings }: { quote: QuoteWithItems; settings: 
     >
       <div style={{ maxWidth: 640, margin: '0 auto' }}>
         {/* Header — business info */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: 24,
+          }}
+        >
           <div>
-            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{shopName}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>
+              {shopName}
+            </div>
             {shopId && (
               <div style={{ fontSize: 12, color: '#475569', marginTop: 3 }}>Cédula: {shopId}</div>
             )}
@@ -59,10 +83,32 @@ function QuotePrintView({ quote, settings }: { quote: QuoteWithItems; settings: 
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              <th style={{ textAlign: 'left', padding: '6px 0 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#64748b', borderBottom: '1px solid #cbd5e1', fontWeight: 600 }}>
+              <th
+                style={{
+                  textAlign: 'left',
+                  padding: '6px 0 8px',
+                  fontSize: 11,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: '#64748b',
+                  borderBottom: '1px solid #cbd5e1',
+                  fontWeight: 600,
+                }}
+              >
                 Descripción
               </th>
-              <th style={{ textAlign: 'right', padding: '6px 0 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#64748b', borderBottom: '1px solid #cbd5e1', fontWeight: 600 }}>
+              <th
+                style={{
+                  textAlign: 'right',
+                  padding: '6px 0 8px',
+                  fontSize: 11,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: '#64748b',
+                  borderBottom: '1px solid #cbd5e1',
+                  fontWeight: 600,
+                }}
+              >
                 Monto
               </th>
             </tr>
@@ -70,10 +116,26 @@ function QuotePrintView({ quote, settings }: { quote: QuoteWithItems; settings: 
           <tbody>
             {quote.items.map((item, i) => (
               <tr key={i}>
-                <td style={{ padding: '9px 0', fontSize: 14, borderBottom: '1px solid #f1f5f9', color: '#0f172a' }}>
+                <td
+                  style={{
+                    padding: '9px 0',
+                    fontSize: 14,
+                    borderBottom: '1px solid #f1f5f9',
+                    color: '#0f172a',
+                  }}
+                >
                   {item.description}
                 </td>
-                <td style={{ padding: '9px 0', fontSize: 14, borderBottom: '1px solid #f1f5f9', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: '#0f172a' }}>
+                <td
+                  style={{
+                    padding: '9px 0',
+                    fontSize: 14,
+                    borderBottom: '1px solid #f1f5f9',
+                    textAlign: 'right',
+                    fontVariantNumeric: 'tabular-nums',
+                    color: '#0f172a',
+                  }}
+                >
                   {formatColones(item.amount)}
                 </td>
               </tr>
@@ -81,10 +143,26 @@ function QuotePrintView({ quote, settings }: { quote: QuoteWithItems; settings: 
           </tbody>
           <tfoot>
             <tr>
-              <td style={{ padding: '14px 0 0', fontWeight: 700, fontSize: 15, borderTop: '2px solid #0f172a' }}>
+              <td
+                style={{
+                  padding: '14px 0 0',
+                  fontWeight: 700,
+                  fontSize: 15,
+                  borderTop: '2px solid #0f172a',
+                }}
+              >
                 TOTAL
               </td>
-              <td style={{ padding: '14px 0 0', fontWeight: 700, fontSize: 20, textAlign: 'right', fontVariantNumeric: 'tabular-nums', borderTop: '2px solid #0f172a' }}>
+              <td
+                style={{
+                  padding: '14px 0 0',
+                  fontWeight: 700,
+                  fontSize: 20,
+                  textAlign: 'right',
+                  fontVariantNumeric: 'tabular-nums',
+                  borderTop: '2px solid #0f172a',
+                }}
+              >
                 {formatColones(quote.total)}
               </td>
             </tr>
@@ -94,7 +172,9 @@ function QuotePrintView({ quote, settings }: { quote: QuoteWithItems; settings: 
         {/* Footer */}
         <div style={{ marginTop: 48, borderTop: '1px solid #e2e8f0', paddingTop: 14 }}>
           {quoteFooter ? (
-            <div style={{ fontSize: 12, color: '#475569', whiteSpace: 'pre-wrap' }}>{quoteFooter}</div>
+            <div style={{ fontSize: 12, color: '#475569', whiteSpace: 'pre-wrap' }}>
+              {quoteFooter}
+            </div>
           ) : (
             <div style={{ fontSize: 11, color: '#94a3b8' }}>
               Este documento es una cotización y no constituye factura oficial.
@@ -149,7 +229,9 @@ function QuoteDetail({ id }: { id: number }) {
           phone={null}
           vars={{
             numero: String(data.consecutive),
-            detalle: data.items.map((i) => `• ${i.description}: ${formatColones(i.amount)}`).join('\n'),
+            detalle: data.items
+              .map((i) => `• ${i.description}: ${formatColones(i.amount)}`)
+              .join('\n'),
             total: formatColones(data.total),
           }}
           label="Enviar por WhatsApp"
@@ -191,7 +273,11 @@ function QuoteRow({
           aria-expanded={expanded}
           aria-label={expanded ? 'Colapsar ítems' : 'Ver ítems'}
         >
-          {expanded ? <ChevronDown size={14} strokeWidth={1.5} aria-hidden /> : <ChevronRight size={14} strokeWidth={1.5} aria-hidden />}
+          {expanded ? (
+            <ChevronDown size={14} strokeWidth={1.5} aria-hidden />
+          ) : (
+            <ChevronRight size={14} strokeWidth={1.5} aria-hidden />
+          )}
         </button>
 
         <span className="w-12 shrink-0 text-xs tabular-nums font-medium text-brand-blue">
@@ -210,11 +296,16 @@ function QuoteRow({
           <div className="flex shrink-0 items-center gap-1">
             <button
               type="button"
-              onClick={() => { onDelete(); setConfirming(false); }}
+              onClick={() => {
+                onDelete();
+                setConfirming(false);
+              }}
               disabled={isDeleting}
               className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-brand-error bg-brand-error/10 hover:bg-brand-error/20 transition-colors disabled:opacity-50"
             >
-              {isDeleting && <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+              {isDeleting && (
+                <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />
+              )}
               Eliminar
             </button>
             <button
@@ -243,10 +334,11 @@ function QuoteRow({
               className="flex h-8 w-8 items-center justify-center rounded text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary disabled:opacity-40"
               aria-label="Descargar PDF"
             >
-              {isPDFLoading
-                ? <Loader2 size={13} strokeWidth={1.5} className="animate-spin" aria-hidden />
-                : <Download size={13} strokeWidth={1.5} aria-hidden />
-              }
+              {isPDFLoading ? (
+                <Loader2 size={13} strokeWidth={1.5} className="animate-spin" aria-hidden />
+              ) : (
+                <Download size={13} strokeWidth={1.5} aria-hidden />
+              )}
             </button>
             <button
               type="button"
@@ -358,7 +450,10 @@ export function QuotesPage() {
       {isLoading ? (
         <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
           {Array.from({ length: 5 }, (_, i) => (
-            <div key={i} className="flex animate-pulse items-center gap-3 border-b border-border px-4 py-3 last:border-0">
+            <div
+              key={i}
+              className="flex animate-pulse items-center gap-3 border-b border-border px-4 py-3 last:border-0"
+            >
               <div className="h-3 w-3 rounded bg-border/50" />
               <div className="h-3 w-10 rounded bg-border" />
               <div className="h-2.5 flex-1 rounded bg-border" />
@@ -423,10 +518,8 @@ export function QuotesPage() {
       )}
 
       {/* Print portal — only visible during window.print() */}
-      {printData && createPortal(
-        <QuotePrintView quote={printData} settings={settings} />,
-        document.body,
-      )}
+      {printData &&
+        createPortal(<QuotePrintView quote={printData} settings={settings} />, document.body)}
     </div>
   );
 }

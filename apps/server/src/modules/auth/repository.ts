@@ -16,13 +16,15 @@ export function insertAuditLog(entry: {
   userAgent?: string;
   userId?: number | null;
 }): void {
-  db.insert(auditLog).values({
-    action: entry.action,
-    entityType: entry.entityType ?? null,
-    entityId: entry.entityId ?? null,
-    payloadSnapshot: entry.payloadSnapshot ?? null,
-    ip: entry.ip ?? null,
-    userAgent: entry.userAgent ?? null,
-    userId: entry.userId !== undefined ? entry.userId : currentActorId(),
-  }).run();
+  db.insert(auditLog)
+    .values({
+      action: entry.action,
+      entityType: entry.entityType ?? null,
+      entityId: entry.entityId ?? null,
+      payloadSnapshot: entry.payloadSnapshot ?? null,
+      ip: entry.ip ?? null,
+      userAgent: entry.userAgent ?? null,
+      userId: entry.userId !== undefined ? entry.userId : currentActorId(),
+    })
+    .run();
 }

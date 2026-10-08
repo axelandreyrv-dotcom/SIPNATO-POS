@@ -5,7 +5,10 @@ import { AlertTriangle, Loader2, Trash2, TrendingDown, TrendingUp, X } from 'luc
 import { formatColones } from '@sipnato/shared';
 import type { Expense, SupervisorAuth } from '@sipnato/shared';
 import { fmtTime } from '../../lib/format';
-import { SupervisorAuthDialog, supervisorAuthErrorMessage } from '../../components/SupervisorAuthDialog';
+import {
+  SupervisorAuthDialog,
+  supervisorAuthErrorMessage,
+} from '../../components/SupervisorAuthDialog';
 import { useCan } from '../auth/useCurrentUser';
 import { cashRegisterApi } from '../cash-register/api';
 import { salesApi } from '../pos/api';
@@ -25,21 +28,30 @@ function ExpenseRow({
 
   return (
     <div className="flex items-center gap-3 border-b border-border px-4 py-2.5 last:border-0 hover:bg-surface-bg/50 transition-colors">
-      <span className="min-w-0 flex-1 truncate text-sm text-text-primary">{expense.description}</span>
+      <span className="min-w-0 flex-1 truncate text-sm text-text-primary">
+        {expense.description}
+      </span>
       <span className="shrink-0 text-sm font-semibold tabular-nums text-brand-error">
         −{formatColones(expense.amount)}
       </span>
-      <span className="shrink-0 w-10 text-right text-xs text-text-muted">{fmtTime(expense.createdAt)}</span>
+      <span className="shrink-0 w-10 text-right text-xs text-text-muted">
+        {fmtTime(expense.createdAt)}
+      </span>
 
       {confirming ? (
         <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
-            onClick={() => { onDelete(expense.id); setConfirming(false); }}
+            onClick={() => {
+              onDelete(expense.id);
+              setConfirming(false);
+            }}
             disabled={isDeleting}
             className="flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-brand-error bg-brand-error/10 hover:bg-brand-error/20 transition-colors disabled:opacity-50"
           >
-            {isDeleting && <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+            {isDeleting && (
+              <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />
+            )}
             Eliminar
           </button>
           <button
@@ -87,11 +99,17 @@ function BalanceCard({
       icon: <TrendingDown size={16} strokeWidth={1.5} className="text-brand-error" aria-hidden />,
     },
     balance: {
-      bg: amount >= 0 ? 'bg-brand-success/[0.07] border-brand-success/20' : 'bg-brand-error/[0.07] border-brand-error/20',
+      bg:
+        amount >= 0
+          ? 'bg-brand-success/[0.07] border-brand-success/20'
+          : 'bg-brand-error/[0.07] border-brand-error/20',
       text: amount >= 0 ? 'text-brand-success' : 'text-brand-error',
-      icon: amount >= 0
-        ? <TrendingUp size={16} strokeWidth={1.5} className="text-brand-success" aria-hidden />
-        : <TrendingDown size={16} strokeWidth={1.5} className="text-brand-error" aria-hidden />,
+      icon:
+        amount >= 0 ? (
+          <TrendingUp size={16} strokeWidth={1.5} className="text-brand-success" aria-hidden />
+        ) : (
+          <TrendingDown size={16} strokeWidth={1.5} className="text-brand-error" aria-hidden />
+        ),
     },
   };
 
@@ -104,7 +122,8 @@ function BalanceCard({
         {s.icon}
       </div>
       <span className={`text-lg font-semibold tabular-nums ${s.text}`}>
-        {variant === 'expense' ? '−' : ''}{formatColones(Math.abs(amount))}
+        {variant === 'expense' ? '−' : ''}
+        {formatColones(Math.abs(amount))}
       </span>
     </div>
   );
@@ -201,7 +220,12 @@ export function ExpensesPage() {
       {/* No register warning */}
       {noRegister && (
         <div className="mb-6 flex items-start gap-3 rounded-lg border border-brand-warning/25 bg-brand-warning/[0.07] px-4 py-3">
-          <AlertTriangle size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-brand-warning" aria-hidden />
+          <AlertTriangle
+            size={16}
+            strokeWidth={1.5}
+            className="mt-0.5 shrink-0 text-brand-warning"
+            aria-hidden
+          />
           <div className="flex-1">
             <p className="text-sm font-medium text-text-primary">No hay caja abierta</p>
             <p className="mt-0.5 text-xs text-text-muted">
@@ -225,9 +249,15 @@ export function ExpensesPage() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="mb-8">
-        <fieldset disabled={noRegister || createMutation.isPending} className="space-y-4 disabled:opacity-60">
+        <fieldset
+          disabled={noRegister || createMutation.isPending}
+          className="space-y-4 disabled:opacity-60"
+        >
           <div>
-            <label htmlFor="exp-description" className="mb-1.5 block text-sm font-medium text-text-secondary">
+            <label
+              htmlFor="exp-description"
+              className="mb-1.5 block text-sm font-medium text-text-secondary"
+            >
               Descripción
             </label>
             <input
@@ -239,17 +269,25 @@ export function ExpensesPage() {
               placeholder="Ej. Compra de insumos, pago de servicio..."
               className="h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
               onKeyDown={(e) => {
-                if (e.key === 'Enter') { e.preventDefault(); amountRef.current?.focus(); }
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  amountRef.current?.focus();
+                }
               }}
             />
           </div>
 
           <div>
-            <label htmlFor="exp-amount" className="mb-1.5 block text-sm font-medium text-text-secondary">
+            <label
+              htmlFor="exp-amount"
+              className="mb-1.5 block text-sm font-medium text-text-secondary"
+            >
               Monto
             </label>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">₡</span>
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">
+                ₡
+              </span>
               <input
                 id="exp-amount"
                 ref={amountRef}
@@ -270,9 +308,14 @@ export function ExpensesPage() {
             className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-error text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createMutation.isPending ? (
-              <><Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden /> Registrando...</>
+              <>
+                <Loader2 size={16} strokeWidth={1.5} className="animate-spin" aria-hidden />{' '}
+                Registrando...
+              </>
+            ) : amount >= 1 ? (
+              `Registrar gasto ${formatColones(amount)}`
             ) : (
-              amount >= 1 ? `Registrar gasto ${formatColones(amount)}` : 'Registrar gasto'
+              'Registrar gasto'
             )}
           </button>
 
@@ -297,7 +340,8 @@ export function ExpensesPage() {
           </h2>
           {(expensesData?.totalAmount ?? 0) > 0 && (
             <span className="text-xs text-text-muted">
-              Total: <span className="font-medium text-brand-error tabular-nums">
+              Total:{' '}
+              <span className="font-medium text-brand-error tabular-nums">
                 −{formatColones(expensesData?.totalAmount ?? 0)}
               </span>
             </span>
@@ -307,7 +351,10 @@ export function ExpensesPage() {
         {expensesLoading ? (
           <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
             {Array.from({ length: 4 }, (_, i) => (
-              <div key={i} className="flex animate-pulse items-center gap-3 border-b border-border px-4 py-2.5 last:border-0">
+              <div
+                key={i}
+                className="flex animate-pulse items-center gap-3 border-b border-border px-4 py-2.5 last:border-0"
+              >
                 <div className="h-3 flex-1 rounded bg-border" />
                 <div className="h-3 w-16 rounded bg-border" />
                 <div className="h-3 w-8 rounded bg-border" />
@@ -338,8 +385,13 @@ export function ExpensesPage() {
         <SupervisorAuthDialog
           title="Autorizar eliminación"
           description="Eliminar un gasto requiere que un administrador o el dueño lo autorice."
-          onConfirm={(authorization) => deleteMutation.mutate({ id: pendingDeleteId, authorization })}
-          onClose={() => { setPendingDeleteId(null); setAuthError(null); }}
+          onConfirm={(authorization) =>
+            deleteMutation.mutate({ id: pendingDeleteId, authorization })
+          }
+          onClose={() => {
+            setPendingDeleteId(null);
+            setAuthError(null);
+          }}
           isLoading={deleteMutation.isPending}
           error={authError}
         />

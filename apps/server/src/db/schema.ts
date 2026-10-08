@@ -294,7 +294,9 @@ export const facturas = sqliteTable(
     subtotal: integer('subtotal').notNull().default(0),
     ivaAmount: integer('iva_amount').notNull().default(0),
     total: integer('total').notNull().default(0),
-    status: text('status', { enum: ['activa', 'anulada'] }).notNull().default('activa'),
+    status: text('status', { enum: ['activa', 'anulada'] })
+      .notNull()
+      .default('activa'),
     createdAt: text('created_at')
       .notNull()
       .default(sql`(datetime('now'))`),
@@ -477,7 +479,9 @@ export const customerNotifications = sqliteTable(
 // ─── counters ─────────────────────────────────────────────────────────────────
 // Single row per document type — incremented inside a transaction.
 export const counters = sqliteTable('counters', {
-  type: text('type', { enum: ['sale', 'boleta', 'quote', 'apartado', 'factura', 'credito'] }).primaryKey(),
+  type: text('type', {
+    enum: ['sale', 'boleta', 'quote', 'apartado', 'factura', 'credito'],
+  }).primaryKey(),
   currentValue: integer('current_value').notNull().default(0),
 });
 

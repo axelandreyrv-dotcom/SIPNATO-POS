@@ -1,16 +1,6 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { createRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import {
   ArrowDownRight,
   ArrowRight,
@@ -20,7 +10,7 @@ import {
   ShoppingCart,
   TrendingDown,
 } from 'lucide-react';
-import { formatColones } from '@sipnato/shared';
+import { formatColones, PAYMENT_METHOD_LABELS } from '@sipnato/shared';
 import type {
   DashboardData,
   DashboardMovement,
@@ -56,14 +46,6 @@ function weekdayShort(dateStr: string): string {
   const dt = new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
   return new Intl.DateTimeFormat('es-CR', { weekday: 'short' }).format(dt).replace('.', '');
 }
-
-const PM_LABEL: Record<PaymentMethod, string> = {
-  efectivo: 'Efectivo',
-  sinpe: 'SINPE',
-  tarjeta: 'Tarjeta',
-  transferencia: 'Transferencia',
-  dolares: 'Dólares',
-};
 
 const PM_ORDER: PaymentMethod[] = ['efectivo', 'sinpe', 'tarjeta', 'transferencia', 'dolares'];
 
@@ -126,15 +108,21 @@ function DeltaBadge({ pct }: { pct: number | null }) {
 function KpiStrip({ data }: { data: DashboardData }) {
   const { totalSales, totalExpenses, netBalance, boletasCount, salesDeltaPct } = data.today;
   const balanceColor =
-    netBalance > 0 ? 'text-brand-success' : netBalance < 0 ? 'text-brand-error' : 'text-text-primary';
+    netBalance > 0
+      ? 'text-brand-success'
+      : netBalance < 0
+        ? 'text-brand-error'
+        : 'text-text-primary';
   const { ordersLabel, modules } = useBusiness();
   const showOrders = modules.includes('ordenes');
 
   return (
-    <div className={[
-      'grid gap-px overflow-hidden rounded-xl border border-border bg-border',
-      showOrders ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-1 sm:grid-cols-3',
-    ].join(' ')}>
+    <div
+      className={[
+        'grid gap-px overflow-hidden rounded-xl border border-border bg-border',
+        showOrders ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-1 sm:grid-cols-3',
+      ].join(' ')}
+    >
       <div className="bg-surface-card px-4 py-4">
         <p className="text-xs text-text-muted">Ventas hoy</p>
         <p className="mt-1 text-2xl font-semibold tabular-nums text-text-primary">
@@ -165,7 +153,9 @@ function KpiStrip({ data }: { data: DashboardData }) {
       {showOrders && (
         <div className="bg-surface-card px-4 py-4">
           <p className="text-xs text-text-muted">{ordersLabel} hoy</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums text-text-primary">{boletasCount}</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums text-text-primary">
+            {boletasCount}
+          </p>
           <p className="mt-1 text-xs text-text-muted">ingresos registrados</p>
         </div>
       )}
@@ -175,28 +165,7 @@ function KpiStrip({ data }: { data: DashboardData }) {
 
 // ── Weekly chart ──────────────────────────────────────────────────────────────
 
-function WeeklyTooltip({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: Array<{ value?: number; payload?: DashboardWeeklyEntry }>;
-}) {
-  if (!active || !payload?.length) return null;
-  const entry = payload[0];
-  const total = entry?.value ?? 0;
-  const count = entry?.payload?.count ?? 0;
-  const date = entry?.payload?.date;
-  return (
-    <div className="rounded-lg border border-border bg-surface-card px-3 py-2 shadow-md">
-      {date && <p className="text-xs capitalize text-text-muted">{weekdayShort(date)}</p>}
-      <p className="text-sm font-semibold tabular-nums text-text-primary">{formatColones(total)}</p>
-      <p className="text-xs text-text-muted">
-        {count} {count === 1 ? 'venta' : 'ventas'}
-      </p>
-    </div>
-  );
-}
+const SalesBarChart = lazy(() => import('../../components/charts/SalesBarChart'));
 
 function WeeklyChart({ weekly }: { weekly: DashboardWeeklyEntry[] }) {
   const today = todayCR();
@@ -216,41 +185,15 @@ function WeeklyChart({ weekly }: { weekly: DashboardWeeklyEntry[] }) {
           <p className="text-sm text-text-muted">Sin ventas en la semana.</p>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={weekly} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-            <CartesianGrid vertical={false} stroke="var(--color-border)" strokeDasharray="3 3" />
-            <XAxis
-              dataKey="date"
-              tickFormatter={(d: string) => (d === today ? 'Hoy' : weekdayShort(d))}
-              tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              tickFormatter={(v: number) =>
-                v >= 1_000_000
-                  ? `₡${(v / 1_000_000).toFixed(1)}M`
-                  : v >= 1000
-                    ? `₡${Math.round(v / 1000)}k`
-                    : `₡${v}`
-              }
-              tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }}
-              axisLine={false}
-              tickLine={false}
-              width={48}
-            />
-            <Tooltip content={<WeeklyTooltip />} cursor={{ fill: 'transparent' }} />
-            <Bar dataKey="total" radius={[3, 3, 0, 0]}>
-              {weekly.map((d) => (
-                <Cell
-                  key={d.date}
-                  fill="var(--color-brand-blue)"
-                  fillOpacity={d.date === today ? 1 : 0.32}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        <Suspense fallback={<div className="h-[180px]" />}>
+          <SalesBarChart
+            data={weekly}
+            height={180}
+            highlightDate={today}
+            xTick={(d) => (d === today ? 'Hoy' : weekdayShort(d))}
+            tooltipLabel={weekdayShort}
+          />
+        </Suspense>
       )}
     </section>
   );
@@ -275,7 +218,7 @@ function PaymentMethods({ data }: { data: DashboardData }) {
           return (
             <div key={method}>
               <div className="mb-1 flex items-baseline justify-between text-sm">
-                <span className="text-text-secondary">{PM_LABEL[method]}</span>
+                <span className="text-text-secondary">{PAYMENT_METHOD_LABELS[method]}</span>
                 <span className="tabular-nums text-text-primary">{formatColones(value)}</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-surface-bg">
@@ -311,7 +254,7 @@ function MovementRow({ mv }: { mv: DashboardMovement }) {
     : isSale
       ? 'Venta sin descripción'
       : 'Gasto';
-  const sub = isSale && mv.paymentMethod ? PM_LABEL[mv.paymentMethod] : 'Gasto';
+  const sub = isSale && mv.paymentMethod ? PAYMENT_METHOD_LABELS[mv.paymentMethod] : 'Gasto';
 
   return (
     <li className="flex items-center gap-3 py-2.5">

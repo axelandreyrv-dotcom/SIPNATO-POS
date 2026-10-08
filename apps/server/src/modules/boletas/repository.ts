@@ -104,21 +104,23 @@ export function createBoletaRow(
 
     if (!row) throw new Error('Failed to create boleta');
 
-    tx.insert(auditLog).values({
-      action: 'BOLETA_CREATED',
-      entityType: 'boleta',
-      entityId: String(row.id),
-      // Sin los valores de los campos: pueden incluir contraseñas de equipos de clientes.
-      payloadSnapshot: JSON.stringify({
-        consecutive,
-        customerId: customer.id,
-        customerPhone: input.customerPhone,
-        deviceModel: input.deviceModel,
-      }),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'BOLETA_CREATED',
+        entityType: 'boleta',
+        entityId: String(row.id),
+        // Sin los valores de los campos: pueden incluir contraseñas de equipos de clientes.
+        payloadSnapshot: JSON.stringify({
+          consecutive,
+          customerId: customer.id,
+          customerPhone: input.customerPhone,
+          deviceModel: input.deviceModel,
+        }),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
 
     return toBoleta({ ...row, customerName: customer.name, customerPhone: customer.phone });
   });

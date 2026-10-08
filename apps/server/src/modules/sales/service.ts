@@ -61,7 +61,9 @@ function resolveItem(item: SaleItemInput): ResolvedSaleItem {
 // "2× Protector templado, Cargador USB-C": las ventas con carrito se siguen leyendo bien
 // en reportes, caja y dashboard, que muestran la descripción de la venta.
 function summarize(items: ResolvedSaleItem[]): string {
-  const text = items.map((i) => (i.quantity > 1 ? `${i.quantity}× ${i.description}` : i.description)).join(', ');
+  const text = items
+    .map((i) => (i.quantity > 1 ? `${i.quantity}× ${i.description}` : i.description))
+    .join(', ');
   return text.length > 500 ? `${text.slice(0, 497)}...` : text;
 }
 
@@ -81,8 +83,11 @@ export function createSale(input: CreateSaleInput, meta: Meta): CreateSaleResult
 
   const items = input.items?.map(resolveItem) ?? [];
   const amount = input.items ? items.reduce((sum, i) => sum + i.total, 0) : input.amount!;
-  const description = input.items ? input.description?.trim() || summarize(items) : input.description ?? null;
-  const usd = input.paymentMethod === 'dolares' ? resolveUsdPayment(amount, input.usdReceivedCents!) : null;
+  const description = input.items
+    ? input.description?.trim() || summarize(items)
+    : (input.description ?? null);
+  const usd =
+    input.paymentMethod === 'dolares' ? resolveUsdPayment(amount, input.usdReceivedCents!) : null;
 
   return createSaleRow(
     { description, amount, paymentMethod: input.paymentMethod, items, usd },

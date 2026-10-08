@@ -64,7 +64,12 @@ function CreateUserForm({ roles, onDone }: { roles: UserRole[]; onDone: () => vo
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <label htmlFor="new-display-name" className="block text-sm font-medium text-text-secondary">Nombre</label>
+          <label
+            htmlFor="new-display-name"
+            className="block text-sm font-medium text-text-secondary"
+          >
+            Nombre
+          </label>
           <input
             id="new-display-name"
             autoFocus
@@ -75,7 +80,9 @@ function CreateUserForm({ roles, onDone }: { roles: UserRole[]; onDone: () => vo
           />
         </div>
         <div className="space-y-1.5">
-          <label htmlFor="new-username" className="block text-sm font-medium text-text-secondary">Usuario</label>
+          <label htmlFor="new-username" className="block text-sm font-medium text-text-secondary">
+            Usuario
+          </label>
           <input
             id="new-username"
             autoCapitalize="none"
@@ -96,7 +103,10 @@ function CreateUserForm({ roles, onDone }: { roles: UserRole[]; onDone: () => vo
                 <button
                   key={r}
                   type="button"
-                  onClick={() => { setRole(r); setSecret(''); }}
+                  onClick={() => {
+                    setRole(r);
+                    setSecret('');
+                  }}
                   aria-pressed={role === r}
                   className={[
                     'flex h-10 flex-1 items-center justify-center rounded-lg border text-sm transition-colors',
@@ -126,7 +136,11 @@ function CreateUserForm({ roles, onDone }: { roles: UserRole[]; onDone: () => vo
           : 'Los administradores gestionan cajeros y pueden eliminar ventas y gastos, y cancelar créditos y apartados.'}
       </p>
 
-      {error && <p role="alert" className="mt-3 text-sm text-brand-error">{error}</p>}
+      {error && (
+        <p role="alert" className="mt-3 text-sm text-brand-error">
+          {error}
+        </p>
+      )}
 
       <div className="mt-4 flex justify-end gap-2">
         <button
@@ -141,7 +155,9 @@ function CreateUserForm({ roles, onDone }: { roles: UserRole[]; onDone: () => vo
           disabled={mutation.isPending}
           className="flex h-10 items-center gap-1.5 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
         >
-          {mutation.isPending && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+          {mutation.isPending && (
+            <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
+          )}
           Crear usuario
         </button>
       </div>
@@ -150,7 +166,15 @@ function CreateUserForm({ roles, onDone }: { roles: UserRole[]; onDone: () => vo
 }
 
 // ── Fila de usuario ───────────────────────────────────────────────────────────
-function UserRow({ user, canManage, isSelf }: { user: UserRecord; canManage: boolean; isSelf: boolean }) {
+function UserRow({
+  user,
+  canManage,
+  isSelf,
+}: {
+  user: UserRecord;
+  canManage: boolean;
+  isSelf: boolean;
+}) {
   const queryClient = useQueryClient();
   const [resetting, setResetting] = useState(false);
   const [secret, setSecret] = useState('');
@@ -177,7 +201,12 @@ function UserRow({ user, canManage, isSelf }: { user: UserRecord; canManage: boo
     <li className="border-b border-border px-4 py-3 last:border-0">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="min-w-0 flex-1">
-          <p className={['truncate text-sm font-medium', user.active ? 'text-text-primary' : 'text-text-muted line-through'].join(' ')}>
+          <p
+            className={[
+              'truncate text-sm font-medium',
+              user.active ? 'text-text-primary' : 'text-text-muted line-through',
+            ].join(' ')}
+          >
             {user.displayName}
             {isSelf && <span className="ml-2 text-xs font-normal text-text-muted">(tú)</span>}
           </p>
@@ -191,7 +220,11 @@ function UserRow({ user, canManage, isSelf }: { user: UserRecord; canManage: boo
           </span>
         )}
 
-        <span className={['rounded-full px-2 py-0.5 text-xs font-medium', ROLE_BADGE[user.role]].join(' ')}>
+        <span
+          className={['rounded-full px-2 py-0.5 text-xs font-medium', ROLE_BADGE[user.role]].join(
+            ' ',
+          )}
+        >
           {ROLE_LABELS[user.role]}
         </span>
 
@@ -210,7 +243,11 @@ function UserRow({ user, canManage, isSelf }: { user: UserRecord; canManage: boo
             {user.active && (
               <button
                 type="button"
-                onClick={() => { setResetting((v) => !v); setError(null); setSecret(''); }}
+                onClick={() => {
+                  setResetting((v) => !v);
+                  setError(null);
+                  setSecret('');
+                }}
                 aria-expanded={resetting}
                 className="flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs text-text-secondary transition-colors hover:bg-surface-bg hover:text-text-primary"
               >
@@ -237,7 +274,10 @@ function UserRow({ user, canManage, isSelf }: { user: UserRecord; canManage: boo
 
       {resetting && (
         <form
-          onSubmit={(e) => { e.preventDefault(); mutation.mutate({ secret }); }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            mutation.mutate({ secret });
+          }}
           noValidate
           className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center"
         >
@@ -245,7 +285,12 @@ function UserRow({ user, canManage, isSelf }: { user: UserRecord; canManage: boo
             Nuevo {secretLabel(user.role).toLowerCase()} de {user.displayName}
           </label>
           <div className="flex-1 sm:max-w-xs">
-            <SecretInput id={`reset-${user.id}`} role={user.role} value={secret} onChange={setSecret} />
+            <SecretInput
+              id={`reset-${user.id}`}
+              role={user.role}
+              value={secret}
+              onChange={setSecret}
+            />
           </div>
           <div className="flex gap-2">
             <button
@@ -253,7 +298,9 @@ function UserRow({ user, canManage, isSelf }: { user: UserRecord; canManage: boo
               disabled={mutation.isPending || secret.length === 0}
               className="flex h-10 items-center gap-1.5 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 disabled:opacity-60"
             >
-              {mutation.isPending && <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />}
+              {mutation.isPending && (
+                <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
+              )}
               Guardar
             </button>
             <button
@@ -268,7 +315,11 @@ function UserRow({ user, canManage, isSelf }: { user: UserRecord; canManage: boo
         </form>
       )}
 
-      {error && <p role="alert" className="mt-2 text-xs text-brand-error">{error}</p>}
+      {error && (
+        <p role="alert" className="mt-2 text-xs text-brand-error">
+          {error}
+        </p>
+      )}
     </li>
   );
 }
@@ -279,7 +330,12 @@ export function UsersPage() {
   const roles = manageableRoles(me.role);
   const [creating, setCreating] = useState(false);
 
-  const { data: users, isLoading, isError, refetch } = useQuery({
+  const {
+    data: users,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ['users'],
     queryFn: usersApi.list,
   });
@@ -290,7 +346,9 @@ export function UsersPage() {
         <div>
           <h1 className="text-xl font-semibold text-text-primary">Usuarios</h1>
           <p className="mt-1 text-sm text-text-muted">
-            {me.role === 'dueno' ? 'Administradores y cajeros del negocio.' : 'Cajeros del negocio.'}
+            {me.role === 'dueno'
+              ? 'Administradores y cajeros del negocio.'
+              : 'Cajeros del negocio.'}
           </p>
         </div>
         {!creating && (
@@ -310,7 +368,10 @@ export function UsersPage() {
       {isLoading ? (
         <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="flex items-center gap-3 border-b border-border px-4 py-4 last:border-0">
+            <div
+              key={i}
+              className="flex items-center gap-3 border-b border-border px-4 py-4 last:border-0"
+            >
               <div className="h-4 w-40 animate-pulse rounded bg-border" />
               <div className="ml-auto h-4 w-16 animate-pulse rounded bg-border" />
             </div>
@@ -319,7 +380,11 @@ export function UsersPage() {
       ) : isError ? (
         <div className="rounded-xl border border-border bg-surface-card p-6 text-center">
           <p className="text-sm text-text-muted">No se pudieron cargar los usuarios.</p>
-          <button type="button" onClick={() => void refetch()} className="mt-2 text-sm font-medium text-brand-blue hover:underline">
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="mt-2 text-sm font-medium text-brand-blue hover:underline"
+          >
             Reintentar
           </button>
         </div>
@@ -328,7 +393,8 @@ export function UsersPage() {
           <UserPlus size={28} strokeWidth={1.5} className="text-text-muted" aria-hidden />
           <p className="mt-3 text-sm font-medium text-text-primary">Todavía trabajas solo</p>
           <p className="mt-1 max-w-sm text-sm text-text-muted">
-            Crea un usuario para cada persona que atiende. Así cada venta y cada cierre de caja queda con su nombre.
+            Crea un usuario para cada persona que atiende. Así cada venta y cada cierre de caja
+            queda con su nombre.
           </p>
         </div>
       ) : (

@@ -21,8 +21,20 @@ function FacturaPrintView({
   const footer = settings?.receipt_footer?.trim();
 
   return (
-    <div className="sale-print-overlay" style={{ fontFamily: '"Courier New", Courier, monospace', color: '#000' }}>
-      <div style={{ width: '100%', maxWidth: 290, margin: '0 auto', padding: '4px 0', fontSize: 15, lineHeight: 1.55 }}>
+    <div
+      className="sale-print-overlay"
+      style={{ fontFamily: '"Courier New", Courier, monospace', color: '#000' }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 290,
+          margin: '0 auto',
+          padding: '4px 0',
+          fontSize: 15,
+          lineHeight: 1.55,
+        }}
+      >
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 20, fontWeight: 700 }}>{shopName}</div>
@@ -47,11 +59,14 @@ function FacturaPrintView({
         <div style={{ fontSize: 14, marginBottom: 6 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
             <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>Cliente:</span>
-            <span style={{ textAlign: 'right', wordBreak: 'break-word' }}>{factura.clientName}</span>
+            <span style={{ textAlign: 'right', wordBreak: 'break-word' }}>
+              {factura.clientName}
+            </span>
           </div>
           {factura.clientCedula && (
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: 600 }}>Cédula:</span><span>{factura.clientCedula}</span>
+              <span style={{ fontWeight: 600 }}>Cédula:</span>
+              <span>{factura.clientCedula}</span>
             </div>
           )}
         </div>
@@ -59,8 +74,17 @@ function FacturaPrintView({
         <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
 
         {/* Items */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
-          <span>CANT · DESCRIPCIÓN</span><span>TOTAL</span>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontSize: 13,
+            fontWeight: 700,
+            marginBottom: 4,
+          }}
+        >
+          <span>CANT · DESCRIPCIÓN</span>
+          <span>TOTAL</span>
         </div>
         {factura.items.map((item) => (
           <div key={item.id} style={{ fontSize: 14, marginBottom: 5 }}>
@@ -68,7 +92,9 @@ function FacturaPrintView({
               <span style={{ flex: 1, wordBreak: 'break-word', paddingRight: 4 }}>
                 {item.quantity}x {item.description}
               </span>
-              <span style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{formatColones(item.total)}</span>
+              <span style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>
+                {formatColones(item.total)}
+              </span>
             </div>
             {item.quantity > 1 && (
               <div style={{ textAlign: 'right', fontSize: 12, opacity: 0.7 }}>
@@ -83,15 +109,26 @@ function FacturaPrintView({
         {/* Totals */}
         <div style={{ fontSize: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-            <span>Subtotal:</span><span>{formatColones(factura.subtotal)}</span>
+            <span>Subtotal:</span>
+            <span>{formatColones(factura.subtotal)}</span>
           </div>
           {factura.ivaPercent > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-              <span>IVA ({factura.ivaPercent}%):</span><span>{formatColones(factura.ivaAmount)}</span>
+              <span>IVA ({factura.ivaPercent}%):</span>
+              <span>{formatColones(factura.ivaAmount)}</span>
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 4, borderTop: '2px solid #000', paddingTop: 5 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'baseline',
+            marginTop: 4,
+            borderTop: '2px solid #000',
+            paddingTop: 5,
+          }}
+        >
           <span style={{ fontSize: 17, fontWeight: 700 }}>TOTAL</span>
           <span style={{ fontSize: 26, fontWeight: 700 }}>{formatColones(factura.total)}</span>
         </div>
@@ -99,7 +136,9 @@ function FacturaPrintView({
         {factura.status === 'anulada' && (
           <>
             <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
-            <div style={{ textAlign: 'center', fontSize: 16, fontWeight: 700 }}>*** ANULADA ***</div>
+            <div style={{ textAlign: 'center', fontSize: 16, fontWeight: 700 }}>
+              *** ANULADA ***
+            </div>
           </>
         )}
 
@@ -107,9 +146,11 @@ function FacturaPrintView({
 
         {/* Footer */}
         <div style={{ textAlign: 'center', fontSize: 13 }}>
-          {footer
-            ? <span style={{ whiteSpace: 'pre-wrap' }}>{footer}</span>
-            : <span>Gracias por su compra</span>}
+          {footer ? (
+            <span style={{ whiteSpace: 'pre-wrap' }}>{footer}</span>
+          ) : (
+            <span>Gracias por su compra</span>
+          )}
         </div>
       </div>
     </div>

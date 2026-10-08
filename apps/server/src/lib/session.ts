@@ -4,8 +4,8 @@ import { db, type Actor } from '../db/client.js';
 import { sessions, users } from '../db/schema.js';
 import { generateSessionToken, hashSessionToken } from './crypto.js';
 
-export const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;  // 8 hours absolute
-const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;           // 60 minutes inactivity
+export const SESSION_DURATION_MS = 8 * 60 * 60 * 1000; // 8 hours absolute
+export const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000; // 60 minutes inactivity
 
 export type Session = typeof sessions.$inferSelect;
 
@@ -38,7 +38,9 @@ export async function createSession(
 
 // Devuelve la sesión y su usuario. Un usuario desactivado invalida la sesión al instante,
 // aunque su desactivación ya revoque sus sesiones: defensa en profundidad.
-export async function verifySession(token: string): Promise<{ session: Session; user: Actor } | null> {
+export async function verifySession(
+  token: string,
+): Promise<{ session: Session; user: Actor } | null> {
   const tokenHash = hashSessionToken(token);
 
   const [row] = await db

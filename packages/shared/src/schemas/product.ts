@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-const money = z.number().int('El monto debe ser un número entero').min(0, 'El monto no puede ser negativo');
+const money = z
+  .number()
+  .int('El monto debe ser un número entero')
+  .min(0, 'El monto no puede ser negativo');
 
 // Código interno o código de barras. Vacío = sin código.
 const productCode = z
@@ -13,7 +16,13 @@ const productCode = z
 export const createProductSchema = z.object({
   name: z.string().trim().min(1, 'El nombre es requerido').max(120),
   code: productCode.optional(),
-  category: z.string().trim().max(60).transform((v) => (v === '' ? null : v)).nullable().optional(),
+  category: z
+    .string()
+    .trim()
+    .max(60)
+    .transform((v) => (v === '' ? null : v))
+    .nullable()
+    .optional(),
   price: money,
   cost: money.nullable().optional(),
   // false = servicio o artículo sin control de existencias (p. ej. "mano de obra").
@@ -25,7 +34,13 @@ export const createProductSchema = z.object({
 export const updateProductSchema = z.object({
   name: z.string().trim().min(1, 'El nombre es requerido').max(120).optional(),
   code: productCode.optional(),
-  category: z.string().trim().max(60).transform((v) => (v === '' ? null : v)).nullable().optional(),
+  category: z
+    .string()
+    .trim()
+    .max(60)
+    .transform((v) => (v === '' ? null : v))
+    .nullable()
+    .optional(),
   price: money.optional(),
   cost: money.nullable().optional(),
   trackStock: z.boolean().optional(),

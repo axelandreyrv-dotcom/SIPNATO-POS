@@ -5,7 +5,11 @@ import type {
   StockMovementInput,
   UpdateProductInput,
 } from '@sipnato/shared';
-import { CodigoProductoDuplicado, ProductoNoEncontrado, ProductoSinControlStock } from '../../lib/errors.js';
+import {
+  CodigoProductoDuplicado,
+  ProductoNoEncontrado,
+  ProductoSinControlStock,
+} from '../../lib/errors.js';
 import {
   countLowStock,
   findProductByCode,
@@ -96,7 +100,9 @@ export function updateProduct(id: number, input: UpdateProductInput, meta: Meta)
   // Precio anterior en la bitácora: los cambios de precio son lo que más se audita.
   const snapshot = {
     ...changes,
-    ...(changes.price !== undefined && changes.price !== before.price ? { priceBefore: before.price } : {}),
+    ...(changes.price !== undefined && changes.price !== before.price
+      ? { priceBefore: before.price }
+      : {}),
   };
   return toProduct(updateProductRow(id, changes, snapshot, meta), true);
 }
@@ -105,9 +111,10 @@ export function recordMovement(id: number, input: StockMovementInput, meta: Meta
   const product = getOrThrow(id);
   if (!product.trackStock) throw new ProductoSinControlStock();
 
-  const row = input.type === 'entrada'
-    ? recordEntryRow(product, input.quantity, input.unitCost, input.reason, meta)
-    : recordAdjustmentRow(product, input.newStock, input.reason, meta);
+  const row =
+    input.type === 'entrada'
+      ? recordEntryRow(product, input.quantity, input.unitCost, input.reason, meta)
+      : recordAdjustmentRow(product, input.newStock, input.reason, meta);
   return toProduct(row, true);
 }
 

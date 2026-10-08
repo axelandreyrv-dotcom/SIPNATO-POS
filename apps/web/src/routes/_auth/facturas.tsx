@@ -16,7 +16,11 @@ export const Route = createRoute({
   component: FacturasPage,
 });
 
-function FacturaRow({ factura, onReprint, onAnular }: {
+function FacturaRow({
+  factura,
+  onReprint,
+  onAnular,
+}: {
   factura: Factura;
   onReprint: (id: number) => void;
   onAnular: (id: number) => void;
@@ -35,7 +39,9 @@ function FacturaRow({ factura, onReprint, onAnular }: {
   const isAnulada = factura.status === 'anulada';
 
   return (
-    <div className={`border border-border rounded-xl overflow-hidden ${isAnulada ? 'opacity-60' : ''}`}>
+    <div
+      className={`border border-border rounded-xl overflow-hidden ${isAnulada ? 'opacity-60' : ''}`}
+    >
       <button
         onClick={() => setExpanded((v) => !v)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
@@ -58,10 +64,21 @@ function FacturaRow({ factura, onReprint, onAnular }: {
             <div className="text-xs text-muted-foreground">IVA {factura.ivaPercent}%</div>
           )}
         </div>
-        {expanded
-          ? <ChevronUp size={16} strokeWidth={1.5} className="text-muted-foreground shrink-0" aria-hidden />
-          : <ChevronDown size={16} strokeWidth={1.5} className="text-muted-foreground shrink-0" aria-hidden />
-        }
+        {expanded ? (
+          <ChevronUp
+            size={16}
+            strokeWidth={1.5}
+            className="text-muted-foreground shrink-0"
+            aria-hidden
+          />
+        ) : (
+          <ChevronDown
+            size={16}
+            strokeWidth={1.5}
+            className="text-muted-foreground shrink-0"
+            aria-hidden
+          />
+        )}
       </button>
 
       {expanded && (
@@ -95,15 +112,18 @@ function FacturaRow({ factura, onReprint, onAnular }: {
               <div className="flex justify-end">
                 <div className="w-48 space-y-0.5 text-sm">
                   <div className="flex justify-between text-muted-foreground">
-                    <span>Subtotal:</span><span>{formatColones(factura.subtotal)}</span>
+                    <span>Subtotal:</span>
+                    <span>{formatColones(factura.subtotal)}</span>
                   </div>
                   {factura.ivaPercent > 0 && (
                     <div className="flex justify-between text-muted-foreground">
-                      <span>IVA ({factura.ivaPercent}%):</span><span>{formatColones(factura.ivaAmount)}</span>
+                      <span>IVA ({factura.ivaPercent}%):</span>
+                      <span>{formatColones(factura.ivaAmount)}</span>
                     </div>
                   )}
                   <div className="flex justify-between font-semibold border-t border-border pt-1">
-                    <span>Total:</span><span>{formatColones(factura.total)}</span>
+                    <span>Total:</span>
+                    <span>{formatColones(factura.total)}</span>
                   </div>
                 </div>
               </div>
@@ -132,7 +152,10 @@ function FacturaRow({ factura, onReprint, onAnular }: {
               <div className="flex items-center gap-2 ml-auto">
                 <span className="text-xs text-muted-foreground">¿Confirmar anulación?</span>
                 <button
-                  onClick={() => { onAnular(factura.id); setConfirmAnular(false); }}
+                  onClick={() => {
+                    onAnular(factura.id);
+                    setConfirmAnular(false);
+                  }}
                   className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400"
                   aria-label="Confirmar anulación"
                 >
@@ -201,7 +224,11 @@ function FacturasPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">Facturas</h1>
-            {data && <p className="text-sm text-muted-foreground mt-0.5">{data.total} factura{data.total !== 1 ? 's' : ''}</p>}
+            {data && (
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {data.total} factura{data.total !== 1 ? 's' : ''}
+              </p>
+            )}
           </div>
           <button
             onClick={() => void navigate({ to: '/nueva-factura' as string })}
@@ -213,7 +240,12 @@ function FacturasPage() {
         </div>
 
         <div className="relative mb-4">
-          <Search size={16} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Search
+            size={16}
+            strokeWidth={1.5}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
           <input
             type="text"
             value={search}
@@ -260,7 +292,9 @@ function FacturasPage() {
             >
               ← Anterior
             </button>
-            <span className="px-3 py-1.5 text-sm text-muted-foreground">{page} / {totalPages}</span>
+            <span className="px-3 py-1.5 text-sm text-muted-foreground">
+              {page} / {totalPages}
+            </span>
             <button
               disabled={page === totalPages}
               onClick={() => setPage((p) => p + 1)}

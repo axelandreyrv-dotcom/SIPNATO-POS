@@ -26,7 +26,9 @@ export default async function settingsRoutes(app: FastifyInstance) {
       const slug = request.tenantSlug!;
       const latestPath = latestBackupPath(slug);
       if (!existsSync(latestPath)) {
-        return reply.status(404).send({ error: { code: 'BACKUP_NOT_FOUND', message: 'No hay backup disponible aún.' } });
+        return reply
+          .status(404)
+          .send({ error: { code: 'BACKUP_NOT_FOUND', message: 'No hay backup disponible aún.' } });
       }
       const date = new Date().toISOString().slice(0, 10);
       return reply
@@ -41,7 +43,9 @@ export default async function settingsRoutes(app: FastifyInstance) {
   app.put('/', { preHandler: [requireAuth, requireRole('dueno')] }, async (request, reply) => {
     const body = settingsSchema.safeParse(request.body);
     if (!body.success) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
+      return reply
+        .status(400)
+        .send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
     }
 
     try {
@@ -52,7 +56,9 @@ export default async function settingsRoutes(app: FastifyInstance) {
       return reply.send(updated);
     } catch (err) {
       if (err instanceof AppError) {
-        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+        return reply
+          .status(err.statusCode)
+          .send({ error: { code: err.code, message: err.message } });
       }
       throw err;
     }

@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 export const APARTADO_PAYMENT_METHODS = ['efectivo', 'tarjeta', 'transferencia', 'sinpe'] as const;
-export type ApartadoPaymentMethod = typeof APARTADO_PAYMENT_METHODS[number];
+export type ApartadoPaymentMethod = (typeof APARTADO_PAYMENT_METHODS)[number];
 
 export const APARTADO_STATUSES = ['activo', 'completado', 'cancelado'] as const;
-export type ApartadoStatus = typeof APARTADO_STATUSES[number];
+export type ApartadoStatus = (typeof APARTADO_STATUSES)[number];
 
 export const createApartadoSchema = z.object({
   customerName: z.string().min(1).max(200),

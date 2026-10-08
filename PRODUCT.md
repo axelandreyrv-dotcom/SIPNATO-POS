@@ -6,11 +6,13 @@ product
 
 ## Users
 
-Un único administrador: el dueño del taller de reparación de celulares. Opera desde desktop durante el día de trabajo y consulta reportes y boletas desde su celular (390px viewport). Está en modo tarea: cobra, registra, abre caja, busca una boleta. No tiene tiempo de aprender; el sistema debe ser autoevidente.
+Por negocio: el **dueño**, sus **administradores** y **cajeros** de talleres (celulares, electrónica, mecánica), tiendas y otros comercios pequeños de Costa Rica. Operan desde desktop durante el día de trabajo; el dueño consulta reportes y órdenes desde su celular (390px viewport). Están en modo tarea: cobran, registran, abren caja, buscan una orden. No tienen tiempo de aprender; el sistema debe ser autoevidente.
+
+Además, el **superadministrador de la plataforma** (Dosuxsoft) usa el panel `admin.` para dar de alta negocios y registrar el pago de su mensualidad, a menudo desde el celular.
 
 ## Product Purpose
 
-Sistema POS privado para un taller de reparación de celulares en Costa Rica. Gestiona ventas, gastos, control de caja, clientes, boletas de ingreso de equipos, cotizaciones y notas internas. La meta de éxito es que el administrador complete cualquier operación frecuente (cobrar una venta, abrir/cerrar caja, buscar una boleta) en menos de 5 segundos, sin pensar.
+Sistema POS multi-negocio para comercios pequeños en Costa Rica. Gestiona ventas (monto libre o carrito con inventario, cobro en colones o dólares), caja, gastos, clientes, órdenes de servicio configurables por tipo de negocio, cotizaciones, facturas, apartados, créditos, avisos por WhatsApp y notas internas. La meta de éxito es que cualquier operación frecuente (cobrar una venta, abrir/cerrar caja, buscar una orden) se complete en menos de 5 segundos, sin pensar.
 
 ## Brand Personality
 

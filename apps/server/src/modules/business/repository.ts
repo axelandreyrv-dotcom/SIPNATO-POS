@@ -38,14 +38,16 @@ export function saveProfile(profile: BusinessProfile, meta: AuditMeta): void {
       .onConflictDoUpdate({ target: businessProfile.id, set: values })
       .run();
 
-    tx.insert(auditLog).values({
-      action: 'BUSINESS_PROFILE_UPDATED',
-      entityType: 'business_profile',
-      entityId: '1',
-      payloadSnapshot: JSON.stringify(profile),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'BUSINESS_PROFILE_UPDATED',
+        entityType: 'business_profile',
+        entityId: '1',
+        payloadSnapshot: JSON.stringify(profile),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
   });
 }

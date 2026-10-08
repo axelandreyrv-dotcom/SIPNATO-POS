@@ -53,17 +53,6 @@ export function getAllSettings(): RawSettings {
   };
 }
 
-export function setSetting(key: SettingKey, value: string): void {
-  db
-    .insert(settings)
-    .values({ key, value })
-    .onConflictDoUpdate({
-      target: settings.key,
-      set: { value, updatedAt: new Date().toISOString() },
-    })
-    .run();
-}
-
 export function setAllSettings(
   entries: [SettingKey, string][],
   audit: { payloadSnapshot: string; ip: string | null; userAgent: string | null },
@@ -71,8 +60,7 @@ export function setAllSettings(
   const now = new Date().toISOString();
   db.transaction((tx) => {
     for (const [key, value] of entries) {
-      tx
-        .insert(settings)
+      tx.insert(settings)
         .values({ key, value })
         .onConflictDoUpdate({
           target: settings.key,
@@ -80,15 +68,17 @@ export function setAllSettings(
         })
         .run();
     }
-    tx.insert(auditLog).values({
-      action: 'SETTINGS_UPDATED',
-      entityType: null,
-      entityId: null,
-      payloadSnapshot: audit.payloadSnapshot,
-      ip: audit.ip,
-      userAgent: audit.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'SETTINGS_UPDATED',
+        entityType: null,
+        entityId: null,
+        payloadSnapshot: audit.payloadSnapshot,
+        ip: audit.ip,
+        userAgent: audit.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
   });
 }
 

@@ -72,12 +72,8 @@ function LoginPage() {
       <div className="space-y-8">
         {/* Heading */}
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-text-primary">
-            Iniciar sesión
-          </h1>
-          <p className="mt-1 text-sm text-text-muted">
-            Acceso al sistema Dosuxsoft
-          </p>
+          <h1 className="text-xl font-semibold tracking-tight text-text-primary">Iniciar sesión</h1>
+          <p className="mt-1 text-sm text-text-muted">Acceso al sistema Dosuxsoft</p>
         </div>
 
         {/* Form */}

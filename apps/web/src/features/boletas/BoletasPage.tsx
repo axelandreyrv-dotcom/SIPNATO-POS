@@ -9,7 +9,13 @@ import { useBoletaPrint } from './BoletaPrintView';
 import { useBusiness } from '../auth/useCurrentUser';
 import { NotificationHistory, WhatsAppNotify } from '../../components/WhatsAppNotify';
 
-function BoletaRow({ boleta, onPrint }: { boleta: BoletaWithCustomer; onPrint: (b: BoletaWithCustomer) => void }) {
+function BoletaRow({
+  boleta,
+  onPrint,
+}: {
+  boleta: BoletaWithCustomer;
+  onPrint: (b: BoletaWithCustomer) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const { itemLabel } = useBusiness();
   const orderVars = {
@@ -30,20 +36,25 @@ function BoletaRow({ boleta, onPrint }: { boleta: BoletaWithCustomer; onPrint: (
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-text-primary">{boleta.customerName}</p>
-          <p className="text-xs text-text-muted">{boleta.customerPhone} · {boleta.deviceModel}</p>
+          <p className="text-xs text-text-muted">
+            {boleta.customerPhone} · {boleta.deviceModel}
+          </p>
         </div>
         {boleta.fields[0] && (
           <span className="hidden max-w-40 shrink-0 truncate text-xs tabular-nums text-text-muted sm:block">
             {boleta.fields[0].value}
           </span>
         )}
-        <span className="shrink-0 text-xs text-text-muted">
-          {fmtDateTime(boleta.createdAt)}
-        </span>
+        <span className="shrink-0 text-xs text-text-muted">{fmtDateTime(boleta.createdAt)}</span>
         {expanded ? (
           <ChevronUp size={14} strokeWidth={1.5} className="shrink-0 text-text-muted" aria-hidden />
         ) : (
-          <ChevronDown size={14} strokeWidth={1.5} className="shrink-0 text-text-muted" aria-hidden />
+          <ChevronDown
+            size={14}
+            strokeWidth={1.5}
+            className="shrink-0 text-text-muted"
+            aria-hidden
+          />
         )}
       </button>
 
@@ -63,7 +74,9 @@ function BoletaRow({ boleta, onPrint }: { boleta: BoletaWithCustomer; onPrint: (
             ))}
             <div className="sm:col-span-2">
               <dt className="text-xs text-text-muted">Descripción</dt>
-              <dd className="whitespace-pre-wrap text-sm text-text-primary">{boleta.description}</dd>
+              <dd className="whitespace-pre-wrap text-sm text-text-primary">
+                {boleta.description}
+              </dd>
             </div>
           </dl>
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
@@ -136,7 +149,12 @@ export function BoletasPage() {
       {/* Search */}
       <form onSubmit={handleSearch} className="mb-6">
         <div className="relative">
-          <Search size={15} strokeWidth={1.5} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" aria-hidden />
+          <Search
+            size={15}
+            strokeWidth={1.5}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+            aria-hidden
+          />
           <input
             type="text"
             value={q}
@@ -147,7 +165,10 @@ export function BoletasPage() {
           {search && (
             <button
               type="button"
-              onClick={() => { setQ(''); setSearch(''); }}
+              onClick={() => {
+                setQ('');
+                setSearch('');
+              }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-muted hover:text-text-primary"
             >
               Limpiar
@@ -160,7 +181,10 @@ export function BoletasPage() {
       {isLoading ? (
         <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
           {Array.from({ length: 5 }, (_, i) => (
-            <div key={i} className="flex animate-pulse items-center gap-3 border-b border-border px-4 py-3 last:border-0">
+            <div
+              key={i}
+              className="flex animate-pulse items-center gap-3 border-b border-border px-4 py-3 last:border-0"
+            >
               <div className="h-3 w-6 rounded bg-border" />
               <div className="min-w-0 flex-1 space-y-1.5">
                 <div className="h-3 w-2/3 rounded bg-border" />
@@ -177,7 +201,10 @@ export function BoletasPage() {
             {search ? `Sin resultados para "${search}"` : 'Todavía no hay registros'}
           </p>
           {!search && (
-            <Link to="/nueva-boleta" className="text-xs font-medium text-brand-blue hover:underline">
+            <Link
+              to="/nueva-boleta"
+              className="text-xs font-medium text-brand-blue hover:underline"
+            >
               Crear el primero →
             </Link>
           )}

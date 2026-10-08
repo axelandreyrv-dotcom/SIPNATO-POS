@@ -52,15 +52,17 @@ export function insertUserRow(
     const row = tx.insert(users).values(values).returning().get();
     if (!row) throw new Error('Error al crear usuario');
 
-    tx.insert(auditLog).values({
-      action: 'USER_CREATED',
-      entityType: 'user',
-      entityId: String(row.id),
-      payloadSnapshot: JSON.stringify({ username: row.username, role: row.role }),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'USER_CREATED',
+        entityType: 'user',
+        entityId: String(row.id),
+        payloadSnapshot: JSON.stringify({ username: row.username, role: row.role }),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
 
     return row;
   });
@@ -84,19 +86,25 @@ export function updateUserRow(
       .where(eq(users.id, id))
       .run();
 
-    tx.insert(auditLog).values({
-      action,
-      entityType: 'user',
-      entityId: String(id),
-      payloadSnapshot: JSON.stringify(snapshot),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action,
+        entityType: 'user',
+        entityId: String(id),
+        payloadSnapshot: JSON.stringify(snapshot),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
   });
 }
 
-export function recordFailedAttempt(id: number, failedAttempts: number, lockedUntil: string | null): void {
+export function recordFailedAttempt(
+  id: number,
+  failedAttempts: number,
+  lockedUntil: string | null,
+): void {
   db.update(users).set({ failedAttempts, lockedUntil }).where(eq(users.id, id)).run();
 }
 

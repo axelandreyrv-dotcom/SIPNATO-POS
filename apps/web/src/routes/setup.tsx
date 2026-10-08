@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { createRoute, isRedirect, redirect, useNavigate } from '@tanstack/react-router';
 import { CheckCircle, Copy, Eye, EyeOff, Loader2, ShieldAlert } from 'lucide-react';
-import { BUSINESS_TEMPLATES, setupSchema, TEMPLATE_INFO, type BusinessTemplate } from '@sipnato/shared';
+import {
+  BUSINESS_TEMPLATES,
+  setupSchema,
+  TEMPLATE_INFO,
+  type BusinessTemplate,
+} from '@sipnato/shared';
 import { ApiError } from '@/lib/api-client';
 import { authApi } from '@/features/auth/api';
 import { redirectIfTenantUnavailable } from '@/features/auth/tenant-guard';
@@ -52,7 +57,14 @@ function SetupPage() {
     e.preventDefault();
     setErrors({});
 
-    const parsed = setupSchema.safeParse({ setupCode, template, displayName, username, password, confirmPassword: confirm });
+    const parsed = setupSchema.safeParse({
+      setupCode,
+      template,
+      displayName,
+      username,
+      password,
+      confirmPassword: confirm,
+    });
     if (!parsed.success) {
       const fieldErrors: typeof errors = {};
       for (const issue of parsed.error.issues) {
@@ -97,14 +109,16 @@ function SetupPage() {
         <div className="space-y-8">
           {/* Success header */}
           <div className="flex items-start gap-3">
-            <CheckCircle size={22} strokeWidth={1.5} className="mt-0.5 shrink-0 text-brand-success" />
+            <CheckCircle
+              size={22}
+              strokeWidth={1.5}
+              className="mt-0.5 shrink-0 text-brand-success"
+            />
             <div>
               <h1 className="text-xl font-semibold tracking-tight text-text-primary">
                 Cuenta creada
               </h1>
-              <p className="mt-1 text-sm text-text-muted">
-                Dosuxsoft está listo para usar.
-              </p>
+              <p className="mt-1 text-sm text-text-muted">Dosuxsoft está listo para usar.</p>
             </div>
           </div>
 
@@ -117,8 +131,8 @@ function SetupPage() {
               </p>
             </div>
             <p className="text-xs leading-relaxed text-text-secondary">
-              Este código de recuperación es la única forma de recuperar el acceso si pierdes tu contraseña.
-              No se mostrará de nuevo.
+              Este código de recuperación es la única forma de recuperar el acceso si pierdes tu
+              contraseña. No se mostrará de nuevo.
             </p>
           </div>
 
@@ -146,9 +160,7 @@ function SetupPage() {
                 )}
               </button>
             </div>
-            {copied && (
-              <p className="text-xs text-brand-success">Copiado al portapapeles</p>
-            )}
+            {copied && <p className="text-xs text-brand-success">Copiado al portapapeles</p>}
           </div>
 
           {/* Continue */}
@@ -176,9 +188,7 @@ function SetupPage() {
           <h1 className="text-xl font-semibold tracking-tight text-text-primary">
             Configurar sistema
           </h1>
-          <p className="mt-1 text-sm text-text-muted">
-            Primera configuración de Dosuxsoft
-          </p>
+          <p className="mt-1 text-sm text-text-muted">Primera configuración de Dosuxsoft</p>
         </div>
 
         {/* Form */}
@@ -210,17 +220,26 @@ function SetupPage() {
               placeholder="XXXX-XXXX-XXXX-XXXX"
             />
             {errors.setupCode ? (
-              <p role="alert" className="text-xs text-brand-error" style={{ animation: 'slideDown 0.15s ease-out' }}>
+              <p
+                role="alert"
+                className="text-xs text-brand-error"
+                style={{ animation: 'slideDown 0.15s ease-out' }}
+              >
                 {errors.setupCode}
               </p>
             ) : (
-              <p className="text-xs text-text-muted">Lo recibiste junto con la dirección de tu negocio.</p>
+              <p className="text-xs text-text-muted">
+                Lo recibiste junto con la dirección de tu negocio.
+              </p>
             )}
           </div>
 
           {/* Tipo de negocio: define campos de las órdenes y módulos; se ajusta luego en Configuración */}
           <div className="space-y-1.5">
-            <label htmlFor="setup-template" className="block text-sm font-medium text-text-secondary">
+            <label
+              htmlFor="setup-template"
+              className="block text-sm font-medium text-text-secondary"
+            >
               Tipo de negocio
             </label>
             <select
@@ -230,20 +249,36 @@ function SetupPage() {
               className="h-10 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all duration-150 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
             >
               {BUSINESS_TEMPLATES.map((t) => (
-                <option key={t} value={t}>{TEMPLATE_INFO[t].name}</option>
+                <option key={t} value={t}>
+                  {TEMPLATE_INFO[t].name}
+                </option>
               ))}
             </select>
-            <p className="text-xs text-text-muted">{TEMPLATE_INFO[template].description} Puedes cambiarlo después.</p>
+            <p className="text-xs text-text-muted">
+              {TEMPLATE_INFO[template].description} Puedes cambiarlo después.
+            </p>
           </div>
 
           {/* Dueño: nombre y usuario */}
           <div className="grid gap-5 sm:grid-cols-2">
-            {([
-              ['displayName', 'Tu nombre', displayName, setDisplayName, 'María Rojas', 'name'],
-              ['username', 'Usuario', username, (v: string) => setUsername(v.toLowerCase()), 'maria', 'username'],
-            ] as const).map(([field, label, value, set, placeholder, autoComplete]) => (
+            {(
+              [
+                ['displayName', 'Tu nombre', displayName, setDisplayName, 'María Rojas', 'name'],
+                [
+                  'username',
+                  'Usuario',
+                  username,
+                  (v: string) => setUsername(v.toLowerCase()),
+                  'maria',
+                  'username',
+                ],
+              ] as const
+            ).map(([field, label, value, set, placeholder, autoComplete]) => (
               <div key={field} className="space-y-1.5">
-                <label htmlFor={`setup-${field}`} className="block text-sm font-medium text-text-secondary">
+                <label
+                  htmlFor={`setup-${field}`}
+                  className="block text-sm font-medium text-text-secondary"
+                >
                   {label}
                 </label>
                 <input
@@ -267,7 +302,9 @@ function SetupPage() {
                   ].join(' ')}
                 />
                 {errors[field] && (
-                  <p role="alert" className="text-xs text-brand-error">{errors[field]}</p>
+                  <p role="alert" className="text-xs text-brand-error">
+                    {errors[field]}
+                  </p>
                 )}
               </div>
             ))}
@@ -303,11 +340,19 @@ function SetupPage() {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted transition-colors hover:text-text-secondary"
                 aria-label={showPwd ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               >
-                {showPwd ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
+                {showPwd ? (
+                  <EyeOff size={16} strokeWidth={1.5} />
+                ) : (
+                  <Eye size={16} strokeWidth={1.5} />
+                )}
               </button>
             </div>
             {errors.password && (
-              <p role="alert" className="text-xs text-brand-error" style={{ animation: 'slideDown 0.15s ease-out' }}>
+              <p
+                role="alert"
+                className="text-xs text-brand-error"
+                style={{ animation: 'slideDown 0.15s ease-out' }}
+              >
                 {errors.password}
               </p>
             )}
@@ -343,11 +388,19 @@ function SetupPage() {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted transition-colors hover:text-text-secondary"
                 aria-label={showConfirm ? 'Ocultar' : 'Mostrar'}
               >
-                {showConfirm ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
+                {showConfirm ? (
+                  <EyeOff size={16} strokeWidth={1.5} />
+                ) : (
+                  <Eye size={16} strokeWidth={1.5} />
+                )}
               </button>
             </div>
             {errors.confirmPassword && (
-              <p role="alert" className="text-xs text-brand-error" style={{ animation: 'slideDown 0.15s ease-out' }}>
+              <p
+                role="alert"
+                className="text-xs text-brand-error"
+                style={{ animation: 'slideDown 0.15s ease-out' }}
+              >
                 {errors.confirmPassword}
               </p>
             )}

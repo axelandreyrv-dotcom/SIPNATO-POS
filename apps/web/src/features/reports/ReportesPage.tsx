@@ -1,14 +1,5 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import {
   CalendarDays,
   ChevronLeft,
@@ -19,7 +10,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { formatColones } from '@sipnato/shared';
-import type { DailyEntry, ReportSaleRow, ReportSummary } from '@sipnato/shared';
+import type { ReportSaleRow, ReportSummary } from '@sipnato/shared';
 import { fmtDate, fmtDateTime } from '../../lib/format';
 import { reportsApi } from './api';
 
@@ -82,6 +73,7 @@ const METHOD_BADGE: Record<string, string> = {
   dolares: 'bg-brand-success/10 text-brand-success',
 };
 
+// Cortas a propósito: la columna de método de la tabla mide ~55 px.
 const METHOD_LABEL: Record<string, string> = {
   efectivo: 'Efectivo',
   tarjeta: 'Tarjeta',
@@ -90,31 +82,7 @@ const METHOD_LABEL: Record<string, string> = {
   dolares: 'Dólares',
 };
 
-// ── Chart custom tooltip ───────────────────────────────────────────────────
-
-function ChartTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ value?: number; payload?: DailyEntry }>;
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  const entry = payload[0];
-  const total = entry?.value ?? 0;
-  const count = entry?.payload?.count ?? 0;
-  return (
-    <div className="rounded-lg border border-border bg-surface-card px-3 py-2 shadow-md">
-      <p className="text-xs text-text-muted">{label}</p>
-      <p className="text-sm font-semibold tabular-nums text-text-primary">{formatColones(total)}</p>
-      <p className="text-xs text-text-muted">
-        {count} {count === 1 ? 'venta' : 'ventas'}
-      </p>
-    </div>
-  );
-}
+const SalesBarChart = lazy(() => import('../../components/charts/SalesBarChart'));
 
 // ── Summary grid ───────────────────────────────────────────────────────────
 
@@ -137,7 +105,13 @@ function SummaryGrid({ data, loading }: { data: ReportSummary | undefined; loadi
     },
     // Solo si hubo cobros en dólares en el periodo (valorados en colones).
     ...(data && data.byPaymentMethod.dolares > 0
-      ? [{ label: 'Dólares (en ₡)', value: data.byPaymentMethod.dolares, color: 'text-brand-success' }]
+      ? [
+          {
+            label: 'Dólares (en ₡)',
+            value: data.byPaymentMethod.dolares,
+            color: 'text-brand-success',
+          },
+        ]
       : []),
     { label: 'Gastos', value: data?.totalExpenses, color: 'text-brand-error', prefix: '−' },
     {
@@ -156,9 +130,20 @@ function SummaryGrid({ data, loading }: { data: ReportSummary | undefined; loadi
   const wide = cells.length === 7;
 
   return (
-    <div className={['grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border', wide ? 'sm:grid-cols-4' : 'sm:grid-cols-3'].join(' ')}>
+    <div
+      className={[
+        'grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border',
+        wide ? 'sm:grid-cols-4' : 'sm:grid-cols-3',
+      ].join(' ')}
+    >
       {cells.map(({ label, value, color, prefix }, i) => (
-        <div key={label} className={['bg-surface-card px-4 py-4', wide && i === cells.length - 1 ? 'col-span-2' : ''].join(' ')}>
+        <div
+          key={label}
+          className={[
+            'bg-surface-card px-4 py-4',
+            wide && i === cells.length - 1 ? 'col-span-2' : '',
+          ].join(' ')}
+        >
           <p className="mb-1.5 text-xs text-text-muted">{label}</p>
           {loading || value === undefined ? (
             <div className="h-5 w-24 animate-pulse rounded bg-border" />
@@ -212,10 +197,13 @@ export function ReportesPage() {
     return f <= t;
   }
 
-  // Reset page when filters change
-  useEffect(() => {
+  // Volver a la página 1 al cambiar los filtros (ajuste durante el render, sin efecto).
+  const filterKey = `${from}|${to}|${pmFilter}|${qFilter}`;
+  const [pageFilterKey, setPageFilterKey] = useState(filterKey);
+  if (pageFilterKey !== filterKey) {
+    setPageFilterKey(filterKey);
     setPage(1);
-  }, [from, to, pmFilter, qFilter]);
+  }
 
   const summaryQuery = useQuery({
     queryKey: ['reports', 'summary', from, to],
@@ -294,7 +282,12 @@ export function ReportesPage() {
         {/* Custom date inputs */}
         {preset === 'personalizado' && (
           <div className="flex flex-wrap items-center gap-2">
-            <CalendarDays size={14} strokeWidth={1.5} className="shrink-0 text-text-muted" aria-hidden />
+            <CalendarDays
+              size={14}
+              strokeWidth={1.5}
+              className="shrink-0 text-text-muted"
+              aria-hidden
+            />
             <label htmlFor="rep-from" className="sr-only">
               Desde
             </label>
@@ -349,7 +342,12 @@ export function ReportesPage() {
             />
           </div>
           <div className="flex items-center gap-1.5">
-            <SlidersHorizontal size={13} strokeWidth={1.5} className="shrink-0 text-text-muted" aria-hidden />
+            <SlidersHorizontal
+              size={13}
+              strokeWidth={1.5}
+              className="shrink-0 text-text-muted"
+              aria-hidden
+            />
             <label htmlFor="rep-pm" className="sr-only">
               Método de pago
             </label>
@@ -382,7 +380,12 @@ export function ReportesPage() {
             )}
           </h2>
           {summaryQuery.isFetching && !summaryQuery.isLoading && (
-            <Loader2 size={12} strokeWidth={1.5} className="animate-spin text-text-muted" aria-hidden />
+            <Loader2
+              size={12}
+              strokeWidth={1.5}
+              className="animate-spin text-text-muted"
+              aria-hidden
+            />
           )}
         </div>
         {summaryQuery.isError ? (
@@ -399,13 +402,23 @@ export function ReportesPage() {
         <div className="mb-3 flex items-center gap-2">
           <h2 className="text-sm font-semibold text-text-primary">Ventas diarias</h2>
           {dailyQuery.isFetching && !dailyQuery.isLoading && (
-            <Loader2 size={12} strokeWidth={1.5} className="animate-spin text-text-muted" aria-hidden />
+            <Loader2
+              size={12}
+              strokeWidth={1.5}
+              className="animate-spin text-text-muted"
+              aria-hidden
+            />
           )}
         </div>
         <div className="rounded-xl border border-border bg-surface-card px-2 pb-2 pt-4">
           {dailyQuery.isLoading ? (
             <div className="flex h-[220px] items-center justify-center">
-              <Loader2 size={20} strokeWidth={1.5} className="animate-spin text-text-muted" aria-hidden />
+              <Loader2
+                size={20}
+                strokeWidth={1.5}
+                className="animate-spin text-text-muted"
+                aria-hidden
+              />
             </div>
           ) : dailyQuery.isError ? (
             <div className="flex h-[220px] items-center justify-center">
@@ -416,46 +429,15 @@ export function ReportesPage() {
               <p className="text-sm text-text-muted">Sin ventas en el período.</p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={dailyData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                <CartesianGrid
-                  vertical={false}
-                  stroke="var(--color-border)"
-                  strokeDasharray="3 3"
-                />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(d: string) => {
-                    const p = d.split('-');
-                    return `${p[2] ?? ''}/${p[1] ?? ''}`;
-                  }}
-                  tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  tickFormatter={(v: number) =>
-                    v >= 1_000_000
-                      ? `₡${(v / 1_000_000).toFixed(1)}M`
-                      : v >= 1000
-                        ? `₡${Math.round(v / 1000)}k`
-                        : `₡${v}`
-                  }
-                  tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={60}
-                />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'transparent' }} />
-                <Bar
-                  dataKey="total"
-                  fill="var(--color-brand-blue)"
-                  radius={[3, 3, 0, 0]}
-                  activeBar={{ fill: 'var(--color-brand-blue)', opacity: 0.8 }}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <Suspense fallback={<div className="h-[220px]" />}>
+              <SalesBarChart
+                data={dailyData}
+                height={220}
+                yAxisWidth={60}
+                xTick={(d) => `${d.slice(8, 10)}/${d.slice(5, 7)}`}
+                tooltipLabel={fmtDate}
+              />
+            </Suspense>
           )}
         </div>
       </section>

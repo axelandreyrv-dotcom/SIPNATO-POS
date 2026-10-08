@@ -15,7 +15,9 @@ export default async function cashRegisterRoutes(app: FastifyInstance) {
   app.post('/open', { preHandler: [requireAuth] }, async (request, reply) => {
     const body = openCashRegisterSchema.safeParse(request.body);
     if (!body.success) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
+      return reply
+        .status(400)
+        .send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
     }
 
     try {
@@ -26,7 +28,9 @@ export default async function cashRegisterRoutes(app: FastifyInstance) {
       return reply.status(201).send(result);
     } catch (err) {
       if (err instanceof AppError) {
-        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+        return reply
+          .status(err.statusCode)
+          .send({ error: { code: err.code, message: err.message } });
       }
       throw err;
     }
@@ -42,7 +46,9 @@ export default async function cashRegisterRoutes(app: FastifyInstance) {
       return reply.send(totals);
     } catch (err) {
       if (err instanceof AppError) {
-        return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+        return reply
+          .status(err.statusCode)
+          .send({ error: { code: err.code, message: err.message } });
       }
       throw err;
     }
@@ -55,7 +61,7 @@ export default async function cashRegisterRoutes(app: FastifyInstance) {
 
   // ── GET /api/cash-registers ───────────────────────────────────────────────
   app.get('/', { preHandler: [requireAuth] }, async (request) => {
-    const query = (request.query as Record<string, string>);
+    const query = request.query as Record<string, string>;
     const page = Math.max(1, parseInt(query['page'] ?? '1', 10) || 1);
     return listCashRegisters(page);
   });
@@ -65,11 +71,15 @@ export default async function cashRegisterRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const parsed = parseInt(id, 10);
     if (isNaN(parsed)) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
+      return reply
+        .status(400)
+        .send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
     }
     const register = getCashRegisterById(parsed);
     if (!register) {
-      return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Caja no encontrada' } });
+      return reply
+        .status(404)
+        .send({ error: { code: 'NOT_FOUND', message: 'Caja no encontrada' } });
     }
     return register;
   });

@@ -1,7 +1,6 @@
 import { apiFetch } from '../../lib/api-client';
 import type { CreateQuoteInput, QuoteList, QuoteWithItems } from '@sipnato/shared';
 
-
 export const quotesApi = {
   create(data: CreateQuoteInput): Promise<QuoteWithItems> {
     return apiFetch<QuoteWithItems>('/api/quotes', {

@@ -16,39 +16,9 @@ function mapCustomer(r: typeof customers.$inferSelect): Customer {
   };
 }
 
-export function findCustomerByPhone(phone: string): Customer | null {
-  const row = db.select().from(customers).where(eq(customers.phone, phone)).get();
-  return row ? mapCustomer(row) : null;
-}
-
 export function findCustomerById(id: number): Customer | null {
   const row = db.select().from(customers).where(eq(customers.id, id)).get();
   return row ? mapCustomer(row) : null;
-}
-
-export function createCustomerRow(data: {
-  name: string;
-  phone: string;
-  email?: string | undefined;
-  address?: string | undefined;
-  idNumber?: string | undefined;
-}): Customer {
-  const now = new Date().toISOString();
-  const row = db
-    .insert(customers)
-    .values({
-      name: data.name,
-      phone: data.phone,
-      email: data.email ?? null,
-      address: data.address ?? null,
-      idNumber: data.idNumber ?? null,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .returning()
-    .get();
-  if (!row) throw new Error('Failed to create customer');
-  return mapCustomer(row);
 }
 
 export function listCustomersRows(q: string, page: number, limit: number): CustomerList {

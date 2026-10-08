@@ -3,7 +3,14 @@ import { z } from 'zod';
 // ─── Módulos activables ───────────────────────────────────────────────────────
 // Dashboard, POS, Caja, Clientes, Gastos, Notas, Reportes, Usuarios y Configuración
 // están siempre activos. Estos los propone la plantilla y el dueño los ajusta.
-export const TOGGLEABLE_MODULES = ['ordenes', 'cotizaciones', 'facturas', 'apartados', 'creditos', 'inventario'] as const;
+export const TOGGLEABLE_MODULES = [
+  'ordenes',
+  'cotizaciones',
+  'facturas',
+  'apartados',
+  'creditos',
+  'inventario',
+] as const;
 export type ModuleKey = (typeof TOGGLEABLE_MODULES)[number];
 
 export const MODULE_LABELS: Record<ModuleKey, string> = {
@@ -54,7 +61,13 @@ export interface OrderFieldValue {
 
 // ─── Perfil del negocio ───────────────────────────────────────────────────────
 
-export const BUSINESS_TEMPLATES = ['celulares', 'electronica', 'taller', 'tienda', 'generico'] as const;
+export const BUSINESS_TEMPLATES = [
+  'celulares',
+  'electronica',
+  'taller',
+  'tienda',
+  'generico',
+] as const;
 export type BusinessTemplate = (typeof BUSINESS_TEMPLATES)[number];
 
 export const businessProfileSchema = z
@@ -74,7 +87,10 @@ export type BusinessProfile = z.infer<typeof businessProfileSchema>;
 
 const ALL_BUT = (...off: ModuleKey[]) => TOGGLEABLE_MODULES.filter((m) => !off.includes(m));
 
-export const TEMPLATE_INFO: Record<BusinessTemplate, { name: string; description: string; profile: Omit<BusinessProfile, 'template'> }> = {
+export const TEMPLATE_INFO: Record<
+  BusinessTemplate,
+  { name: string; description: string; profile: Omit<BusinessProfile, 'template'> }
+> = {
   celulares: {
     name: 'Reparación de celulares',
     description: 'Boletas con modelo, IMEI y contraseña del equipo.',
@@ -143,18 +159,24 @@ export const TEMPLATE_INFO: Record<BusinessTemplate, { name: string; description
 
 export function profileFromTemplate(template: BusinessTemplate): BusinessProfile {
   const { profile } = TEMPLATE_INFO[template];
-  return { template, ...profile, fields: profile.fields.map((f) => ({ ...f })), modules: [...profile.modules] };
+  return {
+    template,
+    ...profile,
+    fields: profile.fields.map((f) => ({ ...f })),
+    modules: [...profile.modules],
+  };
 }
 
 // Clave estable a partir del nombre visible: "Número de serie" → "numero_de_serie".
 export function fieldKeyFromLabel(label: string, taken: string[]): string {
-  const base = label
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 32) || 'campo';
+  const base =
+    label
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 32) || 'campo';
   let key = base;
   for (let i = 2; taken.includes(key); i++) key = `${base}_${i}`;
   return key;
@@ -193,10 +215,14 @@ export function validateOrderFields(
       continue;
     }
     if (raw.length > 500) errors[f.key] = `${f.label}: máximo 500 caracteres`;
-    else if (f.type === 'number' && !/^-?\d+([.,]\d+)?$/.test(raw)) errors[f.key] = `${f.label} debe ser un número`;
-    else if (f.type === 'imei' && !/^\d{15}$/.test(raw)) errors[f.key] = `${f.label} debe tener 15 dígitos`;
-    else if (f.type === 'imei' && !validateImei(raw)) errors[f.key] = `${f.label} inválido (revisa los dígitos)`;
-    else if (f.type === 'select' && !f.options?.includes(raw)) errors[f.key] = `${f.label}: elige una opción de la lista`;
+    else if (f.type === 'number' && !/^-?\d+([.,]\d+)?$/.test(raw))
+      errors[f.key] = `${f.label} debe ser un número`;
+    else if (f.type === 'imei' && !/^\d{15}$/.test(raw))
+      errors[f.key] = `${f.label} debe tener 15 dígitos`;
+    else if (f.type === 'imei' && !validateImei(raw))
+      errors[f.key] = `${f.label} inválido (revisa los dígitos)`;
+    else if (f.type === 'select' && !f.options?.includes(raw))
+      errors[f.key] = `${f.label}: elige una opción de la lista`;
     else values.push({ key: f.key, label: f.label, value: raw });
   }
 

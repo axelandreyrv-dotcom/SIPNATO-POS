@@ -39,4 +39,3 @@ export type QuoteList = {
 };
 
 export const updateQuoteSchema = createQuoteSchema;
-export type UpdateQuoteInput = CreateQuoteInput;

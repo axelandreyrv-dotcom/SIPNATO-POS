@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
     "build": "tsc && node -e \"require('fs').cpSync('src/db/migrations', 'dist/db/migrations', {recursive: true})\"",
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate",
@@ -12,11 +12,11 @@
     "db:seed": "tsx src/db/seed.ts",
     "tenant": "tsx src/scripts/tenant.ts",
     "reset-admin": "tsx src/scripts/reset-admin.ts",
-    "test": "node --import tsx/esm --test src/db/tests/*.test.ts src/tests/*.test.ts"
+    "test": "node --import tsx/esm --test src/db/tests/*.test.ts src/tests/*.test.ts",
+    "superadmin": "tsx src/scripts/superadmin.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
-    "@fastify/cors": "^11.2.0",
     "@fastify/rate-limit": "^11.0.0",
     "@sipnato/shared": "workspace:*",
     "argon2": "^0.41.0",
@@ -24,8 +24,6 @@
     "drizzle-orm": "^0.36.0",
     "fastify": "^5.0.0",
     "node-cron": "^3.0.3",
-    "pino": "^9.4.0",
-    "tsx": "^4.19.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
@@ -34,6 +32,7 @@
     "@types/node-cron": "^3.0.11",
     "drizzle-kit": "^0.28.0",
     "pino-pretty": "^11.3.0",
+    "tsx": "^4.19.0",
     "typescript": "*"
   }
 }

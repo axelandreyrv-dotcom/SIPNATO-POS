@@ -1,5 +1,9 @@
 import type { FastifyInstance } from 'fastify';
-import { reportExportFilterSchema, reportSalesFilterSchema, reportSummaryFilterSchema } from '@sipnato/shared';
+import {
+  reportExportFilterSchema,
+  reportSalesFilterSchema,
+  reportSummaryFilterSchema,
+} from '@sipnato/shared';
 import { requireAuth } from '../../middleware/auth.js';
 import { getDaily, getSalesExport, getSalesList, getSummary } from './service.js';
 
@@ -8,7 +12,9 @@ export default async function reportsRoutes(app: FastifyInstance) {
   app.get('/sales', { preHandler: [requireAuth] }, (request, reply) => {
     const parsed = reportSalesFilterSchema.safeParse(request.query);
     if (!parsed.success) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Parámetros inválidos' } });
+      return reply
+        .status(400)
+        .send({ error: { code: 'VALIDATION_ERROR', message: 'Parámetros inválidos' } });
     }
     return getSalesList(parsed.data);
   });
@@ -18,7 +24,9 @@ export default async function reportsRoutes(app: FastifyInstance) {
   app.get('/sales/export', { preHandler: [requireAuth] }, (request, reply) => {
     const parsed = reportExportFilterSchema.safeParse(request.query);
     if (!parsed.success) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Parámetros inválidos' } });
+      return reply
+        .status(400)
+        .send({ error: { code: 'VALIDATION_ERROR', message: 'Parámetros inválidos' } });
     }
     return getSalesExport(parsed.data);
   });
@@ -27,7 +35,9 @@ export default async function reportsRoutes(app: FastifyInstance) {
   app.get('/summary', { preHandler: [requireAuth] }, (request, reply) => {
     const parsed = reportSummaryFilterSchema.safeParse(request.query);
     if (!parsed.success) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Parámetros inválidos' } });
+      return reply
+        .status(400)
+        .send({ error: { code: 'VALIDATION_ERROR', message: 'Parámetros inválidos' } });
     }
     return getSummary(parsed.data);
   });
@@ -36,7 +46,9 @@ export default async function reportsRoutes(app: FastifyInstance) {
   app.get('/daily', { preHandler: [requireAuth] }, (request, reply) => {
     const parsed = reportSummaryFilterSchema.safeParse(request.query);
     if (!parsed.success) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Parámetros inválidos' } });
+      return reply
+        .status(400)
+        .send({ error: { code: 'VALIDATION_ERROR', message: 'Parámetros inválidos' } });
     }
     return getDaily(parsed.data);
   });

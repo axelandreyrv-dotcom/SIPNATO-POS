@@ -49,7 +49,13 @@ export function getDashboardData(): DashboardData {
   const expRow = db
     .select({ total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)` })
     .from(expenses)
-    .where(and(isNull(expenses.deletedAt), gte(expenses.createdAt, fromUtc), lte(expenses.createdAt, toUtc)))
+    .where(
+      and(
+        isNull(expenses.deletedAt),
+        gte(expenses.createdAt, fromUtc),
+        lte(expenses.createdAt, toUtc),
+      ),
+    )
     .get();
   const totalExpenses = expRow?.total ?? 0;
 

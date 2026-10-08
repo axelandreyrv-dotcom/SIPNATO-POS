@@ -23,8 +23,20 @@ function BoletaPrintView({
   const title = template === 'celulares' ? 'BOLETA DE INGRESO' : 'ORDEN DE INGRESO';
 
   return (
-    <div className="sale-print-overlay" style={{ fontFamily: '"Courier New", Courier, monospace', color: '#000' }}>
-      <div style={{ width: '100%', maxWidth: 290, margin: '0 auto', padding: '4px 0', fontSize: 15, lineHeight: 1.55 }}>
+    <div
+      className="sale-print-overlay"
+      style={{ fontFamily: '"Courier New", Courier, monospace', color: '#000' }}
+    >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 290,
+          margin: '0 auto',
+          padding: '4px 0',
+          fontSize: 15,
+          lineHeight: 1.55,
+        }}
+      >
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 20, fontWeight: 700 }}>{shopName}</div>
@@ -49,7 +61,9 @@ function BoletaPrintView({
         <div style={{ fontSize: 14, marginBottom: 6 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
             <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>Cliente:</span>
-            <span style={{ textAlign: 'right', wordBreak: 'break-word' }}>{boleta.customerName}</span>
+            <span style={{ textAlign: 'right', wordBreak: 'break-word' }}>
+              {boleta.customerName}
+            </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ fontWeight: 600 }}>Tel:</span>
@@ -63,7 +77,9 @@ function BoletaPrintView({
         <div style={{ fontSize: 14, marginBottom: 6 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
             <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{itemLabel}:</span>
-            <span style={{ textAlign: 'right', wordBreak: 'break-word' }}>{boleta.deviceModel}</span>
+            <span style={{ textAlign: 'right', wordBreak: 'break-word' }}>
+              {boleta.deviceModel}
+            </span>
           </div>
           {boleta.fields.map((f) => (
             <div key={f.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
@@ -78,7 +94,9 @@ function BoletaPrintView({
         {/* Description */}
         <div style={{ fontSize: 14, marginBottom: 6 }}>
           <div style={{ fontWeight: 600, marginBottom: 3 }}>DESCRIPCIÓN:</div>
-          <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{boleta.description}</div>
+          <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {boleta.description}
+          </div>
         </div>
 
         <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
@@ -93,9 +111,11 @@ function BoletaPrintView({
 
         {/* Footer */}
         <div style={{ textAlign: 'center', fontSize: 13 }}>
-          {footer
-            ? <span style={{ whiteSpace: 'pre-wrap' }}>{footer}</span>
-            : <span>Gracias por su preferencia</span>}
+          {footer ? (
+            <span style={{ whiteSpace: 'pre-wrap' }}>{footer}</span>
+          ) : (
+            <span>Gracias por su preferencia</span>
+          )}
         </div>
       </div>
     </div>

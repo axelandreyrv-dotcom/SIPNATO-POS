@@ -18,7 +18,9 @@ type EntityType = RecordNotificationInput['entityType'];
 
 const notificationsApi = {
   list: (entityType: EntityType, entityId: number) =>
-    apiFetch<CustomerNotification[]>(`/api/notifications?entityType=${entityType}&entityId=${entityId}`),
+    apiFetch<CustomerNotification[]>(
+      `/api/notifications?entityType=${entityType}&entityId=${entityId}`,
+    ),
   record: (data: RecordNotificationInput) =>
     apiFetch<{ ok: boolean }>('/api/notifications', { method: 'POST', body: JSON.stringify(data) }),
 };
@@ -41,16 +43,24 @@ export function WhatsAppNotify({
   label?: string;
 }) {
   const queryClient = useQueryClient();
-  const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: settingsApi.get, staleTime: 5 * 60_000 });
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: settingsApi.get,
+    staleTime: 5 * 60_000,
+  });
 
   const record = useMutation({
     mutationFn: notificationsApi.record,
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['notifications', entityType, entityId] }),
+    onSuccess: () =>
+      void queryClient.invalidateQueries({ queryKey: ['notifications', entityType, entityId] }),
   });
 
   function send() {
     const template = settings?.[MESSAGE_SETTING_KEYS[event]] || DEFAULT_MESSAGES[event];
-    const message = renderMessage(template, { negocio: settings?.shop_name?.trim() || 'nuestro negocio', ...vars });
+    const message = renderMessage(template, {
+      negocio: settings?.shop_name?.trim() || 'nuestro negocio',
+      ...vars,
+    });
     // Se abre primero (dentro del clic) para que el navegador no lo bloquee como popup.
     window.open(whatsappLink(phone, message), '_blank', 'noopener,noreferrer');
     record.mutate({ event, entityType, entityId, phone });
@@ -69,7 +79,13 @@ export function WhatsAppNotify({
 }
 
 // "Avisado: Listo para retirar · 07 oct 2026, 14:30 · @caro"
-export function NotificationHistory({ entityType, entityId }: { entityType: EntityType; entityId: number }) {
+export function NotificationHistory({
+  entityType,
+  entityId,
+}: {
+  entityType: EntityType;
+  entityId: number;
+}) {
   const { data } = useQuery({
     queryKey: ['notifications', entityType, entityId],
     queryFn: () => notificationsApi.list(entityType, entityId),

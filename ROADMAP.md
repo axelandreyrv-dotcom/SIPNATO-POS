@@ -2,7 +2,7 @@
 
 > Desarrollo por fases pequeñas y lógicas. Cada fase es atómica: una sola responsabilidad, verificable antes de avanzar.
 > Al completar cada fase: marcar `[x]`, anotar la fecha y actualizar `CLAUDE.md`.
-> Última actualización: 2026-10-07 · Fases 0–15 ✅ · Inicia la versión multi-negocio: Fase A ✅
+> Última actualización: 2026-10-07 · Fases 0–15 ✅ · Versión multi-negocio: Fases A–F ✅
 
 ---
 
@@ -33,14 +33,43 @@
 
 | Fase | Nombre | Estado |
 |---|---|---|
-| A | Aislamiento multi-negocio (BD por negocio, subdominios) | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
-| B | Multiusuario y roles (dueño / administrador / cajero, PIN por cajero) | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
-| C | Inventario / catálogo integrado al POS (manteniendo venta libre) | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
-| D | Plantillas por tipo de negocio + órdenes de servicio configurables | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
-| E | Colones + dólares · notificaciones a clientes | ✅ COMPLETADA 2026-10-07 · `/grill-me` pendiente |
-| F | Registro de negocios, cobro de suscripción y panel de superadministrador | ⬜ Pendiente |
+| A | Aislamiento multi-negocio (BD por negocio, subdominios) | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
+| B | Multiusuario y roles (dueño / administrador / cajero, PIN por cajero) | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
+| C | Inventario / catálogo integrado al POS (manteniendo venta libre) | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
+| D | Plantillas por tipo de negocio + órdenes de servicio configurables | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
+| E | Colones + dólares · notificaciones a clientes | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
+| F | Alta de negocios, cobro de suscripción y panel de superadministrador | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
 
 > IVA y facturación electrónica de Hacienda: **descartados** (decisión del usuario, 2026-10-07).
+
+---
+
+## Fase F — Panel de la plataforma y cobro de la mensualidad ✅ COMPLETADA 2026-10-07
+
+**Objetivo:** administrar todos los negocios desde un panel web en `admin.dosuxsoft.com`: darlos de alta, cobrarles la mensualidad y suspenderlos.
+
+**Decisiones del usuario:** alta solo desde el panel (sin registro público); cobro manual por SINPE / transferencia que el superadministrador registra; un atraso solo genera avisos, nunca bloquea; un plan con precio por defecto y precio especial por negocio.
+
+### Tareas Backend
+- [x] Superadministradores en `control.db`, creados solo por consola (`scripts/superadmin.ts`), con sesiones propias, bloqueo por intentos y bitácora
+- [x] Subdominio `admin` aislado: solo sirve `/platform/*` y nunca entra a la BD de un negocio; `/platform/*` da 404 en cualquier otro subdominio
+- [x] Alta de negocio con su BD y código de activación; datos de contacto, precio especial y vencimiento
+- [x] Pagos de la mensualidad que corren el vencimiento; anulación que devuelve el vencimiento si es el último pago
+- [x] Suspender / reactivar, código de activación nuevo, configuración de cobro, cambio de contraseña
+- [x] `/api/subscription` para que el dueño y los administradores vean su estado
+
+### Tareas Frontend
+- [x] Panel: lista de negocios ordenada por urgencia de cobro, resumen de cobros, filtros y búsqueda
+- [x] Alta con subdominio sugerido y código de activación enviable por WhatsApp
+- [x] Detalle: pagos, recordatorio de cobro por WhatsApp, datos, acceso y actividad
+- [x] Configuración: mensualidad por defecto, cómo pagar, mensaje del recordatorio, mi contraseña
+- [x] Negocio: aviso de vencimiento (por vencer / vencido) y sección Suscripción en Configuración
+
+### Criterio de completitud
+Crear un negocio desde el panel, activarlo con su código, verlo avisar que vence, registrar un pago de 3 meses y ver el vencimiento corrido. ✅ Verificado con tests (16 nuevos) y en navegador.
+
+### Pendiente fuera del código
+- Crear la cuenta del panel en el servidor (`superadmin create`) y configurar la mensualidad y cómo pagar.
 
 ---
 
@@ -63,8 +92,8 @@
 ### Criterio de completitud
 Cobrar ₡8,000 con $20 da vuelto en colones con el tipo vigente, la caja muestra los $20, y el aviso de "listo para retirar" abre WhatsApp con el mensaje y el número del cliente. ✅ Verificado con tests y en navegador.
 
-### Pendiente fuera del código
-- Registrar el token del BCCR (`BCCR_API_TOKEN`). Sin él rige el tipo de respaldo manual.
+### Token del BCCR
+- [x] Token registrado y probado contra el API real (2026-10-07: compra ₡453.46, venta ₡457.80). En producción va en `deploy/.env` como `BCCR_API_TOKEN`; sin él rige el tipo de respaldo manual.
 
 ---
 

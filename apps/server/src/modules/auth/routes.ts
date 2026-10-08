@@ -20,7 +20,9 @@ function meta(request: FastifyRequest) {
   return { ip: request.ip ?? null, userAgent: request.headers['user-agent'] ?? null };
 }
 
-const validationError = (message = 'Datos inválidos') => ({ error: { code: 'VALIDATION_ERROR', message } });
+const validationError = (message = 'Datos inválidos') => ({
+  error: { code: 'VALIDATION_ERROR', message },
+});
 
 export default async function authRoutes(app: FastifyInstance) {
   // ── GET /auth/status ─────────────────────────────────────────────────────
@@ -30,33 +32,46 @@ export default async function authRoutes(app: FastifyInstance) {
   });
 
   // ── POST /auth/setup ──────────────────────────────────────────────────────
-  app.post('/setup', {
-    config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
-  }, async (request, reply) => {
-    const body = setupSchema.safeParse(request.body);
-    if (!body.success) return reply.status(400).send(validationError(body.error.issues[0]?.message));
+  app.post(
+    '/setup',
+    {
+      config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+    },
+    async (request, reply) => {
+      const body = setupSchema.safeParse(request.body);
+      if (!body.success)
+        return reply.status(400).send(validationError(body.error.issues[0]?.message));
 
-    const { recoveryCode, sessionToken } = await setupAdmin(body.data, meta(request));
+      const { recoveryCode, sessionToken } = await setupAdmin(body.data, meta(request));
 
-    reply.setCookie(COOKIE_NAME, sessionToken, cookieOpts(SESSION_DURATION_MS / 1000));
-    return reply.status(201).send({
-      recoveryCode,
-      message: 'Guarda este código en un lugar seguro. No se mostrará de nuevo.',
-    });
-  });
+      reply.setCookie(COOKIE_NAME, sessionToken, cookieOpts(SESSION_DURATION_MS / 1000));
+      return reply.status(201).send({
+        recoveryCode,
+        message: 'Guarda este código en un lugar seguro. No se mostrará de nuevo.',
+      });
+    },
+  );
 
   // ── POST /auth/login ──────────────────────────────────────────────────────
-  app.post('/login', {
-    config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
-  }, async (request, reply) => {
-    const body = loginSchema.safeParse(request.body);
-    if (!body.success) return reply.status(400).send(validationError());
+  app.post(
+    '/login',
+    {
+      config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+    },
+    async (request, reply) => {
+      const body = loginSchema.safeParse(request.body);
+      if (!body.success) return reply.status(400).send(validationError());
 
-    const { sessionToken } = await loginUser(body.data.username, body.data.password, meta(request));
+      const { sessionToken } = await loginUser(
+        body.data.username,
+        body.data.password,
+        meta(request),
+      );
 
-    reply.setCookie(COOKIE_NAME, sessionToken, cookieOpts(SESSION_DURATION_MS / 1000));
-    return reply.send({ ok: true });
-  });
+      reply.setCookie(COOKIE_NAME, sessionToken, cookieOpts(SESSION_DURATION_MS / 1000));
+      return reply.send({ ok: true });
+    },
+  );
 
   // ── POST /auth/logout ─────────────────────────────────────────────────────
   app.post('/logout', { preHandler: [requireAuth] }, async (request, reply) => {
@@ -67,28 +82,37 @@ export default async function authRoutes(app: FastifyInstance) {
   });
 
   // ── POST /auth/recover ────────────────────────────────────────────────────
-  app.post('/recover', {
-    config: { rateLimit: { max: 3, timeWindow: '30 minutes' } },
-  }, async (request, reply) => {
-    const body = recoverSchema.safeParse(request.body);
-    if (!body.success) return reply.status(400).send(validationError(body.error.issues[0]?.message));
+  app.post(
+    '/recover',
+    {
+      config: { rateLimit: { max: 3, timeWindow: '30 minutes' } },
+    },
+    async (request, reply) => {
+      const body = recoverSchema.safeParse(request.body);
+      if (!body.success)
+        return reply.status(400).send(validationError(body.error.issues[0]?.message));
 
-    const { newRecoveryCode, sessionToken, username } = await recoverAdmin(
-      body.data.recoveryCode,
-      body.data.newPassword,
-      meta(request),
-    );
+      const { newRecoveryCode, sessionToken, username } = await recoverAdmin(
+        body.data.recoveryCode,
+        body.data.newPassword,
+        meta(request),
+      );
 
-    reply.setCookie(COOKIE_NAME, sessionToken, cookieOpts(SESSION_DURATION_MS / 1000));
-    return reply.send({
-      newRecoveryCode,
-      username,
-      message: 'Contraseña actualizada. Guarda el nuevo código de recuperación.',
-    });
-  });
+      reply.setCookie(COOKIE_NAME, sessionToken, cookieOpts(SESSION_DURATION_MS / 1000));
+      return reply.send({
+        newRecoveryCode,
+        username,
+        message: 'Contraseña actualizada. Guarda el nuevo código de recuperación.',
+      });
+    },
+  );
 
   // ── GET /auth/me ──────────────────────────────────────────────────────────
-  app.get('/me', { preHandler: [requireAuth] }, async (request): Promise<{ authenticated: true; user: CurrentUser }> => {
-    return { authenticated: true, user: request.user };
-  });
+  app.get(
+    '/me',
+    { preHandler: [requireAuth] },
+    async (request): Promise<{ authenticated: true; user: CurrentUser }> => {
+      return { authenticated: true, user: request.user };
+    },
+  );
 }

@@ -4,23 +4,8 @@ import { cashRegisters, sales, expenses } from '../../db/schema.js';
 import type { CashRegisterTotals, CashRegisterSummary } from '@sipnato/shared';
 
 export function findOpenRegister() {
-  const rows = db
-    .select()
-    .from(cashRegisters)
-    .where(isNull(cashRegisters.closedAt))
-    .limit(1)
-    .all();
+  const rows = db.select().from(cashRegisters).where(isNull(cashRegisters.closedAt)).limit(1).all();
   return rows[0] ?? null;
-}
-
-export function createCashRegister(openingAmount: number, openedAt: string): number {
-  const result = db
-    .insert(cashRegisters)
-    .values({ openingAmount, openedAt })
-    .returning({ id: cashRegisters.id })
-    .get();
-  if (!result) throw new Error('Failed to create cash register');
-  return result.id;
 }
 
 export function computeRunningTotals(cashRegisterId: number): CashRegisterTotals {
@@ -32,18 +17,14 @@ export function computeRunningTotals(cashRegisterId: number): CashRegisterTotals
       change: sql<number>`COALESCE(SUM(${sales.changeColones}), 0)`,
     })
     .from(sales)
-    .where(
-      sql`${sales.cashRegisterId} = ${cashRegisterId} AND ${sales.deletedAt} IS NULL`,
-    )
+    .where(sql`${sales.cashRegisterId} = ${cashRegisterId} AND ${sales.deletedAt} IS NULL`)
     .groupBy(sales.paymentMethod)
     .all();
 
   const expRow = db
     .select({ total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)` })
     .from(expenses)
-    .where(
-      sql`${expenses.cashRegisterId} = ${cashRegisterId} AND ${expenses.deletedAt} IS NULL`,
-    )
+    .where(sql`${expenses.cashRegisterId} = ${cashRegisterId} AND ${expenses.deletedAt} IS NULL`)
     .get();
 
   const totals: CashRegisterTotals = {
@@ -75,30 +56,6 @@ export function computeRunningTotals(cashRegisterId: number): CashRegisterTotals
 
   totals.netBalance = totals.totalSales - totals.totalExpenses;
   return totals;
-}
-
-export function closeCashRegisterRow(
-  id: number,
-  closedAt: string,
-  closeType: 'manual' | 'auto',
-  totals: CashRegisterTotals,
-): void {
-  db.update(cashRegisters)
-    .set({
-      closedAt,
-      closeType,
-      totalSalesCash: totals.salesEfectivo,
-      totalSalesCard: totals.salesTarjeta,
-      totalSalesTransfer: totals.salesTransferencia,
-      totalSalesSinpe: totals.salesSinpe,
-      totalSalesDolares: totals.salesDolares,
-      totalUsdCents: totals.usdReceivedCents,
-      totalUsdChange: totals.usdChangeColones,
-      totalExpenses: totals.totalExpenses,
-      netBalance: totals.netBalance,
-    })
-    .where(eq(cashRegisters.id, id))
-    .run();
 }
 
 export function listCashRegistersRows(
@@ -138,9 +95,5 @@ export function listCashRegistersRows(
 }
 
 export function findCashRegisterById(id: number) {
-  return db
-    .select()
-    .from(cashRegisters)
-    .where(eq(cashRegisters.id, id))
-    .get() ?? null;
+  return db.select().from(cashRegisters).where(eq(cashRegisters.id, id)).get() ?? null;
 }

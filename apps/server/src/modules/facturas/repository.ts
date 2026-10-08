@@ -1,11 +1,14 @@
-import { and, count, desc, eq, like, or, sql } from 'drizzle-orm';
+import { count, desc, eq, like, or, sql } from 'drizzle-orm';
 import { currentActorId, db } from '../../db/client.js';
 import { auditLog, counters, facturaItems, facturas } from '../../db/schema.js';
 import type { CreateFacturaInput, Factura, FacturaItem, FacturaWithItems } from '@sipnato/shared';
 
 type Meta = { ip: string; userAgent?: string };
 
-export function listFacturasRows(page: number, search?: string): { data: Factura[]; total: number } {
+export function listFacturasRows(
+  page: number,
+  search?: string,
+): { data: Factura[]; total: number } {
   const pageSize = 20;
   const offset = (page - 1) * pageSize;
 
@@ -32,7 +35,9 @@ export function listFacturasRows(page: number, search?: string): { data: Factura
 }
 
 export function getFacturaRow(id: number): FacturaWithItems | undefined {
-  const factura = db.select().from(facturas).where(eq(facturas.id, id)).get() as Factura | undefined;
+  const factura = db.select().from(facturas).where(eq(facturas.id, id)).get() as
+    | Factura
+    | undefined;
   if (!factura) return undefined;
 
   const items = db
@@ -110,7 +115,9 @@ export function insertFacturaRow(input: CreateFacturaInput, meta: Meta): Factura
 
 export function anularFacturaRow(id: number, meta: Meta): Factura {
   return db.transaction(() => {
-    const factura = db.select().from(facturas).where(eq(facturas.id, id)).get() as Factura | undefined;
+    const factura = db.select().from(facturas).where(eq(facturas.id, id)).get() as
+      | Factura
+      | undefined;
     if (!factura) throw new Error('NOT_FOUND');
     if (factura.status === 'anulada') throw new Error('YA_ANULADA');
 

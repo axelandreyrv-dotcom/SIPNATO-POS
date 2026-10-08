@@ -42,14 +42,23 @@ function NuevaFacturaPage() {
   const addItem = () => setItems((prev) => [...prev, emptyItem()]);
   const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
 
-  const subtotal = items.reduce((sum, it) => sum + it.quantity * (parseInt(it.unitPrice, 10) || 0), 0);
+  const subtotal = items.reduce(
+    (sum, it) => sum + it.quantity * (parseInt(it.unitPrice, 10) || 0),
+    0,
+  );
   const ivaAmount = Math.round((subtotal * ivaPercent) / 100);
   const total = subtotal + ivaAmount;
 
   const handleSave = async (andPrint: boolean) => {
     setError('');
-    if (!clientName.trim()) { setError('El nombre del cliente es requerido.'); return; }
-    if (items.some((it) => !it.description.trim())) { setError('Todos los ítems deben tener descripción.'); return; }
+    if (!clientName.trim()) {
+      setError('El nombre del cliente es requerido.');
+      return;
+    }
+    if (items.some((it) => !it.description.trim())) {
+      setError('Todos los ítems deben tener descripción.');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -124,7 +133,9 @@ function NuevaFacturaPage() {
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-xs font-medium text-muted-foreground mb-1">CLIENTE *</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              CLIENTE *
+            </label>
             <input
               type="text"
               value={clientName}
@@ -159,7 +170,8 @@ function NuevaFacturaPage() {
         {/* Ítems */}
         <div>
           <div className="grid grid-cols-[40px_1fr_90px_90px_36px] gap-2 text-xs font-medium text-muted-foreground mb-2 px-1">
-            <span>CANT.</span><span>DESCRIPCIÓN</span>
+            <span>CANT.</span>
+            <span>DESCRIPCIÓN</span>
             <span className="text-right">P. UNIT ₡</span>
             <span className="text-right">TOTAL ₡</span>
             <span />
@@ -168,25 +180,37 @@ function NuevaFacturaPage() {
             {items.map((item, i) => {
               const lineTotal = item.quantity * (parseInt(item.unitPrice, 10) || 0);
               return (
-                <div key={i} className="grid grid-cols-[40px_1fr_90px_90px_36px] gap-2 items-center">
+                <div
+                  key={i}
+                  className="grid grid-cols-[40px_1fr_90px_90px_36px] gap-2 items-center"
+                >
                   <input
-                    type="number" min={1} value={item.quantity}
-                    onChange={(e) => updateItem(i, 'quantity', Math.max(1, parseInt(e.target.value, 10) || 1))}
+                    type="number"
+                    min={1}
+                    value={item.quantity}
+                    onChange={(e) =>
+                      updateItem(i, 'quantity', Math.max(1, parseInt(e.target.value, 10) || 1))
+                    }
                     className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   />
                   <input
-                    type="text" value={item.description}
+                    type="text"
+                    value={item.description}
                     onChange={(e) => updateItem(i, 'description', e.target.value)}
                     placeholder="Descripción"
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   />
                   <input
-                    type="number" min={0} value={item.unitPrice}
+                    type="number"
+                    min={0}
+                    value={item.unitPrice}
                     onChange={(e) => updateItem(i, 'unitPrice', e.target.value)}
                     placeholder="0"
                     className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   />
-                  <div className="text-sm text-right text-foreground pr-1">{formatColones(lineTotal)}</div>
+                  <div className="text-sm text-right text-foreground pr-1">
+                    {formatColones(lineTotal)}
+                  </div>
                   <button
                     onClick={() => removeItem(i)}
                     disabled={items.length === 1}
@@ -199,7 +223,10 @@ function NuevaFacturaPage() {
               );
             })}
           </div>
-          <button onClick={addItem} className="mt-3 flex items-center gap-1.5 text-sm text-brand-blue hover:text-brand-blue/80">
+          <button
+            onClick={addItem}
+            className="mt-3 flex items-center gap-1.5 text-sm text-brand-blue hover:text-brand-blue/80"
+          >
             <Plus size={15} strokeWidth={1.5} aria-hidden />
             Agregar línea
           </button>
@@ -209,13 +236,16 @@ function NuevaFacturaPage() {
         <div className="flex justify-end">
           <div className="w-64 space-y-1 text-sm">
             <div className="flex justify-between text-muted-foreground">
-              <span>Subtotal:</span><span>{formatColones(subtotal)}</span>
+              <span>Subtotal:</span>
+              <span>{formatColones(subtotal)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>Impuestos ({ivaPercent}%):</span><span>{formatColones(ivaAmount)}</span>
+              <span>Impuestos ({ivaPercent}%):</span>
+              <span>{formatColones(ivaAmount)}</span>
             </div>
             <div className="flex justify-between font-semibold text-base border-t border-border pt-2 mt-2">
-              <span>TOTAL:</span><span className="text-brand-blue">{formatColones(total)}</span>
+              <span>TOTAL:</span>
+              <span className="text-brand-blue">{formatColones(total)}</span>
             </div>
           </div>
         </div>

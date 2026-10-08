@@ -13,7 +13,11 @@ interface AuditMeta {
 
 export type ProductFilter = 'activos' | 'stock-bajo' | 'inactivos';
 
-export function listProductRows(q: string | undefined, filter: ProductFilter, limit = 200): ProductRow[] {
+export function listProductRows(
+  q: string | undefined,
+  filter: ProductFilter,
+  limit = 200,
+): ProductRow[] {
   const term = q?.trim();
   const conditions = [
     filter === 'inactivos' ? eq(products.active, false) : eq(products.active, true),
@@ -21,11 +25,13 @@ export function listProductRows(q: string | undefined, filter: ProductFilter, li
       ? [eq(products.trackStock, true), lte(products.stock, products.minStock)]
       : []),
     ...(term
-      ? [or(
-          like(products.name, `%${term}%`),
-          like(products.code, `%${term}%`),
-          like(products.category, `%${term}%`),
-        )!]
+      ? [
+          or(
+            like(products.name, `%${term}%`),
+            like(products.code, `%${term}%`),
+            like(products.category, `%${term}%`),
+          )!,
+        ]
       : []),
   ];
 
@@ -50,7 +56,13 @@ export function countLowStock(): number {
   const row = db
     .select({ n: sql<number>`count(*)` })
     .from(products)
-    .where(and(eq(products.active, true), eq(products.trackStock, true), lte(products.stock, products.minStock)))
+    .where(
+      and(
+        eq(products.active, true),
+        eq(products.trackStock, true),
+        lte(products.stock, products.minStock),
+      ),
+    )
     .get();
   return row?.n ?? 0;
 }
@@ -76,33 +88,43 @@ export function applyStockChange(
     .get();
   if (!updated) throw new Error(`Producto ${change.productId} no existe`);
 
-  tx.insert(stockMovements).values({
-    productId: change.productId,
-    type: change.type,
-    quantity: change.delta,
-    stockAfter: updated.stock,
-    unitCost: change.unitCost ?? null,
-    reason: change.reason ?? null,
-    saleId: change.saleId ?? null,
-    userId: currentActorId(),
-    // ISO con 'Z': el default datetime('now') de SQLite es UTC sin zona y el navegador
-    // lo interpretaría como hora local (6 h de diferencia en Costa Rica).
-    createdAt: new Date().toISOString(),
-  }).run();
+  tx.insert(stockMovements)
+    .values({
+      productId: change.productId,
+      type: change.type,
+      quantity: change.delta,
+      stockAfter: updated.stock,
+      unitCost: change.unitCost ?? null,
+      reason: change.reason ?? null,
+      saleId: change.saleId ?? null,
+      userId: currentActorId(),
+      // ISO con 'Z': el default datetime('now') de SQLite es UTC sin zona y el navegador
+      // lo interpretaría como hora local (6 h de diferencia en Costa Rica).
+      createdAt: new Date().toISOString(),
+    })
+    .run();
 
   return updated.stock;
 }
 
-function audit(tx: Tx, action: string, productId: number, snapshot: Record<string, unknown>, meta: AuditMeta): void {
-  tx.insert(auditLog).values({
-    action,
-    entityType: 'product',
-    entityId: String(productId),
-    payloadSnapshot: JSON.stringify(snapshot),
-    ip: meta.ip,
-    userAgent: meta.userAgent,
-    userId: currentActorId(),
-  }).run();
+function audit(
+  tx: Tx,
+  action: string,
+  productId: number,
+  snapshot: Record<string, unknown>,
+  meta: AuditMeta,
+): void {
+  tx.insert(auditLog)
+    .values({
+      action,
+      entityType: 'product',
+      entityId: String(productId),
+      payloadSnapshot: JSON.stringify(snapshot),
+      ip: meta.ip,
+      userAgent: meta.userAgent,
+      userId: currentActorId(),
+    })
+    .run();
 }
 
 export function insertProductRow(
@@ -168,14 +190,29 @@ export function recordEntryRow(
   });
 }
 
-export function recordAdjustmentRow(product: ProductRow, newStock: number, reason: string, meta: AuditMeta): ProductRow {
+export function recordAdjustmentRow(
+  product: ProductRow,
+  newStock: number,
+  reason: string,
+  meta: AuditMeta,
+): ProductRow {
   return db.transaction((tx) => {
     // Diferencia calculada dentro de la transacción: si se vendió algo entre que se contó
     // y se guardó el ajuste, el saldo final igual queda en lo contado.
-    const current = tx.select({ stock: products.stock }).from(products).where(eq(products.id, product.id)).get()!;
+    const current = tx
+      .select({ stock: products.stock })
+      .from(products)
+      .where(eq(products.id, product.id))
+      .get()!;
     const delta = newStock - current.stock;
     applyStockChange(tx, { productId: product.id, delta, type: 'ajuste', reason });
-    audit(tx, 'STOCK_ADJUSTED', product.id, { before: current.stock, after: newStock, reason }, meta);
+    audit(
+      tx,
+      'STOCK_ADJUSTED',
+      product.id,
+      { before: current.stock, after: newStock, reason },
+      meta,
+    );
     return tx.select().from(products).where(eq(products.id, product.id)).get()!;
   });
 }

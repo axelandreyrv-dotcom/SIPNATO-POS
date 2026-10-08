@@ -23,7 +23,10 @@ export async function refreshExchangeRate(log: FastifyBaseLogger): Promise<void>
     const rates = await fetchBccrRates(daysAgo(today, 7), today, token);
     for (const r of rates) saveExchangeRate(r.date, r.buy, r.sell);
     const latest = latestExchangeRate();
-    log.info({ date: latest?.date, buy: latest?.buy, sell: latest?.sell }, 'tipo de cambio BCCR actualizado');
+    log.info(
+      { date: latest?.date, buy: latest?.buy, sell: latest?.sell },
+      'tipo de cambio BCCR actualizado',
+    );
   } catch (err) {
     // No es fatal: se reintenta en la próxima hora y mientras tanto rige el último guardado
     // o el tipo de respaldo de cada negocio.
@@ -38,6 +41,8 @@ export function startExchangeRateCron(log: FastifyBaseLogger): void {
     return;
   }
   void refreshExchangeRate(log);
-  cron.schedule('15 * * * *', () => { void refreshExchangeRate(log); });
+  cron.schedule('15 * * * *', () => {
+    void refreshExchangeRate(log);
+  });
   log.info('tipo de cambio BCCR: consulta cada hora hasta tener el del día');
 }

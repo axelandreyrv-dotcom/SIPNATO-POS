@@ -20,11 +20,12 @@ export default defineConfig({
     include: ['framer-motion'],
   },
   server: {
-    port: parseInt(process.env['PORT'] ?? '5173'),
+    port: parseInt(process.env['PORT'] ?? '5174'),
     proxy: {
       '/api': apiProxy,
       '/auth': apiProxy,
       '/health': apiProxy,
+      '/platform': apiProxy,
     },
   },
 });

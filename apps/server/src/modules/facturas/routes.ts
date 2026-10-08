@@ -16,11 +16,15 @@ const facturasRoutes: FastifyPluginAsync = async (app) => {
   app.get('/:id', { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const parsed = parseInt(id, 10);
-    if (isNaN(parsed)) return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });
+    if (isNaN(parsed))
+      return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });
     try {
       return reply.send(getFactura(parsed));
     } catch (err) {
-      if (err instanceof AppError) return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+      if (err instanceof AppError)
+        return reply
+          .status(err.statusCode)
+          .send({ error: { code: err.code, message: err.message } });
       throw err;
     }
   });
@@ -29,7 +33,12 @@ const facturasRoutes: FastifyPluginAsync = async (app) => {
   app.post('/', { preHandler: requireAuth }, async (req, reply) => {
     const parsed = createFacturaSchema.safeParse(req.body);
     if (!parsed.success) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0]?.message ?? 'Datos inválidos' } });
+      return reply.status(400).send({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: parsed.error.errors[0]?.message ?? 'Datos inválidos',
+        },
+      });
     }
     const ua = req.headers['user-agent'];
     const meta = { ip: req.ip, ...(ua !== undefined && { userAgent: ua }) };
@@ -37,25 +46,36 @@ const facturasRoutes: FastifyPluginAsync = async (app) => {
       const factura = createFactura(parsed.data, meta);
       return reply.status(201).send(factura);
     } catch (err) {
-      if (err instanceof AppError) return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
+      if (err instanceof AppError)
+        return reply
+          .status(err.statusCode)
+          .send({ error: { code: err.code, message: err.message } });
       throw err;
     }
   });
 
   // POST /api/facturas/:id/anular
-  app.post('/:id/anular', { preHandler: [requireAuth, requireRole('dueno', 'admin')] }, async (req, reply) => {
-    const { id } = req.params as { id: string };
-    const parsed = parseInt(id, 10);
-    if (isNaN(parsed)) return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });
-    const ua = req.headers['user-agent'];
-    const meta = { ip: req.ip, ...(ua !== undefined && { userAgent: ua }) };
-    try {
-      return reply.send(anularFactura(parsed, meta));
-    } catch (err) {
-      if (err instanceof AppError) return reply.status(err.statusCode).send({ error: { code: err.code, message: err.message } });
-      throw err;
-    }
-  });
+  app.post(
+    '/:id/anular',
+    { preHandler: [requireAuth, requireRole('dueno', 'admin')] },
+    async (req, reply) => {
+      const { id } = req.params as { id: string };
+      const parsed = parseInt(id, 10);
+      if (isNaN(parsed))
+        return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });
+      const ua = req.headers['user-agent'];
+      const meta = { ip: req.ip, ...(ua !== undefined && { userAgent: ua }) };
+      try {
+        return reply.send(anularFactura(parsed, meta));
+      } catch (err) {
+        if (err instanceof AppError)
+          return reply
+            .status(err.statusCode)
+            .send({ error: { code: err.code, message: err.message } });
+        throw err;
+      }
+    },
+  );
 };
 
 export default facturasRoutes;

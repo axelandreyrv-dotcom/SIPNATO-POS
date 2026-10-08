@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from 'async_hooks';
 import Database from 'better-sqlite3';
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import { mkdirSync } from 'fs';
+import { copyFileSync, mkdirSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { config } from '../config.js';
@@ -45,25 +45,59 @@ const openTenants = new Map<string, TenantContext>();
 // Inserta datos estructurales mínimos que deben existir en cualquier negocio.
 // Idempotente — onConflictDoNothing garantiza que no rompe si ya existen.
 function bootstrapTenantDb(db: TenantDb): void {
-  db.insert(counters).values([
-    { type: 'sale', currentValue: 0 },
-    { type: 'boleta', currentValue: 0 },
-    { type: 'quote', currentValue: 0 },
-    { type: 'apartado', currentValue: 0 },
-    { type: 'factura', currentValue: 0 },
-    { type: 'credito', currentValue: 0 },
-  ]).onConflictDoNothing().run();
+  db.insert(counters)
+    .values([
+      { type: 'sale', currentValue: 0 },
+      { type: 'boleta', currentValue: 0 },
+      { type: 'quote', currentValue: 0 },
+      { type: 'apartado', currentValue: 0 },
+      { type: 'factura', currentValue: 0 },
+      { type: 'credito', currentValue: 0 },
+    ])
+    .onConflictDoNothing()
+    .run();
 
-  db.insert(settings).values([
-    { key: 'shop_name', value: '' },
-    { key: 'shop_phone', value: '' },
-    { key: 'shop_id_number', value: '' },
-    { key: 'receipt_footer', value: '' },
-    { key: 'boleta_footer', value: '' },
-    { key: 'quote_footer', value: '' },
-    { key: 'auto_close_enabled', value: 'false' },
-    { key: 'auto_close_time', value: '00:00' },
-  ]).onConflictDoNothing().run();
+  db.insert(settings)
+    .values([
+      { key: 'shop_name', value: '' },
+      { key: 'shop_phone', value: '' },
+      { key: 'shop_id_number', value: '' },
+      { key: 'receipt_footer', value: '' },
+      { key: 'boleta_footer', value: '' },
+      { key: 'quote_footer', value: '' },
+      { key: 'auto_close_enabled', value: 'false' },
+      { key: 'auto_close_time', value: '00:00' },
+    ])
+    .onConflictDoNothing()
+    .run();
+}
+
+// Copia de la BD antes de aplicar migraciones pendientes a un negocio con datos: si una
+// migración deja algo mal en producción, se vuelve a este archivo. Queda en
+// backups/<slug>/pre-migracion-<fecha>.db, fuera de la rotación de 30 días.
+function snapshotBeforeMigrations(slug: string, sqlite: Database.Database, path: string): void {
+  const applied = sqlite
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = '__drizzle_migrations'",
+    )
+    .get()
+    ? (sqlite.prepare('SELECT COUNT(*) AS n FROM __drizzle_migrations').get() as { n: number }).n
+    : 0;
+  if (applied === 0) return; // BD nueva: no hay nada que proteger.
+
+  const journal = JSON.parse(
+    readFileSync(join(MIGRATIONS_FOLDER, 'meta', '_journal.json'), 'utf-8'),
+  ) as {
+    entries: unknown[];
+  };
+  if (applied >= journal.entries.length) return;
+
+  // Vuelca el WAL al archivo principal para que la copia esté completa.
+  sqlite.pragma('wal_checkpoint(TRUNCATE)');
+  const dir = tenantBackupDir(slug);
+  mkdirSync(dir, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  copyFileSync(path, join(dir, `pre-migracion-${stamp}.db`));
 }
 
 // Abre (o reutiliza) la BD de un negocio. La primera apertura aplica migraciones
@@ -82,6 +116,7 @@ export function openTenantDb(slug: string): TenantContext {
 
   const db = drizzle(sqlite, { schema });
   try {
+    snapshotBeforeMigrations(slug, sqlite, path);
     migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
     bootstrapTenantDb(db);
   } catch (err) {

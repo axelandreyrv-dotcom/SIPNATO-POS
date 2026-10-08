@@ -1,6 +1,5 @@
-// Empty string = same-origin (Caddy proxies /api and /auth to the server container).
-// Set VITE_API_URL only for non-standard dev setups where server runs on a different origin.
-const API_BASE = (import.meta as ImportMeta & { env: Record<string, string> }).env['VITE_API_URL'] ?? '';
+// Siempre el mismo origen: Caddy (producción) y el proxy de Vite (desarrollo) llevan /api, /auth
+// y /platform al servidor. El servidor no habilita CORS.
 
 export class ApiError extends Error {
   constructor(
@@ -14,7 +13,7 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(path, {
     ...options,
     credentials: 'include',
     headers: {
@@ -24,7 +23,7 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as {
+    const body = (await res.json().catch(() => ({}))) as {
       error?: { code?: string; message?: string };
     };
     throw new ApiError(

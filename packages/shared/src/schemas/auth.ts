@@ -16,7 +16,10 @@ export const usernameSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .regex(/^[a-z0-9._-]{3,32}$/, 'Usuario: 3 a 32 caracteres (letras minúsculas, números, punto, guion)');
+  .regex(
+    /^[a-z0-9._-]{3,32}$/,
+    'Usuario: 3 a 32 caracteres (letras minúsculas, números, punto, guion)',
+  );
 
 export const displayNameSchema = z.string().trim().min(1, 'El nombre es requerido').max(60);
 
@@ -34,18 +37,20 @@ export function secretSchemaFor(role: UserRole) {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
-export const setupSchema = z.object({
-  setupCode: z.string().trim().min(1, 'Ingresa el código de activación').max(64),
-  // Plantilla inicial: campos de las órdenes y módulos activos. Se ajusta luego en Configuración.
-  template: z.enum(BUSINESS_TEMPLATES).default('generico'),
-  username: usernameSchema,
-  displayName: displayNameSchema,
-  password: passwordSchema,
-  confirmPassword: z.string(),
-}).refine((d) => d.password === d.confirmPassword, {
-  message: 'Las contraseñas no coinciden',
-  path: ['confirmPassword'],
-});
+export const setupSchema = z
+  .object({
+    setupCode: z.string().trim().min(1, 'Ingresa el código de activación').max(64),
+    // Plantilla inicial: campos de las órdenes y módulos activos. Se ajusta luego en Configuración.
+    template: z.enum(BUSINESS_TEMPLATES).default('generico'),
+    username: usernameSchema,
+    displayName: displayNameSchema,
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: 'Las contraseñas no coinciden',
+    path: ['confirmPassword'],
+  });
 
 // `password` es la contraseña o el PIN según el rol del usuario.
 export const loginSchema = z.object({
@@ -79,17 +84,23 @@ export interface CurrentUser {
 // ─── Gestión de usuarios ──────────────────────────────────────────────────────
 
 // El dueño solo se crea en /setup. El secreto se valida contra el rol en superRefine.
-export const createUserSchema = z.object({
-  username: usernameSchema,
-  displayName: displayNameSchema,
-  role: z.enum(['admin', 'cajero']),
-  secret: z.string(),
-}).superRefine((d, ctx) => {
-  const result = secretSchemaFor(d.role).safeParse(d.secret);
-  if (!result.success) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['secret'], message: result.error.issues[0]!.message });
-  }
-});
+export const createUserSchema = z
+  .object({
+    username: usernameSchema,
+    displayName: displayNameSchema,
+    role: z.enum(['admin', 'cajero']),
+    secret: z.string(),
+  })
+  .superRefine((d, ctx) => {
+    const result = secretSchemaFor(d.role).safeParse(d.secret);
+    if (!result.success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['secret'],
+        message: result.error.issues[0]!.message,
+      });
+    }
+  });
 
 // El rol no se cambia: el tipo de secreto (contraseña/PIN) depende de él. Se desactiva y se crea otro.
 export const updateUserSchema = z.object({

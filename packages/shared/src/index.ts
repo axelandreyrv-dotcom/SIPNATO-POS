@@ -16,3 +16,4 @@ export * from './schemas/credito.js';
 export * from './schemas/product.js';
 export * from './schemas/business.js';
 export * from './schemas/notifications.js';
+export * from './schemas/platform.js';

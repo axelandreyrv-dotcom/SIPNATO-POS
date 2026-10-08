@@ -21,24 +21,6 @@ export class CajaNoAbierta extends AppError {
   }
 }
 
-export class SesionExpirada extends AppError {
-  constructor() {
-    super('SESION_EXPIRADA', 'La sesión ha expirado', 401);
-  }
-}
-
-export class NoAutorizado extends AppError {
-  constructor() {
-    super('NO_AUTORIZADO', 'No autorizado', 401);
-  }
-}
-
-export class RecursoNoEncontrado extends AppError {
-  constructor(recurso: string) {
-    super('NO_ENCONTRADO', `${recurso} no encontrado`, 404);
-  }
-}
-
 export class VentaNoEncontrada extends AppError {
   constructor() {
     super('VENTA_NO_ENCONTRADA', 'Venta no encontrada', 404);
@@ -133,7 +115,11 @@ export class AbonoPagoExcede extends AppError {
 
 export class TipoCambioNoDisponible extends AppError {
   constructor() {
-    super('TIPO_CAMBIO_NO_DISPONIBLE', 'No hay tipo de cambio disponible. El dueño debe configurar uno de respaldo en Configuración.', 400);
+    super(
+      'TIPO_CAMBIO_NO_DISPONIBLE',
+      'No hay tipo de cambio disponible. El dueño debe configurar uno de respaldo en Configuración.',
+      400,
+    );
   }
 }
 
@@ -184,7 +170,11 @@ export class CredencialesInvalidas extends AppError {
 
 export class UsuarioBloqueado extends AppError {
   constructor() {
-    super('USUARIO_BLOQUEADO', 'Demasiados intentos fallidos. Espera 15 minutos o pide a un administrador que restablezca tu acceso.', 429);
+    super(
+      'USUARIO_BLOQUEADO',
+      'Demasiados intentos fallidos. Espera 15 minutos o pide a un administrador que restablezca tu acceso.',
+      429,
+    );
   }
 }
 
@@ -209,12 +199,56 @@ export class UsuarioYaExiste extends AppError {
 // El cajero intentó una acción que requiere que un admin o dueño la autorice en el momento.
 export class AutorizacionRequerida extends AppError {
   constructor() {
-    super('AUTORIZACION_REQUERIDA', 'Esta acción requiere la autorización de un administrador', 403);
+    super(
+      'AUTORIZACION_REQUERIDA',
+      'Esta acción requiere la autorización de un administrador',
+      403,
+    );
   }
 }
 
 export class AutorizacionInvalida extends AppError {
   constructor() {
-    super('AUTORIZACION_INVALIDA', 'La autorización no es válida: usuario o contraseña/PIN incorrectos, o sin permiso', 403);
+    super(
+      'AUTORIZACION_INVALIDA',
+      'La autorización no es válida: usuario o contraseña/PIN incorrectos, o sin permiso',
+      403,
+    );
+  }
+}
+
+// ─── Plataforma (Fase F) ──────────────────────────────────────────────────────
+
+export class NegocioNoEncontrado extends AppError {
+  constructor() {
+    super('NEGOCIO_NO_ENCONTRADO', 'Negocio no encontrado', 404);
+  }
+}
+
+export class NegocioYaExiste extends AppError {
+  constructor() {
+    super('NEGOCIO_YA_EXISTE', 'Ya existe un negocio con ese subdominio', 409);
+  }
+}
+
+export class NegocioYaActivado extends AppError {
+  constructor() {
+    super(
+      'NEGOCIO_YA_ACTIVADO',
+      'Este negocio ya tiene dueño. Para recuperar el acceso usa reset-admin en el servidor.',
+      409,
+    );
+  }
+}
+
+export class PagoNoEncontrado extends AppError {
+  constructor() {
+    super('PAGO_NO_ENCONTRADO', 'Pago no encontrado', 404);
+  }
+}
+
+export class PagoYaAnulado extends AppError {
+  constructor() {
+    super('PAGO_YA_ANULADO', 'Este pago ya fue anulado', 409);
   }
 }

@@ -67,15 +67,17 @@ export function createQuoteRow(input: CreateQuoteInput, meta: AuditMeta): QuoteW
       items.push(mapItem(inserted));
     }
 
-    tx.insert(auditLog).values({
-      action: 'QUOTE_CREATED',
-      entityType: 'quote',
-      entityId: String(quote.id),
-      payloadSnapshot: JSON.stringify({ consecutive, total, itemCount: items.length }),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'QUOTE_CREATED',
+        entityType: 'quote',
+        entityId: String(quote.id),
+        payloadSnapshot: JSON.stringify({ consecutive, total, itemCount: items.length }),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
 
     return { ...mapQuote(quote), items };
   });
@@ -112,7 +114,11 @@ export function listQuotesRows(page: number, limit: number): { quotes: Quote[]; 
   return { quotes: rows.map(mapQuote), total };
 }
 
-export function updateQuoteRow(id: number, input: CreateQuoteInput, meta: AuditMeta): QuoteWithItems {
+export function updateQuoteRow(
+  id: number,
+  input: CreateQuoteInput,
+  meta: AuditMeta,
+): QuoteWithItems {
   const total = input.items.reduce((sum, item) => sum + item.amount, 0);
 
   return db.transaction((tx): QuoteWithItems => {
@@ -121,35 +127,41 @@ export function updateQuoteRow(id: number, input: CreateQuoteInput, meta: AuditM
 
     tx.delete(quoteItems).where(eq(quoteItems.quoteId, id)).run();
 
-    const updated = tx.update(quotes)
-      .set({ total })
-      .where(eq(quotes.id, id))
-      .returning()
-      .get();
+    const updated = tx.update(quotes).set({ total }).where(eq(quotes.id, id)).returning().get();
     if (!updated) throw new Error('Failed to update quote');
 
     const items: QuoteItem[] = [];
     for (let i = 0; i < input.items.length; i++) {
       const item = input.items[i]!;
-      const inserted = tx.insert(quoteItems).values({
-        quoteId: id,
-        description: item.description,
-        amount: item.amount,
-        sortOrder: i,
-      }).returning().get();
+      const inserted = tx
+        .insert(quoteItems)
+        .values({
+          quoteId: id,
+          description: item.description,
+          amount: item.amount,
+          sortOrder: i,
+        })
+        .returning()
+        .get();
       if (!inserted) throw new Error('Failed to insert quote item');
       items.push(mapItem(inserted));
     }
 
-    tx.insert(auditLog).values({
-      action: 'QUOTE_UPDATED',
-      entityType: 'quote',
-      entityId: String(id),
-      payloadSnapshot: JSON.stringify({ consecutive: existing.consecutive, total, itemCount: items.length }),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'QUOTE_UPDATED',
+        entityType: 'quote',
+        entityId: String(id),
+        payloadSnapshot: JSON.stringify({
+          consecutive: existing.consecutive,
+          total,
+          itemCount: items.length,
+        }),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
 
     return { ...mapQuote(updated), items };
   });
@@ -158,19 +170,25 @@ export function updateQuoteRow(id: number, input: CreateQuoteInput, meta: AuditM
 export function hardDeleteQuoteRow(
   id: number,
   meta: AuditMeta,
-  snapshot: { consecutive: number; total: number; items: { description: string; amount: number }[] },
+  snapshot: {
+    consecutive: number;
+    total: number;
+    items: { description: string; amount: number }[];
+  },
 ): void {
   db.transaction((tx) => {
     tx.delete(quoteItems).where(eq(quoteItems.quoteId, id)).run();
     tx.delete(quotes).where(eq(quotes.id, id)).run();
-    tx.insert(auditLog).values({
-      action: 'QUOTE_DELETED',
-      entityType: 'quote',
-      entityId: String(id),
-      payloadSnapshot: JSON.stringify(snapshot),
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      userId: currentActorId(),
-    }).run();
+    tx.insert(auditLog)
+      .values({
+        action: 'QUOTE_DELETED',
+        entityType: 'quote',
+        entityId: String(id),
+        payloadSnapshot: JSON.stringify(snapshot),
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        userId: currentActorId(),
+      })
+      .run();
   });
 }
