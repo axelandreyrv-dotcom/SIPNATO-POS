@@ -231,7 +231,9 @@ Agregar:
 0 10 * * * /opt/dosuxsoft/deploy/backup.sh
 ```
 
-(10:00 UTC = 4:00 AM Costa Rica)
+(10:00 UTC = 4:00 AM Costa Rica). **La hora del cron es la del VPS** (`timedatectl`): si no está en UTC,
+ajustarla para que corra después del respaldo interno de las 3:00 AM CR. En el VPS de Clouding (Europe/Madrid)
+quedó `0 12 * * *` (4–5 AM CR según el horario de verano europeo).
 
 El script guarda los backups en `/opt/dosuxsoft/backups/<negocio>/YYYY-MM-DD.db` con rotación de 30 días
 por negocio, y el registro de la plataforma (negocios, pagos de la mensualidad, cuentas del panel) en

@@ -48,13 +48,16 @@
   (PR #1 → #2 → #3, con merge commit). Ramas de trabajo eliminadas.
 - 2026-10-08: el **tipo de negocio y los módulos se asignan desde el panel** (al crear el negocio y en su
   detalle); el dueño solo los ve y sigue editando los campos y nombres de sus órdenes. 88/88 tests.
-- **Próximo paso — desplegar en el servidor** (ver `deploy/ACTUALIZAR-VPS.md`, "Primera actualización a la versión multi-negocio"):
-  - [ ] Respaldo manual de la BD actual (`dosuxsoft.db`)
-  - [ ] `BCCR_API_TOKEN` en `deploy/.env`
-  - [ ] `git pull` + `docker compose build` + `up -d`
-  - [ ] Convertir la BD anterior en el negocio `taller` (`DEPLOY.md` §8)
-  - [ ] Crear la cuenta del panel (`superadmin create`) y cambiar su contraseña
-  - [ ] En `admin.dosuxsoft.com`: mensualidad por defecto y "Cómo pagar"
+- **Despliegue en el VPS de Clouding (185.166.215.228, Ubuntu 26.04) — 2026-10-08, instalación nueva:**
+  - [x] Acceso por llave SSH (`~/.ssh/dosuxsoft_vps`)
+  - [x] Docker, proyecto en `/opt/dosuxsoft`, `BCCR_API_TOKEN` en `deploy/.env`
+  - [x] `docker compose build` + `up -d`: servidor sano, tipo de cambio del BCCR cargado
+  - [x] Cuenta del panel `axel` (contraseña temporal entregada en un archivo local)
+  - [x] Respaldo externo diario (`backup.sh` en cron, 12:00 hora de Madrid)
+  - [ ] DNS: registro A `*` → 185.166.215.228 en Cloudflare (Solo DNS). `dosuxsoft.com` y `www` siguen en su servidor
+  - [ ] Certificado HTTPS de `admin.dosuxsoft.com` (se emite solo al existir el DNS)
+  - [ ] Cambiar la contraseña temporal del panel; mensualidad por defecto y "Cómo pagar"
+  - [ ] Cambiar la contraseña de root del VPS (quedó expuesta en una captura) y, si se quiere, desactivar el acceso por contraseña (`DEPLOY.md` §2)
   - [ ] Checklist de seguridad post-despliegue (`DEPLOY.md` §12)
 
 ---

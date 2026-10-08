@@ -2,7 +2,8 @@
 # Dosuxsoft POS — Backup externo diario (host → directorio local)
 # Complementa el backup interno del servidor (backup.ts).
 # Cron: 0 10 * * * /opt/dosuxsoft/deploy/backup.sh
-# (10:00 UTC = 04:00 AM Costa Rica — 1h después del backup interno)
+# (10:00 UTC = 04:00 AM Costa Rica — 1h después del backup interno). La hora es la del VPS: en uno
+# con hora de Madrid usar 0 12 * * *.
 #
 # Copia backups/<slug>/latest.db de CADA negocio a /opt/dosuxsoft/backups/<slug>/YYYY-MM-DD.db,
 # y backups/_control/latest.db (registro de negocios, pagos y cuentas del panel) a /opt/dosuxsoft/backups/_control/
