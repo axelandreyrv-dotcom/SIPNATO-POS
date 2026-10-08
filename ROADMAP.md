@@ -2,7 +2,7 @@
 
 > Desarrollo por fases pequeñas y lógicas. Cada fase es atómica: una sola responsabilidad, verificable antes de avanzar.
 > Al completar cada fase: marcar `[x]`, anotar la fecha y actualizar `CLAUDE.md`.
-> Última actualización: 2026-10-07 · Fases 0–15 ✅ · Versión multi-negocio: Fases A–F ✅
+> Última actualización: 2026-10-08 · Fases 0–15 ✅ · Versión multi-negocio: Fases A–F ✅, fusionadas en `main` · Pendiente: desplegar en el servidor
 
 ---
 
@@ -42,6 +42,19 @@
 
 > IVA y facturación electrónica de Hacienda: **descartados** (decisión del usuario, 2026-10-07).
 
+### Estado actual (2026-10-08)
+
+- Código de las Fases A–F, la revisión técnica (`/grill-me`) y la revisión general fusionados en `main`
+  (PR #1 → #2 → #3, con merge commit). Ramas de trabajo eliminadas. 85/85 tests.
+- **Próximo paso — desplegar en el servidor** (ver `deploy/ACTUALIZAR-VPS.md`, "Primera actualización a la versión multi-negocio"):
+  - [ ] Respaldo manual de la BD actual (`dosuxsoft.db`)
+  - [ ] `BCCR_API_TOKEN` en `deploy/.env`
+  - [ ] `git pull` + `docker compose build` + `up -d`
+  - [ ] Convertir la BD anterior en el negocio `taller` (`DEPLOY.md` §8)
+  - [ ] Crear la cuenta del panel (`superadmin create`) y cambiar su contraseña
+  - [ ] En `admin.dosuxsoft.com`: mensualidad por defecto y "Cómo pagar"
+  - [ ] Checklist de seguridad post-despliegue (`DEPLOY.md` §12)
+
 ---
 
 ## Fase F — Panel de la plataforma y cobro de la mensualidad ✅ COMPLETADA 2026-10-07
@@ -69,7 +82,7 @@
 Crear un negocio desde el panel, activarlo con su código, verlo avisar que vence, registrar un pago de 3 meses y ver el vencimiento corrido. ✅ Verificado con tests (16 nuevos) y en navegador.
 
 ### Pendiente fuera del código
-- Crear la cuenta del panel en el servidor (`superadmin create`) y configurar la mensualidad y cómo pagar.
+- Crear la cuenta del panel en el servidor (`superadmin create`) y configurar la mensualidad y cómo pagar (incluido en "Próximo paso", arriba).
 
 ---
 
