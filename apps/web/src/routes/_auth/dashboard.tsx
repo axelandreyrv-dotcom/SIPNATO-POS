@@ -10,15 +10,17 @@ import {
   ShoppingCart,
   TrendingDown,
 } from 'lucide-react';
-import { formatColones, PAYMENT_METHOD_LABELS } from '@sipnato/shared';
+import { formatColones, formatExchangeRate, PAYMENT_METHOD_LABELS } from '@sipnato/shared';
 import type {
   DashboardData,
   DashboardMovement,
   DashboardWeeklyEntry,
+  ExchangeRateInfo,
   PaymentMethod,
 } from '@sipnato/shared';
-import { fmtTime } from '../../lib/format';
+import { fmtDateShort, fmtTime } from '../../lib/format';
 import { dashboardApi } from '../../features/dashboard/api';
+import { exchangeRateApi } from '../../features/pos/exchange-rate-api';
 import { Route as authRoute } from '../_auth';
 import { useBusiness, useModuleEnabled } from '../../features/auth/useCurrentUser';
 
@@ -49,7 +51,48 @@ function weekdayShort(dateStr: string): string {
 
 const PM_ORDER: PaymentMethod[] = ['efectivo', 'sinpe', 'tarjeta', 'transferencia', 'dolares'];
 
-// ── Header: title + caja status ──────────────────────────────────────────────
+// ── Header: title + caja status + tipo de cambio ─────────────────────────────
+
+// El que se usa al cobrar en dólares: compra del BCCR, o el respaldo manual si el BCCR no tiene
+// un dato reciente (lo decide el servidor, ver lib/exchange-rate.ts).
+function DolarPill({ info }: { info: ExchangeRateInfo }) {
+  if (info.source === 'bccr' && info.bccrBuy !== null) {
+    const sell = info.bccrSell !== null ? ` · venta ${formatExchangeRate(info.bccrSell)}` : '';
+    return (
+      <div
+        className="flex items-center gap-2 rounded-lg border border-border bg-surface-card px-3 py-1.5"
+        title={info.date ? `Tipo de cambio del BCCR del ${fmtDateShort(info.date)}` : undefined}
+      >
+        <span className="text-sm text-text-muted">Dólar</span>
+        <span className="text-sm tabular-nums text-text-primary">
+          compra <span className="font-medium">{formatExchangeRate(info.bccrBuy)}</span>
+          <span className="text-text-muted">{sell}</span>
+        </span>
+      </div>
+    );
+  }
+
+  if (info.source === 'manual' && info.rate !== null) {
+    return (
+      <div
+        className="flex items-center gap-2 rounded-lg border border-border bg-surface-card px-3 py-1.5"
+        title="El BCCR no tiene un dato reciente: se usa el tipo de cambio de respaldo de Configuración"
+      >
+        <span className="text-sm text-text-muted">Dólar</span>
+        <span className="text-sm font-medium tabular-nums text-text-primary">
+          {formatExchangeRate(info.rate)}
+        </span>
+        <span className="text-xs text-brand-warning">respaldo</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-card px-3 py-1.5">
+      <span className="text-sm text-text-muted">Dólar: sin tipo de cambio</span>
+    </div>
+  );
+}
 
 function CajaPill({ data }: { data: DashboardData }) {
   const { isOpen, openedAt } = data.cashRegister;
@@ -440,6 +483,11 @@ function DashboardPage() {
     refetchInterval: 60_000,
     staleTime: 30_000,
   });
+  const exchangeRate = useQuery({
+    queryKey: ['exchange-rate'],
+    queryFn: exchangeRateApi.get,
+    staleTime: 30 * 60 * 1000,
+  });
   const apartadosEnabled = useModuleEnabled('apartados');
 
   const todayLabel = longDateFmt.format(new Date());
@@ -451,11 +499,15 @@ function DashboardPage() {
           <h1 className="text-xl font-semibold text-text-primary">Resumen del día</h1>
           <p className="mt-0.5 text-sm capitalize text-text-muted">{todayLabel}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {exchangeRate.data && <DolarPill info={exchangeRate.data} />}
           {data && <CajaPill data={data} />}
           <button
             type="button"
-            onClick={() => void refetch()}
+            onClick={() => {
+              void refetch();
+              void exchangeRate.refetch();
+            }}
             disabled={isFetching}
             aria-label="Actualizar"
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface-card text-text-muted transition-colors hover:text-text-primary disabled:opacity-50"
