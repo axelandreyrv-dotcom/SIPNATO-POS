@@ -250,6 +250,52 @@ describe('panel de superadministrador', () => {
     expect(state).toEqual({ kv: [], tables: [] });
   });
 
+  it('emitir el código de un negocio a medio crear lo inicializa y el código funciona', async () => {
+    await inPlatform(() => insertTenant('fantasma-codigo', 'Fantasma con código'));
+    expect(await tenantStub('fantasma-codigo').platformSummary()).toBeNull();
+
+    const issued = await admin('POST', '/platform/tenants/fantasma-codigo/setup-code');
+    expect(issued.status).toBe(200);
+    const { setupCode: code } = await json<{ setupCode: string }>(issued);
+    expect(await tenantStub('fantasma-codigo').platformSummary()).toMatchObject({
+      activated: false,
+      template: 'generico',
+    });
+
+    const setup = await call('fantasma-codigo', 'POST', '/auth/setup', {
+      body: {
+        setupCode: code,
+        username: 'dueno',
+        displayName: 'Dueño',
+        password: PASSWORD,
+        confirmPassword: PASSWORD,
+      },
+    });
+    expect(setup.status).toBe(201);
+    expect((await listTenants()).find((t) => t.slug === 'fantasma-codigo')!.activated).toBe(true);
+  });
+
+  it('asignar el tipo a un negocio a medio crear lo inicializa con esa asignación', async () => {
+    await inPlatform(() => insertTenant('fantasma-tipo', 'Fantasma con tipo'));
+    const res = await admin('PUT', '/platform/tenants/fantasma-tipo/business', {
+      template: 'taller',
+      modules: ['ordenes', 'inventario'],
+    });
+    expect(res.status).toBe(200);
+    const { tenant } = await json<{ tenant: TenantView }>(res);
+    expect([tenant.template, tenant.modules]).toEqual(['taller', ['ordenes', 'inventario']]);
+    expect(await tenantStub('fantasma-tipo').platformSummary()).toMatchObject({
+      template: 'taller',
+      modules: ['ordenes', 'inventario'],
+    });
+
+    const detail = await json<{ activity: { action: string; payload: Record<string, unknown> }[] }>(
+      admin('GET', '/platform/tenants/fantasma-tipo'),
+    );
+    const assigned = detail.activity.find((a) => a.action === 'TENANT_BUSINESS_ASSIGNED')!;
+    expect(assigned.payload['template']).toEqual({ from: null, to: 'taller' });
+  });
+
   it('una BD que ya trae dueño cuenta como activada aunque quede un código', async () => {
     expect(
       (

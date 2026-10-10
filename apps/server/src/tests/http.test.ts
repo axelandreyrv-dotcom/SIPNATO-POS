@@ -184,6 +184,9 @@ describe('Durable Object del negocio', () => {
 
   it('initialize por RPC rechaza otro slug y el DO sigue siendo del primero', async () => {
     await createTestTenant('http-d');
+    // try/catch y no `.rejects`: con `.rejects` vitest lo reporta como rechazo no manejado. Se
+    // espera igual una línea "Uncaught (in promise)" en stderr: la imprime workerd dentro del DO
+    // por el envoltorio que el plugin de vitest pone a los métodos RPC; no es un error del test.
     let error: unknown = null;
     try {
       await tenantStub('http-d').initialize('otro', { template: 'tienda', modules: [] });

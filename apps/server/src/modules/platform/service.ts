@@ -209,6 +209,11 @@ export function updatePlatformSettings(
 
 const tenantDO = (slug: string) => env.TENANT.get(env.TENANT.idFromName(slug));
 
+const DEFAULT_ASSIGNMENT: AssignBusinessInput = {
+  template: 'generico',
+  modules: [...TEMPLATE_INFO.generico.profile.modules],
+};
+
 type TenantInfo = Pick<PlatformTenant, 'activated' | 'template' | 'modules'>;
 
 // Lo que el panel muestra de la BD del negocio. Se mira si ya tiene usuarios y no el código de
@@ -361,13 +366,22 @@ export async function assignTenantBusiness(
   meta: Meta,
 ): Promise<PlatformTenant> {
   requireTenant(slug);
-  const { before, after } = await tenantDO(slug).assignBusiness(input, meta);
+  const stub = tenantDO(slug);
+  let before: Pick<TenantPlatformSummary, 'template' | 'modules'> | null = null;
+  let after: Pick<TenantPlatformSummary, 'template' | 'modules'>;
+  if ((await stub.platformSummary()) === null) {
+    // El alta falló antes de inicializar el DO: asignar el tipo lo termina de crear.
+    await stub.initialize(slug, input);
+    after = (await stub.platformSummary())!;
+  } else {
+    ({ before, after } = await stub.assignBusiness(input, meta));
+  }
   insertPlatformAudit({
     action: 'TENANT_BUSINESS_ASSIGNED',
     tenantSlug: slug,
     payload: {
-      template: { from: before.template, to: after.template },
-      modules: { from: before.modules, to: after.modules },
+      template: { from: before?.template ?? null, to: after.template },
+      modules: { from: before?.modules ?? null, to: after.modules },
     },
     superadminId: admin.id,
     meta,
@@ -426,7 +440,12 @@ export async function regenerateSetupCode(
   meta: Meta,
 ): Promise<string> {
   requireTenant(slug);
-  if ((await tenantInfo(slug)).activated) throw new NegocioYaActivado();
+  const stub = tenantDO(slug);
+  const summary = await stub.platformSummary();
+  if (summary?.activated) throw new NegocioYaActivado();
+  // El alta falló antes de inicializar el DO: sin esto el código nunca serviría (el subdominio
+  // respondería 404). Se inicializa con el tipo por defecto, como el alta por consola.
+  if (summary === null) await stub.initialize(slug, DEFAULT_ASSIGNMENT);
   const code = generateSetupCode();
   const codeHash = await hashSetupCode(code);
   controlTransaction(() => {

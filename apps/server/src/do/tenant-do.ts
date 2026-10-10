@@ -82,6 +82,10 @@ export class TenantDO extends DurableObject<Env> {
     return slug;
   }
 
+  // ─── RPC (la llama la plataforma) ───
+  // Un error lanzado aquí cruza el RPC solo con su mensaje: un AppError pierde code y status, así
+  // que el llamador nunca debe depender de ellos.
+
   // La plataforma lo llama al crear el negocio. Repetirlo con la misma asignación no cambia nada;
   // un DO ya inicializado nunca pasa a ser de otro negocio.
   async initialize(slug: string, assignment: AssignBusinessInput): Promise<void> {
