@@ -2,7 +2,7 @@
 
 > Desarrollo por fases pequeñas y lógicas. Cada fase es atómica: una sola responsabilidad, verificable antes de avanzar.
 > Al completar cada fase: marcar `[x]`, anotar la fecha y actualizar `CLAUDE.md`.
-> Última actualización: 2026-10-08 · Fases 0–15 ✅ · Versión multi-negocio: Fases A–F ✅, fusionadas en `main` · Pendiente: desplegar en el servidor
+> Última actualización: 2026-10-10 · Fases 0–15 ✅ · Versión multi-negocio: Fases A–F ✅, fusionadas en `main` · Siguiente: Fase G (Cloudflare Workers)
 
 ---
 
@@ -39,10 +39,20 @@
 | D | Plantillas por tipo de negocio + órdenes de servicio configurables | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
 | E | Colones + dólares · notificaciones a clientes | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
 | F | Alta de negocios, cobro de suscripción y panel de superadministrador | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
+| G | Migración a Cloudflare Workers (Durable Objects por negocio, sin VPS) | ⏳ PLANIFICADA 2026-10-10 |
 
 > IVA y facturación electrónica de Hacienda: **descartados** (decisión del usuario, 2026-10-07).
 
-### Estado actual (2026-10-08)
+### Estado actual (2026-10-10)
+
+- **El VPS se borró** (decisión del usuario): producción está fuera de línea y el registro DNS `*` apunta a una IP
+  que ya no existe. No hay clientes ni datos que conservar.
+- Prueba de concepto en Cloudflare Workers Paid exitosa (Worker `dosuxsoft-poc`): argon2id en WebAssembly compatible
+  con los hashes actuales y las 11 migraciones corriendo en un Durable Object con Drizzle.
+- Siguiente: **Fase G** — diseño en `docs/superpowers/specs/2026-10-10-fase-g-cloudflare-design.md`, plan en
+  `docs/superpowers/plans/2026-10-10-fase-g-cloudflare.md`.
+
+### Estado anterior (2026-10-08, histórico)
 
 - Código de las Fases A–F, la revisión técnica (`/grill-me`) y la revisión general fusionados en `main`
   (PR #1 → #2 → #3, con merge commit). Ramas de trabajo eliminadas.
@@ -59,6 +69,24 @@
   - [ ] Cambiar la contraseña temporal del panel; mensualidad por defecto y "Cómo pagar"
   - [ ] Cambiar la contraseña de root del VPS (quedó expuesta en una captura) y, si se quiere, desactivar el acceso por contraseña (`DEPLOY.md` §2)
   - [ ] Checklist de seguridad post-despliegue (`DEPLOY.md` §12)
+
+---
+
+## Fase G — Cloudflare Workers ⏳ PLANIFICADA 2026-10-10
+
+> Objetivo: correr todo en Cloudflare Workers Paid ($5/mes) en `*.dosuxsoft.com`, sin VPS. `seitcr.com`, su Worker
+> y los registros `dosuxsoft.com` / `www` / correo no se tocan. Detalle: plan `docs/superpowers/plans/2026-10-10-fase-g-cloudflare.md`.
+
+- [ ] 1. wrangler, esqueleto del Worker y tests en `workerd`
+- [ ] 2. BD por negocio en Durable Object, migraciones y argon2id en WebAssembly
+- [ ] 3. Rutas de los negocios en Hono dentro del Durable Object
+- [ ] 4. Respaldo del negocio descargable en JSON
+- [ ] 5. Panel de la plataforma en su Durable Object y RPC con los negocios
+- [ ] 6. Enrutado por subdominio, SPA y headers de seguridad
+- [ ] 7. Cierre automático con alarmas, crons y respaldos en R2
+- [ ] 8. Operaciones de emergencia por endpoint con secreto (`/internal/ops`)
+- [ ] 9. Desarrollo local con wrangler; fuera Fastify, Docker y Caddy
+- [ ] 10. Despliegue, DNS (`*` → Proxied) y documentación · `/grill-me`
 
 ---
 
