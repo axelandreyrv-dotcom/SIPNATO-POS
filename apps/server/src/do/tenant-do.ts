@@ -32,7 +32,7 @@ export class TenantDO extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.db = drizzle(ctx.storage, { schema });
-    this.app = createTenantApp(ctx.storage.kv);
+    this.app = createTenantApp(ctx.storage);
     // Ninguna petición entra hasta que el esquema está al día: dos primeras peticiones
     // simultáneas no pueden migrar a la vez.
     ctx.blockConcurrencyWhile(async () => {

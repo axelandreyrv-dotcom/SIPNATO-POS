@@ -23,13 +23,15 @@ import settingsRoutes from './modules/settings/routes.js';
 import usersRoutes from './modules/users/routes.js';
 
 // API de un negocio. Corre dentro de su Durable Object, con el contexto del negocio ya fijado;
-// `kv` es el almacén de ese DO, donde se llevan los contadores del rate limit.
-export function createTenantApp(kv: DurableObjectStorage['kv']): Hono<AppEnv> {
+// `storage` es el de ese DO: su kv lleva los contadores del rate limit y el respaldo vuelca
+// sus tablas.
+export function createTenantApp(storage: DurableObjectStorage): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
   app.use(apiHeaders);
   app.use(async (c, next) => {
-    c.set('kv', kv);
+    c.set('kv', storage.kv);
+    c.set('storage', storage);
     await next();
   });
   app.use(rateLimit('global', 200, 60_000));

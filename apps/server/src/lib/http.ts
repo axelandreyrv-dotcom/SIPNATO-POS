@@ -11,6 +11,8 @@ export type AppEnv = {
   Variables: {
     // Almacén del rate limit (kv del Durable Object que atiende la petición).
     kv: DurableObjectStorage['kv'];
+    // Storage completo del Durable Object (el respaldo vuelca sus tablas).
+    storage: DurableObjectStorage;
     user: Actor;
     sessionId: string;
   };

@@ -1,9 +1,11 @@
 import { Hono } from 'hono';
 import { settingsSchema } from '@sipnato/shared';
-import { AppError } from '../../lib/errors.js';
+import { currentTenant } from '../../db/client.js';
+import { todayCR } from '../../lib/cr-time.js';
 import { readJson, requestMeta, type AppEnv } from '../../lib/http.js';
+import { rateLimit } from '../../lib/rate-limit.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
-import { getSettings, updateSettings } from './service.js';
+import { downloadBackup, getSettings, updateSettings } from './service.js';
 
 const settingsRoutes = new Hono<AppEnv>();
 
@@ -12,11 +14,20 @@ const settingsRoutes = new Hono<AppEnv>();
 settingsRoutes.get('/', requireAuth, (c) => c.json(getSettings()));
 
 // ── GET /api/settings/backup/download ───────────────────────────────────
-// Solo el dueño. Los respaldos pasan a R2 en otra etapa: por ahora la ruta conserva sus
-// permisos y responde que aún no está disponible.
-settingsRoutes.get('/backup/download', requireAuth, requireRole('dueno'), () => {
-  throw new AppError('NO_IMPLEMENTADO', 'La descarga de respaldos aún no está disponible', 501);
-});
+// Solo el dueño. 5 descargas por hora por sesión (CLAUDE.md §6.4). El nombre del archivo lo arma
+// el servidor con el negocio resuelto por el Host y la fecha de Costa Rica; nada viene del cliente.
+settingsRoutes.get(
+  '/backup/download',
+  requireAuth,
+  requireRole('dueno'),
+  rateLimit('backup', 5, 60 * 60_000, (c) => c.var.sessionId),
+  (c) => {
+    const backup = downloadBackup(c.var.storage, requestMeta(c));
+    const filename = `dosuxsoft-${currentTenant().slug}-${todayCR()}.json`;
+    c.header('Content-Disposition', `attachment; filename="${filename}"`);
+    return c.json(backup);
+  },
+);
 
 // ── PUT /api/settings ────────────────────────────────────────────────────
 settingsRoutes.put('/', requireAuth, requireRole('dueno'), async (c) => {

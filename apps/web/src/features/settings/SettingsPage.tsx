@@ -6,6 +6,7 @@ import type { Settings } from '@sipnato/shared';
 import { settingsApi } from './api';
 import { FieldLabel, Section, inputClass, textareaClass } from './ui';
 import { ExchangeRateSection, MessagesSection } from './CurrencyAndMessagesSections';
+import { BackupSection } from './BackupSection';
 import { SubscriptionSection } from '../subscription/SubscriptionSection';
 import { ApiError } from '@/lib/api-client';
 import { BusinessProfileEditor } from '../business/BusinessProfileEditor';
@@ -437,6 +438,10 @@ export function SettingsPage() {
       {/* Perfil del negocio: se guarda aparte (otra API, otro botón) */}
       <div className="mt-6 border-t-2 border-border">
         <BusinessProfileEditor />
+      </div>
+
+      <div className="mt-6 border-t-2 border-border">
+        <BackupSection />
       </div>
 
       <div className="mt-6 border-t-2 border-border">

@@ -1,5 +1,11 @@
 import type { Settings } from '@sipnato/shared';
-import { getAllSettings, setAllSettings, type SettingKey } from './repository.js';
+import { exportTenant, type TenantExport } from '../../lib/export.js';
+import {
+  getAllSettings,
+  insertBackupAudit,
+  setAllSettings,
+  type SettingKey,
+} from './repository.js';
 
 export function getSettings(): Settings {
   const raw = getAllSettings();
@@ -22,4 +28,14 @@ export function updateSettings(
   });
 
   return data;
+}
+
+// Respaldo bajo demanda: todas las tablas del negocio como JSON. Queda registrado quién lo bajó.
+export function downloadBackup(
+  storage: DurableObjectStorage,
+  meta: { ip: string | null; userAgent: string | null },
+): TenantExport {
+  const backup = exportTenant(storage);
+  insertBackupAudit(backup.schemaVersion, meta);
+  return backup;
 }
