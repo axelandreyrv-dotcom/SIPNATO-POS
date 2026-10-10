@@ -1,69 +1,33 @@
-import type { FastifyInstance } from 'fastify';
+import { Hono } from 'hono';
 import { createExpenseSchema } from '@sipnato/shared';
-import { AppError } from '../../lib/errors.js';
+import { readJson, requestMeta, type AppEnv } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { authorizeOrEscalate } from '../../middleware/authorization.js';
 import { createExpense, deleteExpense, listExpenses } from './service.js';
 
-export default async function expensesRoutes(app: FastifyInstance) {
-  // ── POST /api/expenses ────────────────────────────────────────────────────
-  app.post('/', { preHandler: [requireAuth] }, async (request, reply) => {
-    const body = createExpenseSchema.safeParse(request.body);
-    if (!body.success) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
-    }
+const expensesRoutes = new Hono<AppEnv>();
 
-    try {
-      const expense = createExpense(body.data, {
-        ip: request.ip ?? null,
-        userAgent: request.headers['user-agent'] ?? null,
-      });
-      return reply.status(201).send(expense);
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
-  });
+// ── POST /api/expenses ────────────────────────────────────────────────────
+expensesRoutes.post('/', requireAuth, async (c) => {
+  const body = createExpenseSchema.safeParse(await readJson(c));
+  if (!body.success) {
+    return c.json({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } }, 400);
+  }
+  return c.json(createExpense(body.data, requestMeta(c)), 201);
+});
 
-  // ── DELETE /api/expenses/:id ──────────────────────────────────────────────
-  app.delete('/:id', { preHandler: [requireAuth] }, async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const parsed = parseInt(id, 10);
-    if (isNaN(parsed)) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
-    }
+// ── DELETE /api/expenses/:id ──────────────────────────────────────────────
+expensesRoutes.delete('/:id', requireAuth, async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) {
+    return c.json({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } }, 400);
+  }
+  const authorizedBy = await authorizeOrEscalate(c, 'deleteMoneyDirectly');
+  deleteExpense(id, requestMeta(c), authorizedBy);
+  return c.json({ ok: true });
+});
 
-    try {
-      const authorizedBy = await authorizeOrEscalate(request, 'deleteMoneyDirectly');
-      deleteExpense(
-        parsed,
-        {
-          ip: request.ip ?? null,
-          userAgent: request.headers['user-agent'] ?? null,
-        },
-        authorizedBy,
-      );
-      return reply.send({ ok: true });
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
-  });
+// ── GET /api/expenses ─────────────────────────────────────────────────────
+expensesRoutes.get('/', requireAuth, (c) => c.json(listExpenses()));
 
-  // ── GET /api/expenses ─────────────────────────────────────────────────────
-  app.get('/', { preHandler: [requireAuth] }, async () => {
-    return listExpenses();
-  });
-}
+export default expensesRoutes;

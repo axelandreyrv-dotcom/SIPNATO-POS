@@ -69,15 +69,17 @@ function summarize(items: ResolvedSaleItem[]): string {
 
 // Pago en dólares: el tipo de cambio lo decide el servidor en el momento de la venta,
 // nunca el cliente. Los USD recibidos deben cubrir el total; el vuelto sale en colones.
-function resolveUsdPayment(amount: number, usdReceivedCents: number) {
-  const { rate } = getExchangeRateInfo();
+function resolveUsdPayment(amount: number, usdReceivedCents: number, rate: number | null) {
   if (rate === null) throw new TipoCambioNoDisponible();
   const received = usdCentsToColones(usdReceivedCents, rate);
   if (received < amount) throw new MontoUsdInsuficiente(amount, rate);
   return { receivedCents: usdReceivedCents, rate, changeColones: received - amount };
 }
 
-export function createSale(input: CreateSaleInput, meta: Meta): CreateSaleResult {
+export async function createSale(input: CreateSaleInput, meta: Meta): Promise<CreateSaleResult> {
+  // El tipo de cambio se pide antes de leer la caja: desde aquí hasta crear la venta no hay
+  // `await`, así que otra petición no puede cerrar la caja en medio.
+  const rate = input.paymentMethod === 'dolares' ? (await getExchangeRateInfo()).rate : null;
   const register = findOpenRegister();
   if (!register) throw new CajaNoAbierta();
 
@@ -87,7 +89,9 @@ export function createSale(input: CreateSaleInput, meta: Meta): CreateSaleResult
     ? input.description?.trim() || summarize(items)
     : (input.description ?? null);
   const usd =
-    input.paymentMethod === 'dolares' ? resolveUsdPayment(amount, input.usdReceivedCents!) : null;
+    input.paymentMethod === 'dolares'
+      ? resolveUsdPayment(amount, input.usdReceivedCents!, rate)
+      : null;
 
   return createSaleRow(
     { description, amount, paymentMethod: input.paymentMethod, items, usd },

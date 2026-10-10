@@ -9,7 +9,7 @@ import {
 import { createSession, revokeSession, revokeUserSessions } from '../../lib/session.js';
 import { AppError, CredencialesInvalidas, UsuarioBloqueado } from '../../lib/errors.js';
 import { currentTenant } from '../../db/client.js';
-import { getSetupCodeHash, setSetupCodeHash } from '../../db/control.js';
+import { platformClient } from '../../lib/platform-client.js';
 import { findDueno, insertUserRow, updateUserRow } from '../users/repository.js';
 import { verifyCredentials } from '../users/service.js';
 import { insertAuditLog, isAdminSetup } from './repository.js';
@@ -38,8 +38,9 @@ export async function setupAdmin(
   }
 
   // Sin código vigente (nunca emitido o ya usado) el setup queda cerrado: falla cerrado.
-  const { slug } = currentTenant();
-  const codeHash = getSetupCodeHash(slug);
+  const { slug, env } = currentTenant();
+  const platform = platformClient(env);
+  const codeHash = await platform.setupCodeHash(slug);
   if (!codeHash || !(await verifySetupCode(input.setupCode, codeHash))) {
     throw new AppError('SETUP_CODE_INVALID', 'Código de activación inválido', 403);
   }
@@ -48,10 +49,10 @@ export async function setupAdmin(
   const secretHash = await hashPassword(input.password);
   const recoveryCodeHash = await hashRecoveryCode(recoveryCode);
 
-  // Sin `await` desde aquí hasta consumir el código: dos activaciones simultáneas no pueden
-  // pasar ambas (better-sqlite3 es síncrono). La segunda recibe 409 en vez de chocar con el
-  // índice único del dueño.
-  if (isAdminSetup() || getSetupCodeHash(slug) !== codeHash) {
+  // Sin `await` entre esta verificación y la inserción: dos activaciones simultáneas no pueden
+  // pasar ambas (el DO atiende el código síncrono de una en una). La segunda recibe 409 en vez
+  // de chocar con el índice único del dueño.
+  if (isAdminSetup()) {
     throw new AppError('SETUP_ALREADY_DONE', 'El sistema ya fue configurado', 409);
   }
   const dueno = insertUserRow(
@@ -64,7 +65,8 @@ export async function setupAdmin(
     },
     meta,
   );
-  setSetupCodeHash(slug, null);
+  // Si consumir el código fallara, el setup ya quedó cerrado igual: existe el dueño.
+  await platform.consumeSetupCode(slug);
 
   const { token } = await createSession(dueno.id, meta.ip, meta.userAgent);
   insertAuditLog({ action: 'ADMIN_SETUP', userId: dueno.id, ...auditMeta(meta) });

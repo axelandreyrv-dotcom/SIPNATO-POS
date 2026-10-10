@@ -1,4 +1,5 @@
 import type { Env } from './env.js';
+import { TENANT_HEADER } from './lib/constants.js';
 
 export { TenantDO } from './do/tenant-do.js';
 export { PlatformDO } from './do/platform-do.js';
@@ -13,7 +14,7 @@ export default {
       return env.PLATFORM.get(env.PLATFORM.idFromName(PLATFORM_LABEL)).fetch(request);
     }
     const headers = new Headers(request.headers);
-    headers.set('X-Dosuxsoft-Tenant', label);
+    headers.set(TENANT_HEADER, label);
     return env.TENANT.get(env.TENANT.idFromName(label)).fetch(new Request(request, { headers }));
   },
   async scheduled(): Promise<void> {},

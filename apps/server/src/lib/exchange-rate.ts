@@ -1,7 +1,8 @@
 import type { ExchangeRateInfo } from '@sipnato/shared';
-import { latestExchangeRate } from '../db/control.js';
+import { currentEnv } from '../db/client.js';
 import { getSetting } from '../modules/settings/repository.js';
 import { todayCR } from './cr-time.js';
+import { platformClient } from './platform-client.js';
 
 // Un dato del BCCR más viejo que esto (p. ej. el token venció hace días) ya no se usa:
 // cobrar con un tipo de cambio desactualizado es peor que pedir el de respaldo.
@@ -23,8 +24,8 @@ export function parseManualRate(raw: string | null): number | null {
 // Tipo para RECIBIR dólares (el negocio compra USD al cliente): compra del BCCR.
 // Si no hay dato reciente del BCCR, el de respaldo que configuró el negocio. Debe
 // llamarse dentro del contexto de un negocio (lee su configuración).
-export function getExchangeRateInfo(): ExchangeRateInfo {
-  const bccr = latestExchangeRate();
+export async function getExchangeRateInfo(): Promise<ExchangeRateInfo> {
+  const bccr = await platformClient(currentEnv()).latestExchangeRate();
   const bccrFresh = bccr !== null && ageInDays(bccr.date) <= MAX_BCCR_AGE_DAYS;
   const manual = parseManualRate(getSetting('usd_manual_rate'));
 

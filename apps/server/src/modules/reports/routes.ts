@@ -1,55 +1,44 @@
-import type { FastifyInstance } from 'fastify';
+import { Hono } from 'hono';
 import {
   reportExportFilterSchema,
   reportSalesFilterSchema,
   reportSummaryFilterSchema,
 } from '@sipnato/shared';
+import type { AppEnv } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { getDaily, getSalesExport, getSalesList, getSummary } from './service.js';
 
-export default async function reportsRoutes(app: FastifyInstance) {
-  // ── GET /api/reports/sales ──────────────────────────────────────────────────
-  app.get('/sales', { preHandler: [requireAuth] }, (request, reply) => {
-    const parsed = reportSalesFilterSchema.safeParse(request.query);
-    if (!parsed.success) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'Parámetros inválidos' } });
-    }
-    return getSalesList(parsed.data);
-  });
+const invalidParams = { error: { code: 'VALIDATION_ERROR', message: 'Parámetros inválidos' } };
 
-  // ── GET /api/reports/sales/export ───────────────────────────────────────────
-  // Returns up to 5 000 rows for CSV download — no pagination.
-  app.get('/sales/export', { preHandler: [requireAuth] }, (request, reply) => {
-    const parsed = reportExportFilterSchema.safeParse(request.query);
-    if (!parsed.success) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'Parámetros inválidos' } });
-    }
-    return getSalesExport(parsed.data);
-  });
+const reportsRoutes = new Hono<AppEnv>();
 
-  // ── GET /api/reports/summary ────────────────────────────────────────────────
-  app.get('/summary', { preHandler: [requireAuth] }, (request, reply) => {
-    const parsed = reportSummaryFilterSchema.safeParse(request.query);
-    if (!parsed.success) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'Parámetros inválidos' } });
-    }
-    return getSummary(parsed.data);
-  });
+// ── GET /api/reports/sales ──────────────────────────────────────────────────
+reportsRoutes.get('/sales', requireAuth, (c) => {
+  const parsed = reportSalesFilterSchema.safeParse(c.req.query());
+  if (!parsed.success) return c.json(invalidParams, 400);
+  return c.json(getSalesList(parsed.data));
+});
 
-  // ── GET /api/reports/daily ──────────────────────────────────────────────────
-  app.get('/daily', { preHandler: [requireAuth] }, (request, reply) => {
-    const parsed = reportSummaryFilterSchema.safeParse(request.query);
-    if (!parsed.success) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'Parámetros inválidos' } });
-    }
-    return getDaily(parsed.data);
-  });
-}
+// ── GET /api/reports/sales/export ───────────────────────────────────────────
+// Hasta 5 000 filas para descargar en CSV, sin paginación.
+reportsRoutes.get('/sales/export', requireAuth, (c) => {
+  const parsed = reportExportFilterSchema.safeParse(c.req.query());
+  if (!parsed.success) return c.json(invalidParams, 400);
+  return c.json(getSalesExport(parsed.data));
+});
+
+// ── GET /api/reports/summary ────────────────────────────────────────────────
+reportsRoutes.get('/summary', requireAuth, (c) => {
+  const parsed = reportSummaryFilterSchema.safeParse(c.req.query());
+  if (!parsed.success) return c.json(invalidParams, 400);
+  return c.json(getSummary(parsed.data));
+});
+
+// ── GET /api/reports/daily ──────────────────────────────────────────────────
+reportsRoutes.get('/daily', requireAuth, (c) => {
+  const parsed = reportSummaryFilterSchema.safeParse(c.req.query());
+  if (!parsed.success) return c.json(invalidParams, 400);
+  return c.json(getDaily(parsed.data));
+});
+
+export default reportsRoutes;

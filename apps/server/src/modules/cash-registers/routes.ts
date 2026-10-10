@@ -1,6 +1,6 @@
-import type { FastifyInstance } from 'fastify';
+import { Hono } from 'hono';
 import { openCashRegisterSchema } from '@sipnato/shared';
-import { AppError } from '../../lib/errors.js';
+import { readJson, requestMeta, type AppEnv } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
 import {
   closeCashRegister,
@@ -10,77 +10,42 @@ import {
   openCashRegister,
 } from './service.js';
 
-export default async function cashRegisterRoutes(app: FastifyInstance) {
-  // ── POST /api/cash-registers/open ────────────────────────────────────────
-  app.post('/open', { preHandler: [requireAuth] }, async (request, reply) => {
-    const body = openCashRegisterSchema.safeParse(request.body);
-    if (!body.success) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
-    }
+const cashRegisterRoutes = new Hono<AppEnv>();
 
-    try {
-      const result = openCashRegister(body.data.openingAmount, {
-        ip: request.ip ?? null,
-        userAgent: request.headers['user-agent'] ?? null,
-      });
-      return reply.status(201).send(result);
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
-  });
+// ── POST /api/cash-registers/open ────────────────────────────────────────
+cashRegisterRoutes.post('/open', requireAuth, async (c) => {
+  const body = openCashRegisterSchema.safeParse(await readJson(c));
+  if (!body.success) {
+    return c.json({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } }, 400);
+  }
+  return c.json(openCashRegister(body.data.openingAmount, requestMeta(c)), 201);
+});
 
-  // ── POST /api/cash-registers/close ───────────────────────────────────────
-  app.post('/close', { preHandler: [requireAuth] }, async (request, reply) => {
-    try {
-      const totals = closeCashRegister('manual', undefined, {
-        ip: request.ip ?? null,
-        userAgent: request.headers['user-agent'] ?? null,
-      });
-      return reply.send(totals);
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
-  });
+// ── POST /api/cash-registers/close ───────────────────────────────────────
+cashRegisterRoutes.post('/close', requireAuth, (c) =>
+  c.json(closeCashRegister('manual', undefined, requestMeta(c))),
+);
 
-  // ── GET /api/cash-registers/current ──────────────────────────────────────
-  app.get('/current', { preHandler: [requireAuth] }, async () => {
-    return getCurrentCashRegister();
-  });
+// ── GET /api/cash-registers/current ──────────────────────────────────────
+cashRegisterRoutes.get('/current', requireAuth, (c) => c.json(getCurrentCashRegister()));
 
-  // ── GET /api/cash-registers ───────────────────────────────────────────────
-  app.get('/', { preHandler: [requireAuth] }, async (request) => {
-    const query = request.query as Record<string, string>;
-    const page = Math.max(1, parseInt(query['page'] ?? '1', 10) || 1);
-    return listCashRegisters(page);
-  });
+// ── GET /api/cash-registers ───────────────────────────────────────────────
+cashRegisterRoutes.get('/', requireAuth, (c) => {
+  const page = Math.max(1, parseInt(c.req.query('page') ?? '1', 10) || 1);
+  return c.json(listCashRegisters(page));
+});
 
-  // ── GET /api/cash-registers/:id ───────────────────────────────────────────
-  app.get('/:id', { preHandler: [requireAuth] }, async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const parsed = parseInt(id, 10);
-    if (isNaN(parsed)) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
-    }
-    const register = getCashRegisterById(parsed);
-    if (!register) {
-      return reply
-        .status(404)
-        .send({ error: { code: 'NOT_FOUND', message: 'Caja no encontrada' } });
-    }
-    return register;
-  });
-}
+// ── GET /api/cash-registers/:id ───────────────────────────────────────────
+cashRegisterRoutes.get('/:id', requireAuth, (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) {
+    return c.json({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } }, 400);
+  }
+  const register = getCashRegisterById(id);
+  if (!register) {
+    return c.json({ error: { code: 'NOT_FOUND', message: 'Caja no encontrada' } }, 404);
+  }
+  return c.json(register);
+});
+
+export default cashRegisterRoutes;

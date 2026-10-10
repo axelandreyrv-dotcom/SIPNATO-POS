@@ -1,95 +1,39 @@
-import type { FastifyInstance } from 'fastify';
+import { Hono } from 'hono';
 import { createNoteSchema, updateNoteSchema } from '@sipnato/shared';
-import { AppError } from '../../lib/errors.js';
+import { readJson, requestMeta, type AppEnv } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { createNote, deleteNote, listNotes, updateNote } from './service.js';
 
-export default async function notesRoutes(app: FastifyInstance) {
-  // ── GET /api/notes ────────────────────────────────────────────────────────
-  app.get('/', { preHandler: [requireAuth] }, async () => {
-    return listNotes();
-  });
+const invalidData = { error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } };
+const invalidId = { error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } };
 
-  // ── POST /api/notes ───────────────────────────────────────────────────────
-  app.post('/', { preHandler: [requireAuth] }, async (request, reply) => {
-    const body = createNoteSchema.safeParse(request.body);
-    if (!body.success) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
-    }
+const notesRoutes = new Hono<AppEnv>();
 
-    try {
-      const note = createNote(body.data, {
-        ip: request.ip ?? null,
-        userAgent: request.headers['user-agent'] ?? null,
-      });
-      return reply.status(201).send(note);
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
-  });
+// ── GET /api/notes ────────────────────────────────────────────────────────
+notesRoutes.get('/', requireAuth, (c) => c.json(listNotes()));
 
-  // ── PUT /api/notes/:id ────────────────────────────────────────────────────
-  app.put('/:id', { preHandler: [requireAuth] }, async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const parsed = parseInt(id, 10);
-    if (isNaN(parsed)) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
-    }
+// ── POST /api/notes ───────────────────────────────────────────────────────
+notesRoutes.post('/', requireAuth, async (c) => {
+  const body = createNoteSchema.safeParse(await readJson(c));
+  if (!body.success) return c.json(invalidData, 400);
+  return c.json(createNote(body.data, requestMeta(c)), 201);
+});
 
-    const body = updateNoteSchema.safeParse(request.body);
-    if (!body.success) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
-    }
+// ── PUT /api/notes/:id ────────────────────────────────────────────────────
+notesRoutes.put('/:id', requireAuth, async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json(invalidId, 400);
+  const body = updateNoteSchema.safeParse(await readJson(c));
+  if (!body.success) return c.json(invalidData, 400);
+  return c.json(updateNote(id, body.data, requestMeta(c)));
+});
 
-    try {
-      return updateNote(parsed, body.data, {
-        ip: request.ip ?? null,
-        userAgent: request.headers['user-agent'] ?? null,
-      });
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
-  });
+// ── DELETE /api/notes/:id ─────────────────────────────────────────────────
+notesRoutes.delete('/:id', requireAuth, (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json(invalidId, 400);
+  deleteNote(id, requestMeta(c));
+  return c.json({ ok: true });
+});
 
-  // ── DELETE /api/notes/:id ─────────────────────────────────────────────────
-  app.delete('/:id', { preHandler: [requireAuth] }, async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const parsed = parseInt(id, 10);
-    if (isNaN(parsed)) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
-    }
-
-    try {
-      deleteNote(parsed, {
-        ip: request.ip ?? null,
-        userAgent: request.headers['user-agent'] ?? null,
-      });
-      return reply.send({ ok: true });
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
-  });
-}
+export default notesRoutes;

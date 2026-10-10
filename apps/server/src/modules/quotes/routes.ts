@@ -1,120 +1,49 @@
-import type { FastifyInstance } from 'fastify';
+import { Hono } from 'hono';
 import { createQuoteSchema, updateQuoteSchema } from '@sipnato/shared';
-import { AppError } from '../../lib/errors.js';
+import { readJson, requestMeta, type AppEnv } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { createQuote, deleteQuote, getQuote, listQuotes, updateQuote } from './service.js';
 
-export default async function quotesRoutes(app: FastifyInstance) {
-  // ── POST /api/quotes ──────────────────────────────────────────────────────
-  app.post('/', { preHandler: [requireAuth] }, async (request, reply) => {
-    const body = createQuoteSchema.safeParse(request.body);
-    if (!body.success) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
-    }
+const invalidData = { error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } };
+const invalidId = { error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } };
 
-    try {
-      const quote = createQuote(body.data, {
-        ip: request.ip ?? null,
-        userAgent: request.headers['user-agent'] ?? null,
-      });
-      return reply.status(201).send(quote);
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
-  });
+const quotesRoutes = new Hono<AppEnv>();
 
-  // ── GET /api/quotes ───────────────────────────────────────────────────────
-  app.get('/', { preHandler: [requireAuth] }, async (request) => {
-    const query = request.query as Record<string, string>;
-    const page = Math.max(1, parseInt(query['page'] ?? '1', 10) || 1);
-    return listQuotes(page);
-  });
+// ── POST /api/quotes ──────────────────────────────────────────────────────
+quotesRoutes.post('/', requireAuth, async (c) => {
+  const body = createQuoteSchema.safeParse(await readJson(c));
+  if (!body.success) return c.json(invalidData, 400);
+  return c.json(createQuote(body.data, requestMeta(c)), 201);
+});
 
-  // ── GET /api/quotes/:id ───────────────────────────────────────────────────
-  app.get('/:id', { preHandler: [requireAuth] }, async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const parsed = parseInt(id, 10);
-    if (isNaN(parsed)) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
-    }
+// ── GET /api/quotes ───────────────────────────────────────────────────────
+quotesRoutes.get('/', requireAuth, (c) => {
+  const page = Math.max(1, parseInt(c.req.query('page') ?? '1', 10) || 1);
+  return c.json(listQuotes(page));
+});
 
-    try {
-      return getQuote(parsed);
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
-  });
+// ── GET /api/quotes/:id ───────────────────────────────────────────────────
+quotesRoutes.get('/:id', requireAuth, (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json(invalidId, 400);
+  return c.json(getQuote(id));
+});
 
-  // ── PUT /api/quotes/:id ───────────────────────────────────────────────────
-  app.put('/:id', { preHandler: [requireAuth] }, async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const parsed = parseInt(id, 10);
-    if (isNaN(parsed)) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
-    }
+// ── PUT /api/quotes/:id ───────────────────────────────────────────────────
+quotesRoutes.put('/:id', requireAuth, async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json(invalidId, 400);
+  const body = updateQuoteSchema.safeParse(await readJson(c));
+  if (!body.success) return c.json(invalidData, 400);
+  return c.json(updateQuote(id, body.data, requestMeta(c)));
+});
 
-    const body = updateQuoteSchema.safeParse(request.body);
-    if (!body.success) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
-    }
+// ── DELETE /api/quotes/:id ────────────────────────────────────────────────
+quotesRoutes.delete('/:id', requireAuth, (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json(invalidId, 400);
+  deleteQuote(id, requestMeta(c));
+  return c.json({ ok: true });
+});
 
-    try {
-      const quote = updateQuote(parsed, body.data, {
-        ip: request.ip ?? null,
-        userAgent: request.headers['user-agent'] ?? null,
-      });
-      return reply.send(quote);
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
-  });
-
-  // ── DELETE /api/quotes/:id ────────────────────────────────────────────────
-  app.delete('/:id', { preHandler: [requireAuth] }, async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const parsed = parseInt(id, 10);
-    if (isNaN(parsed)) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
-    }
-
-    try {
-      deleteQuote(parsed, {
-        ip: request.ip ?? null,
-        userAgent: request.headers['user-agent'] ?? null,
-      });
-      return reply.send({ ok: true });
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
-  });
-}
+export default quotesRoutes;
