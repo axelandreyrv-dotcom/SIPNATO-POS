@@ -10,3 +10,7 @@ declare module 'argon2id/lib/setup.js' {
   const setup: (simd: unknown, noSimd: unknown) => Promise<unknown>;
   export default setup;
 }
+declare module '*?raw' {
+  const content: string;
+  export default content;
+}

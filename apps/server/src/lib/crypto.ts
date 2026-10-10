@@ -1,42 +1,40 @@
-import argon2 from 'argon2';
-import { createHash, randomBytes } from 'crypto';
+import { argonHash, argonVerify } from './argon.js';
 
-const ARGON2_OPTIONS = {
-  type: argon2.argon2id,
-  memoryCost: 65536,
-  timeCost: 3,
-  parallelism: 4,
-} as const;
+const toHex = (bytes: Uint8Array) =>
+  Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+
+const randomHex = (byteCount: number) => toHex(crypto.getRandomValues(new Uint8Array(byteCount)));
 
 // ─── Passwords ────────────────────────────────────────────────────────────────
 
 export function hashPassword(password: string): Promise<string> {
-  return argon2.hash(password, ARGON2_OPTIONS);
+  return argonHash(password);
 }
 
 export function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return argon2.verify(hash, password);
+  return argonVerify(password, hash);
 }
 
 // Hash argon2id válido que nunca coincide: se verifica contra él cuando el usuario no existe,
-// para que la respuesta tarde lo mismo y no revele qué usuarios existen.
+// para que la respuesta tarde lo mismo y no revele qué usuarios existen. Debe llevar los
+// parámetros vigentes (ARGON_PARAMS) o el tiempo delataría la diferencia.
 export const DUMMY_HASH =
-  '$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+  '$argon2id$v=19$m=19456,t=2,p=1$gO2LpUKKzWOKwUGqXPYL6Q$O3kGdu0NjthnnEW/Yc2kFmA27aIkBpCnIOII2b/Te4Q';
 
 // ─── Recovery codes ───────────────────────────────────────────────────────────
 // High-entropy random string, shown once. Hashed with argon2id at rest
 // because the user types it in (brute-force protection needed).
 
 export function generateRecoveryCode(): string {
-  return randomBytes(16).toString('hex'); // 32 hex chars
+  return randomHex(16); // 32 hex chars
 }
 
 export function hashRecoveryCode(code: string): Promise<string> {
-  return argon2.hash(code, ARGON2_OPTIONS);
+  return argonHash(code);
 }
 
 export function verifyRecoveryCode(code: string, hash: string): Promise<boolean> {
-  return argon2.verify(hash, code);
+  return argonVerify(code, hash);
 }
 
 // ─── Setup codes ──────────────────────────────────────────────────────────────
@@ -44,7 +42,7 @@ export function verifyRecoveryCode(code: string, hash: string): Promise<boolean>
 // o copiarlo sin errores. Se hashea con argon2id porque el usuario lo escribe.
 
 export function generateSetupCode(): string {
-  return randomBytes(8).toString('hex').toUpperCase().match(/.{4}/g)!.join('-');
+  return randomHex(8).toUpperCase().match(/.{4}/g)!.join('-');
 }
 
 export function normalizeSetupCode(code: string): string {
@@ -52,11 +50,11 @@ export function normalizeSetupCode(code: string): string {
 }
 
 export function hashSetupCode(code: string): Promise<string> {
-  return argon2.hash(normalizeSetupCode(code), ARGON2_OPTIONS);
+  return argonHash(normalizeSetupCode(code));
 }
 
 export function verifySetupCode(code: string, hash: string): Promise<boolean> {
-  return argon2.verify(hash, normalizeSetupCode(code));
+  return argonVerify(normalizeSetupCode(code), hash);
 }
 
 // ─── Session tokens ───────────────────────────────────────────────────────────
@@ -66,9 +64,10 @@ export function verifySetupCode(code: string, hash: string): Promise<boolean> {
 // for per-request verification.
 
 export function generateSessionToken(): string {
-  return randomBytes(32).toString('hex'); // 64 hex chars
+  return randomHex(32); // 64 hex chars
 }
 
-export function hashSessionToken(token: string): string {
-  return createHash('sha256').update(token).digest('hex');
+export async function hashSessionToken(token: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  return toHex(new Uint8Array(digest));
 }

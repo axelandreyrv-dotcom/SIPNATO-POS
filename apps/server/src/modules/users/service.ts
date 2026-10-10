@@ -7,6 +7,7 @@ import {
   type UserRecord,
 } from '@sipnato/shared';
 import type { Actor } from '../../db/client.js';
+import { needsRehash } from '../../lib/argon.js';
 import { DUMMY_HASH, hashPassword, verifyPassword } from '../../lib/crypto.js';
 import {
   AppError,
@@ -25,6 +26,7 @@ import {
   insertUserRow,
   listUserRows,
   recordFailedAttempt,
+  replaceSecretHash,
   resetFailedAttempts,
   updateUserRow,
   type UserRow,
@@ -83,6 +85,10 @@ export async function verifyCredentials(username: string, secret: string): Promi
   }
 
   if (user.failedAttempts > 0 || user.lockedUntil) resetFailedAttempts(user.id);
+  // Los hashes de la versión Node (m=65536,t=3,p=4) se pasan a los parámetros vigentes aquí,
+  // el único momento en que se conoce el secreto en claro.
+  if (needsRehash(user.secretHash))
+    replaceSecretHash(user.id, user.secretHash, await hashPassword(secret));
   return user;
 }
 

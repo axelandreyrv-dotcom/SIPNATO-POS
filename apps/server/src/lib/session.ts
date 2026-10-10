@@ -15,7 +15,7 @@ export async function createSession(
   userAgent: string | null,
 ): Promise<{ token: string; session: Session }> {
   const token = generateSessionToken();
-  const tokenHash = hashSessionToken(token);
+  const tokenHash = await hashSessionToken(token);
   const now = new Date();
   const expiresAt = new Date(now.getTime() + SESSION_DURATION_MS).toISOString();
 
@@ -41,7 +41,7 @@ export async function createSession(
 export async function verifySession(
   token: string,
 ): Promise<{ session: Session; user: Actor } | null> {
-  const tokenHash = hashSessionToken(token);
+  const tokenHash = await hashSessionToken(token);
 
   const [row] = await db
     .select({ session: sessions, user: users })
@@ -77,7 +77,7 @@ export async function touchSession(sessionId: string): Promise<void> {
 }
 
 export async function revokeSession(token: string): Promise<void> {
-  const tokenHash = hashSessionToken(token);
+  const tokenHash = await hashSessionToken(token);
   await db.delete(sessions).where(eq(sessions.tokenHash, tokenHash));
 }
 
