@@ -12,9 +12,9 @@ export default defineConfig({
       wrangler: { configPath: './wrangler.jsonc' },
       miniflare: {
         bindings: { ENVIRONMENT: 'test' },
-        // dist del frontend es salida de build (no versionada): los tests usan un fixture mínimo.
+        // el dist del frontend es salida de build (no versionada): los tests usan un fixture mínimo.
         assets: {
-          directory: fileURLToPath(new URL('./src/tests/fixtures/dist', import.meta.url)),
+          directory: fileURLToPath(new URL('./src/tests/fixtures/assets', import.meta.url)),
           binding: 'ASSETS',
         },
       },

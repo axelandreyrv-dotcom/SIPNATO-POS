@@ -12,3 +12,14 @@ export interface Env {
   BCCR_API_TOKEN?: string;
   OPS_TOKEN?: string;
 }
+
+type WorkerEnv = Env; // alias: dentro del namespace `Env` apunta a Cloudflare.Env
+
+// Tipa `env` de `cloudflare:workers` y `cloudflare:test` con los bindings del Worker.
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Cloudflare {
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    interface Env extends WorkerEnv {}
+  }
+}
