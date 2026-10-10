@@ -11,7 +11,8 @@ export default defineConfig({
     cloudflareTest({
       wrangler: { configPath: './wrangler.jsonc' },
       miniflare: {
-        bindings: { ENVIRONMENT: 'test' },
+        // Token falso: los tests simulan el API del BCCR, nunca lo llaman de verdad.
+        bindings: { ENVIRONMENT: 'test', BCCR_API_TOKEN: 'token-de-prueba' },
         // el dist del frontend es salida de build (no versionada): los tests usan un fixture mínimo.
         assets: {
           directory: fileURLToPath(new URL('./src/tests/fixtures/assets', import.meta.url)),

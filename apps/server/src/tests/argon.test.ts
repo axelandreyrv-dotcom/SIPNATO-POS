@@ -8,6 +8,7 @@ import { DUMMY_HASH } from '../lib/crypto.js';
 import { CredencialesInvalidas } from '../lib/errors.js';
 import { verifyCredentials } from '../modules/users/service.js';
 import nodeArgon2 from './fixtures/node-argon2.txt?raw';
+import { GENERIC_ASSIGNMENT } from './helpers.js';
 
 // Hash generado por la librería `argon2` de Node (la del servidor anterior) para esta clave.
 const NODE_HASH = nodeArgon2.trim();
@@ -15,14 +16,19 @@ const NODE_SECRET = 'clave-compat-123';
 const NEW_PREFIX = '$argon2id$v=19$m=19456,t=2,p=1$';
 
 let counter = 0;
-const newTenant = () => env.TENANT.get(env.TENANT.idFromName(`argon-${++counter}`));
+const newTenant = async () => {
+  const slug = `argon-${++counter}`;
+  const stub = env.TENANT.get(env.TENANT.idFromName(slug));
+  await stub.initialize(slug, GENERIC_ASSIGNMENT);
+  return stub;
+};
 
 const readHash = (db: TenantDb) => () =>
   db.select({ h: users.secretHash }).from(users).where(eq(users.username, 'ana')).get()!.h;
 
 // Ejecuta `fn` dentro de un negocio con un usuario `ana` cuyo secreto está hasheado con `hash`.
-function withUser<T>(hash: string, fn: (read: () => string) => Promise<T>) {
-  return runInDurableObject(newTenant(), (instance) => {
+async function withUser<T>(hash: string, fn: (read: () => string) => Promise<T>) {
+  return runInDurableObject(await newTenant(), (instance) => {
     instance.db
       .insert(users)
       .values({ username: 'ana', displayName: 'Ana', role: 'admin', secretHash: hash })

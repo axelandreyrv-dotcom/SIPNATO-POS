@@ -272,7 +272,7 @@ describe('usuarios, roles y permisos', () => {
     expect((await call(SLUG, 'GET', '/auth/me', { token })).status).toBe(401);
   });
 
-  it('el setup queda para la Tarea 5 (código de activación en la plataforma)', async () => {
+  it('sin un código emitido por la plataforma el setup queda cerrado', async () => {
     const res = await call('usuarios-sin-dueno', 'GET', '/auth/status');
     expect(res.status, 'un negocio sin inicializar no existe').toBe(404);
 
@@ -289,9 +289,12 @@ describe('usuarios, roles y permisos', () => {
         confirmPassword: OWNER_PWD,
       },
     });
-    expect(setup.status).toBe(501);
+    expect(setup.status).toBe(403);
     expect(((await setup.json()) as { error: { code: string } }).error.code).toBe(
-      'NO_IMPLEMENTADO',
+      'SETUP_CODE_INVALID',
     );
+    expect(await (await call('usuarios-sin-dueno', 'GET', '/auth/status')).json()).toEqual({
+      setup: false,
+    });
   });
 });

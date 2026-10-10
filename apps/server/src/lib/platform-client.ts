@@ -1,6 +1,7 @@
 import type { SubscriptionInfo } from '@sipnato/shared';
+import type { PlatformDO } from '../do/platform-do.js';
 import type { Env } from '../env.js';
-import { AppError } from './errors.js';
+import { NegocioNoEncontrado } from './errors.js';
 
 export interface ExchangeRateRecord {
   date: string; // YYYY-MM-DD
@@ -11,27 +12,28 @@ export interface ExchangeRateRecord {
 // Lo que un negocio le pide a la plataforma (antes, lecturas directas a control.db).
 export interface PlatformClient {
   latestExchangeRate(): Promise<ExchangeRateRecord | null>;
-  setupCodeHash(slug: string): Promise<string | null>;
-  consumeSetupCode(slug: string): Promise<void>;
+  // Verifica y gasta el código de activación. false = equivocado, ya usado o nunca emitido.
+  consumeSetupCode(slug: string, code: string): Promise<boolean>;
   subscriptionInfo(slug: string): Promise<SubscriptionInfo>;
 }
 
-const notImplemented = () =>
-  new AppError('NO_IMPLEMENTADO', 'Esta función aún no está disponible', 501);
+// Un solo Durable Object para toda la plataforma.
+export function platform(env: Env): DurableObjectStub<PlatformDO> {
+  return env.PLATFORM.get(env.PLATFORM.idFromName('platform'));
+}
 
-// Provisional: sin tipo de cambio del BCCR (rige el de respaldo del negocio) y sin activación
-// ni suscripción hasta que exista la comunicación con el Durable Object de la plataforma.
-export function platformClient(_env: Env): PlatformClient {
+export function platformClient(env: Env): PlatformClient {
+  const stub = platform(env);
   return {
-    latestExchangeRate: async () => null,
-    setupCodeHash: async () => {
-      throw notImplemented();
+    latestExchangeRate: async () => {
+      const row = await stub.latestExchangeRate();
+      return row && { date: row.date, buy: row.buy, sell: row.sell };
     },
-    consumeSetupCode: async () => {
-      throw notImplemented();
-    },
-    subscriptionInfo: async () => {
-      throw notImplemented();
+    consumeSetupCode: (slug, code) => stub.consumeSetupCode(slug, code),
+    subscriptionInfo: async (slug) => {
+      const info = await stub.subscriptionInfo(slug);
+      if (!info) throw new NegocioNoEncontrado();
+      return info;
     },
   };
 }

@@ -1,6 +1,5 @@
-import { runInDurableObject } from 'cloudflare:test';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { businessProfile } from '../db/schema.js';
+import { auditLog, businessProfile } from '../db/schema.js';
 import { db } from '../db/client.js';
 import {
   call,
@@ -168,20 +167,48 @@ describe('Durable Object del negocio', () => {
     expect(ok.status).toBe(200);
   });
 
-  it('initialize es idempotente y no acepta otro slug', async () => {
-    await createTestTenant('http-c');
-    await tenantStub('http-c').initialize('http-c', {
-      template: 'tienda',
-      modules: ['apartados'],
-    });
-    const profile = await inTenant('http-c', () => db.select().from(businessProfile).get());
-    expect(profile?.template).toBe('tienda');
-    // Llamada directa a la instancia: un error lanzado por RPC el pool de tests lo reporta
-    // además como excepción no capturada.
-    await runInDurableObject(tenantStub('http-c'), (instance) => {
-      expect(() => instance.initialize('otro', { template: 'tienda', modules: [] })).toThrow(
-        /ya pertenece al negocio "http-c"/,
-      );
-    });
+  it('initialize por RPC es idempotente: repetir la misma asignación no cambia nada', async () => {
+    const assignment = { template: 'tienda' as const, modules: ['apartados' as const] };
+    await tenantStub('http-c').initialize('http-c', assignment);
+    const snapshot = () =>
+      inTenant('http-c', () => ({
+        profile: db.select().from(businessProfile).get(),
+        audit: db.select().from(auditLog).all(),
+      }));
+    const before = await snapshot();
+    expect(before.profile?.template).toBe('tienda');
+
+    await tenantStub('http-c').initialize('http-c', assignment);
+    expect(await snapshot()).toEqual(before);
+  });
+
+  it('initialize por RPC rechaza otro slug y el DO sigue siendo del primero', async () => {
+    await createTestTenant('http-d');
+    let error: unknown = null;
+    try {
+      await tenantStub('http-d').initialize('otro', { template: 'tienda', modules: [] });
+    } catch (e) {
+      error = e;
+    }
+    expect(String(error)).toMatch(/ya pertenece al negocio "http-d"/);
+    expect((await call('http-d', 'GET', '/auth/status')).status).toBe(200);
+  });
+
+  it('resetOwner da una contraseña temporal, desbloquea al dueño y cierra sus sesiones', async () => {
+    await createTestTenant('http-e', { owner: { username: 'dueno', password: PWD } });
+    const old = await loginToken('http-e', 'dueno', PWD);
+
+    const reset = await tenantStub('http-e').resetOwner();
+    expect(reset.username).toBe('dueno');
+    expect(reset.tempPassword).toHaveLength(12);
+    expect(reset.recoveryCode).toMatch(/^[0-9a-f]{32}$/);
+
+    expect((await call('http-e', 'GET', '/auth/me', { token: old })).status).toBe(401);
+    expect((await login('http-e', 'dueno', PWD)).status).toBe(401);
+    expect((await login('http-e', 'dueno', reset.tempPassword)).status).toBe(200);
+    const audit = await inTenant('http-e', () =>
+      db.select({ action: auditLog.action }).from(auditLog).all(),
+    );
+    expect(audit.map((a) => a.action)).toContain('BREAK_GLASS_RESET');
   });
 });

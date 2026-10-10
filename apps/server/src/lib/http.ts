@@ -2,6 +2,7 @@ import type { Context, ErrorHandler, MiddlewareHandler } from 'hono';
 import { deleteCookie, setCookie } from 'hono/cookie';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { ZodType, ZodTypeDef } from 'zod';
+import type { Superadmin } from '@sipnato/shared';
 import type { Actor } from '../db/client.js';
 import type { Env } from '../env.js';
 import { AppError } from './errors.js';
@@ -14,6 +15,8 @@ export type AppEnv = {
     // Storage completo del Durable Object (el respaldo vuelca sus tablas).
     storage: DurableObjectStorage;
     user: Actor;
+    // En el panel: el superadministrador de la sesión (requirePlatformAuth).
+    superadmin: Superadmin;
     sessionId: string;
   };
 };

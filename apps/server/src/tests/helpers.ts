@@ -1,8 +1,11 @@
 import { env, runInDurableObject, SELF } from 'cloudflare:test';
 import { TEMPLATE_INFO, type AssignBusinessInput } from '@sipnato/shared';
 import { runInTenant } from '../db/client.js';
-import { COOKIE_NAME } from '../lib/constants.js';
+import { runInPlatform } from '../db/control.js';
+import { COOKIE_NAME, PLATFORM_COOKIE_NAME } from '../lib/constants.js';
 import { generateRecoveryCode, hashPassword, hashRecoveryCode } from '../lib/crypto.js';
+import { platform } from '../lib/platform-client.js';
+import { insertSuperadmin } from '../modules/platform/repository.js';
 import { insertUserRow } from '../modules/users/repository.js';
 
 export type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -107,4 +110,46 @@ export async function loginToken(slug: string, username: string, password: strin
   const res = await login(slug, username, password);
   if (res.status !== 200) throw new Error(`login ${username}: ${res.status} ${await res.text()}`);
   return sessionToken(res)!;
+}
+
+// ─── Plataforma ───────────────────────────────────────────────────────────────
+
+export const platformStub = () => platform(env);
+
+export const ADMIN_ORIGIN = 'https://admin.dosuxsoft.com';
+
+// Corre `fn` dentro del Durable Object de la plataforma, con su control.db.
+export function inPlatform<T>(fn: () => T | Promise<T>): Promise<T> {
+  return runInDurableObject(platformStub(), (_instance, state) => runInPlatform(state.storage, fn));
+}
+
+// Los superadministradores no se crean por HTTP: como lo haría la consola.
+export async function createSuperadmin(username: string, password: string): Promise<void> {
+  const hash = await hashPassword(password);
+  await inPlatform(() => insertSuperadmin(username, hash));
+}
+
+export function platformCall(
+  method: Method,
+  path: string,
+  opts: CallOptions = {},
+): Promise<Response> {
+  const headers = new Headers(opts.headers);
+  if (opts.token) headers.set('Cookie', `${PLATFORM_COOKIE_NAME}=${opts.token}`);
+  if (opts.ip) headers.set('CF-Connecting-IP', opts.ip);
+  const init: RequestInit = { method, headers };
+  if (opts.body !== undefined) {
+    headers.set('Content-Type', 'application/json');
+    init.body = JSON.stringify(opts.body);
+  }
+  return SELF.fetch(`${ADMIN_ORIGIN}${path}`, init);
+}
+
+export function platformToken(res: Response): string | null {
+  const cookie = res.headers.getSetCookie().find((c) => c.startsWith(`${PLATFORM_COOKIE_NAME}=`));
+  return cookie ? cookie.slice(PLATFORM_COOKIE_NAME.length + 1).split(';')[0]! : null;
+}
+
+export function platformLogin(username: string, password: string, ip = nextIp()) {
+  return platformCall('POST', '/platform/auth/login', { body: { username, password }, ip });
 }

@@ -6,8 +6,17 @@ import {
   whatsappLink,
 } from '@sipnato/shared';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { controlDb, saveExchangeRate } from '../db/control.js';
 import { fetchBccrRates } from '../lib/bccr.js';
-import { call, createTestTenant, loginToken, type Method } from './helpers.js';
+import { todayCR } from '../lib/cr-time.js';
+import {
+  call,
+  createTestTenant,
+  inPlatform,
+  loginToken,
+  platformStub,
+  type Method,
+} from './helpers.js';
 
 const SLUG = 'dolares';
 
@@ -76,7 +85,7 @@ describe('cliente del API SDDE del BCCR', () => {
   });
 });
 
-// Hasta la Tarea 5 la plataforma no entrega tipo de cambio del BCCR: rige el de respaldo.
+// La plataforma aún no tiene ningún tipo de cambio del BCCR guardado: rige el de respaldo.
 describe('cobro en dólares', () => {
   let token = '';
 
@@ -177,5 +186,98 @@ describe('cobro en dólares', () => {
       phone: null,
     });
     expect(bad.status).toBe(400);
+  });
+});
+
+function daysAgo(days: number): string {
+  const d = new Date(`${todayCR()}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Después de "cobro en dólares": desde aquí la plataforma ya guarda tipos del BCCR.
+describe('tipo de cambio del BCCR guardado en la plataforma', () => {
+  const SLUG_BCCR = 'dolares-bccr';
+  let token = '';
+  const api = (method: Method, url: string, body?: object) =>
+    call(SLUG_BCCR, method, url, { token, body });
+  const json = async <T = Record<string, unknown>>(res: Response | Promise<Response>) =>
+    (await (await res).json()) as T;
+
+  beforeAll(async () => {
+    await createTestTenant(SLUG_BCCR, { owner: { username: 'dueno', password: 'clave-dueno-1' } });
+    token = await loginToken(SLUG_BCCR, 'dueno', 'clave-dueno-1');
+    const settings = await json(api('GET', '/api/settings'));
+    await api('PUT', '/api/settings', { ...settings, usd_manual_rate: '505.23' });
+    expect((await api('POST', '/api/cash-registers/open', { openingAmount: 0 })).status).toBe(201);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('un dato viejo del BCCR no se usa; uno reciente manda sobre el respaldo', async () => {
+    await inPlatform(() => saveExchangeRate(daysAgo(5), 49_000, 50_000));
+    const stale = await json(api('GET', '/api/exchange-rate'));
+    expect(stale).toMatchObject({ rate: 50523, source: 'manual', bccrBuy: 49_000 });
+
+    await inPlatform(() => saveExchangeRate(daysAgo(4), 51_000, 52_000));
+    const fresh = await json(api('GET', '/api/exchange-rate'));
+    expect(fresh).toMatchObject({ rate: 51_000, source: 'bccr', date: daysAgo(4) });
+  });
+
+  it('cobro en dólares usa el tipo del BCCR guardado en PlatformDO si es de los últimos 4 días', async () => {
+    const sale = await json(
+      api('POST', '/api/sales', { amount: 8000, paymentMethod: 'dolares', usdReceivedCents: 2000 }),
+    );
+    expect([sale['exchangeRate'], sale['changeColones']]).toEqual([51_000, 10_200 - 8000]);
+  });
+
+  it('refreshExchangeRate consulta el BCCR con el token de la plataforma y guarda el día', async () => {
+    const today = todayCR();
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      expect((init?.headers as Record<string, string>)['Authorization']).toBe(
+        'Bearer token-de-prueba',
+      );
+      const code = String(input).includes('/317/') ? '317' : '318';
+      return Response.json({
+        estado: true,
+        datos: [
+          {
+            codigoIndicador: code,
+            series: [
+              { fecha: `${today}T00:00:00`, valorDatoPorPeriodo: code === '317' ? 507.5 : 513.25 },
+            ],
+          },
+        ],
+      });
+    });
+
+    await platformStub().refreshExchangeRate();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(await platformStub().latestExchangeRate()).toMatchObject({
+      date: today,
+      buy: 50_750,
+      sell: 51_325,
+    });
+
+    // Con el dato del día ya guardado no vuelve a consultar.
+    await platformStub().refreshExchangeRate();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('si el BCCR falla, la consulta no rompe y queda el último guardado', async () => {
+    await inPlatform(() =>
+      controlDb.prepare('DELETE FROM exchange_rates WHERE date = ?').run(todayCR()),
+    );
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('', { status: 503 }));
+
+    await expect(platformStub().refreshExchangeRate()).resolves.toBeUndefined();
+    expect(fetchSpy).toHaveBeenCalled();
+    expect(warn).toHaveBeenCalled();
+    expect((await platformStub().latestExchangeRate())?.date).toBe(daysAgo(4));
   });
 });

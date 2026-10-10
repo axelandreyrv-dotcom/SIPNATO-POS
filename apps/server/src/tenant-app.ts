@@ -20,6 +20,7 @@ import quotesRoutes from './modules/quotes/routes.js';
 import reportsRoutes from './modules/reports/routes.js';
 import salesRoutes from './modules/sales/routes.js';
 import settingsRoutes from './modules/settings/routes.js';
+import subscriptionRoutes from './modules/subscription/routes.js';
 import usersRoutes from './modules/users/routes.js';
 
 // API de un negocio. Corre dentro de su Durable Object, con el contexto del negocio ya fijado;
@@ -62,6 +63,7 @@ export function createTenantApp(storage: DurableObjectStorage): Hono<AppEnv> {
   app.route('/api/business', businessRoutes);
   app.route('/api/exchange-rate', exchangeRateRoutes);
   app.route('/api/notifications', notificationsRoutes);
+  app.route('/api/subscription', subscriptionRoutes);
 
   // Módulos que cada negocio activa o desactiva (perfil del negocio).
   registerModuleRoutes(app, 'ordenes', boletasRoutes, '/api/boletas');

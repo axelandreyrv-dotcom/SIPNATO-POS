@@ -1,5 +1,6 @@
 import type { Env } from './env.js';
 import { TENANT_HEADER } from './lib/constants.js';
+import { platform } from './lib/platform-client.js';
 
 export { TenantDO } from './do/tenant-do.js';
 export { PlatformDO } from './do/platform-do.js';
@@ -11,7 +12,7 @@ export default {
     const host = new URL(request.url).hostname;
     const label = host.split('.')[0] ?? '';
     if (label === PLATFORM_LABEL) {
-      return env.PLATFORM.get(env.PLATFORM.idFromName(PLATFORM_LABEL)).fetch(request);
+      return platform(env).fetch(request);
     }
     const headers = new Headers(request.headers);
     headers.set(TENANT_HEADER, label);

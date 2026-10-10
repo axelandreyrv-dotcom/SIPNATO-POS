@@ -1,10 +1,20 @@
-import { env, runInDurableObject } from 'cloudflare:test';
+import { env, evictDurableObject, runInDurableObject } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import { runMigrations } from '../db/migrator.js';
 import { MIGRATIONS } from '../db/migrations.js';
+import { GENERIC_ASSIGNMENT } from './helpers.js';
 
 let counter = 0;
-const newTenant = () => env.TENANT.get(env.TENANT.idFromName(`migraciones-${++counter}`));
+const freshStub = () => {
+  const slug = `migraciones-${++counter}`;
+  return { slug, stub: env.TENANT.get(env.TENANT.idFromName(slug)) };
+};
+// El esquema se crea al inicializar el negocio (lo hace la plataforma), no antes.
+const newTenant = async () => {
+  const { slug, stub } = freshStub();
+  await stub.initialize(slug, GENERIC_ASSIGNMENT);
+  return stub;
+};
 
 const tableNames = (sql: SqlStorage) =>
   sql
@@ -14,7 +24,7 @@ const tableNames = (sql: SqlStorage) =>
 
 describe('migraciones del negocio en el Durable Object', () => {
   it('un DO nuevo queda con las 11 migraciones y las tablas del schema', async () => {
-    const applied = await runInDurableObject(newTenant(), (_instance, state) => ({
+    const applied = await runInDurableObject(await newTenant(), (_instance, state) => ({
       tags: state.storage.sql
         .exec('SELECT tag FROM __migrations ORDER BY tag')
         .toArray()
@@ -30,28 +40,27 @@ describe('migraciones del negocio en el Durable Object', () => {
   });
 
   it('el arranque deja los contadores y ajustes base del negocio', async () => {
-    const boot = await runInDurableObject(newTenant(), (_instance, state) => ({
+    const boot = await runInDurableObject(await newTenant(), (_instance, state) => ({
       counters: state.storage.sql.exec('SELECT COUNT(*) AS n FROM counters').one()['n'],
       settings: state.storage.sql.exec('SELECT COUNT(*) AS n FROM settings').one()['n'],
     }));
     expect(boot).toEqual({ counters: 6, settings: 8 });
   });
 
-  it('dos peticiones simultáneas al primer arranque migran una sola vez', async () => {
-    const stub = newTenant();
-    const count = (_instance: unknown, state: DurableObjectState) =>
-      Number(state.storage.sql.exec('SELECT COUNT(*) AS n FROM __migrations').one()['n']);
-
-    const [a, b] = await Promise.all([
-      runInDurableObject(stub, count),
-      runInDurableObject(stub, count),
+  it('dos inicializaciones simultáneas migran una sola vez', async () => {
+    const { slug, stub } = freshStub();
+    await Promise.all([
+      stub.initialize(slug, GENERIC_ASSIGNMENT),
+      stub.initialize(slug, GENERIC_ASSIGNMENT),
     ]);
-
-    expect([a, b]).toEqual([11, 11]);
+    const count = await runInDurableObject(stub, (_instance, state) =>
+      Number(state.storage.sql.exec('SELECT COUNT(*) AS n FROM __migrations').one()['n']),
+    );
+    expect(count).toBe(11);
   });
 
   it('una migración nueva sobre una BD con datos guarda el bookmark pre-migración', async () => {
-    const result = await runInDurableObject(newTenant(), async (_instance, state) => {
+    const result = await runInDurableObject(await newTenant(), async (_instance, state) => {
       const extra = { tag: '0011_prueba', sql: 'CREATE TABLE prueba (id INTEGER PRIMARY KEY)' };
       const run = await runMigrations(state.storage, [...MIGRATIONS, extra]);
       return {
@@ -68,14 +77,14 @@ describe('migraciones del negocio en el Durable Object', () => {
   });
 
   it('un DO nuevo no guarda bookmark: no hay nada que proteger', async () => {
-    const saved = await runInDurableObject(newTenant(), (_instance, state) => [
+    const saved = await runInDurableObject(await newTenant(), (_instance, state) => [
       ...state.storage.kv.list({ prefix: 'pre-migracion:' }),
     ]);
     expect(saved).toEqual([]);
   });
 
   it('una migración que falla no deja nada a medias ni queda registrada', async () => {
-    const result = await runInDurableObject(newTenant(), async (_instance, state) => {
+    const result = await runInDurableObject(await newTenant(), async (_instance, state) => {
       const broken = {
         tag: '0011_rota',
         sql: 'CREATE TABLE a_medias (id INTEGER);--> statement-breakpoint\nSELECT * FROM no_existe;',
@@ -95,5 +104,17 @@ describe('migraciones del negocio en el Durable Object', () => {
     expect(result.error).toMatch(/no_existe/);
     expect(result.half).toBe(false);
     expect(result.registered).toBe(0);
+  });
+
+  it('un negocio ya inicializado migra en el constructor al despertar', async () => {
+    const { slug, stub } = freshStub();
+    // Solo la marca del negocio, sin tablas: como un DO cuyo esquema quedó atrás.
+    await runInDurableObject(stub, (_instance, state) => state.storage.kv.put('slug', slug));
+    await evictDurableObject(stub);
+
+    const tables = await runInDurableObject(stub, (_instance, state) =>
+      tableNames(state.storage.sql),
+    );
+    expect(tables).toEqual(expect.arrayContaining(['__migrations', 'users', 'business_profile']));
   });
 });
