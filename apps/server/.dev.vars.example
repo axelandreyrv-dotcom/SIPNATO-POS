@@ -1,0 +1,5 @@
+# Copiar a .dev.vars (ignorado por git) para `pnpm dev`. En producción: `wrangler secret put <NOMBRE>`.
+# Token Bearer del API SDDE del BCCR (opcional; sin él rige el tipo de cambio de respaldo de cada negocio).
+BCCR_API_TOKEN=
+# Token del endpoint /internal/ops que usa `pnpm ops` (cualquier cadena larga y aleatoria).
+OPS_TOKEN=

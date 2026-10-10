@@ -1,0 +1,51 @@
+{
+  "name": "dosuxsoft",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "*.dosuxsoft.com/*", "zone_name": "dosuxsoft.com" }],
+  "assets": {
+    "directory": "../web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/auth/*", "/platform/*", "/internal/*", "/health"],
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "TENANT", "class_name": "TenantDO" },
+      { "name": "PLATFORM", "class_name": "PlatformDO" },
+    ],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TenantDO", "PlatformDO"] }],
+  "r2_buckets": [{ "binding": "BACKUPS", "bucket_name": "dosuxsoft-backups" }],
+  "triggers": { "crons": ["15 * * * *", "0 9 * * *"] },
+  "vars": { "TENANT_BASE_DOMAIN": "dosuxsoft.com", "ENVIRONMENT": "production" },
+  "rules": [{ "type": "Text", "globs": ["**/*.sql"], "fallthrough": true }],
+  "observability": { "enabled": true },
+  "env": {
+    "dev": {
+      // Wrangler no hereda bindings entre entornos: se repiten los que necesita el desarrollo local.
+      "vars": {
+        "TENANT_BASE_DOMAIN": "localhost",
+        "ENVIRONMENT": "development",
+        "DEV_TENANT": "taller",
+      },
+      "assets": {
+        "directory": "../web/dist",
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": ["/api/*", "/auth/*", "/platform/*", "/internal/*", "/health"],
+      },
+      "durable_objects": {
+        "bindings": [
+          { "name": "TENANT", "class_name": "TenantDO" },
+          { "name": "PLATFORM", "class_name": "PlatformDO" },
+        ],
+      },
+      "r2_buckets": [{ "binding": "BACKUPS", "bucket_name": "dosuxsoft-backups-dev" }],
+      "triggers": { "crons": ["15 * * * *", "0 9 * * *"] },
+    },
+  },
+}

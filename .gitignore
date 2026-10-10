@@ -19,3 +19,7 @@ apps/web/vite.config.d.ts
 # Datos en runtime — directorio trackeado via .gitkeep, contenido ignorado
 apps/server/data/*
 !apps/server/data/.gitkeep
+
+# Cloudflare Workers (Fase G)
+.dev.vars
+.wrangler/
