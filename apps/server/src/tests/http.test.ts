@@ -77,6 +77,33 @@ describe('capa HTTP del negocio', () => {
     }
   });
 
+  it('un perfil guardado que no cumple el esquema es un error interno, no de validación', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const original = await inTenant(SLUG, () =>
+      db.select({ modules: businessProfile.modules }).from(businessProfile).get(),
+    );
+    await inTenant(SLUG, () => db.update(businessProfile).set({ modules: '["x"]' }).run());
+    try {
+      // /api/business lee el perfil tras la sesión; /api/boletas, en la guarda del módulo, antes.
+      for (const res of [
+        await call(SLUG, 'GET', '/api/business', { token }),
+        await call(SLUG, 'GET', '/api/boletas'),
+      ]) {
+        expect(res.status).toBe(500);
+        const body = await res.json();
+        expect(body).toEqual({
+          error: { code: 'ERROR_INTERNO', message: 'Error interno del servidor' },
+        });
+        expect(JSON.stringify(body)).not.toMatch(/enum|Expected|received|invalid/i);
+      }
+      expect(logged).toHaveBeenCalledTimes(2);
+    } finally {
+      await inTenant(SLUG, () =>
+        db.update(businessProfile).set({ modules: original!.modules }).run(),
+      );
+    }
+  });
+
   it('toda respuesta de /api lleva Cache-Control: no-store', async () => {
     const responses = [
       await call(SLUG, 'GET', '/api/business', { token }),

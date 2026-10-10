@@ -1,7 +1,7 @@
 import type { Context, ErrorHandler, MiddlewareHandler } from 'hono';
 import { deleteCookie, setCookie } from 'hono/cookie';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
-import { ZodError, type ZodType, type ZodTypeDef } from 'zod';
+import type { ZodType, ZodTypeDef } from 'zod';
 import type { Actor } from '../db/client.js';
 import type { Env } from '../env.js';
 import { AppError } from './errors.js';
@@ -67,13 +67,8 @@ export const errorHandler: ErrorHandler<AppEnv> = (err, c) => {
       err.statusCode as ContentfulStatusCode,
     );
   }
-  if (err instanceof ZodError) {
-    return c.json(
-      { error: { code: 'VALIDACION', message: err.issues[0]?.message ?? 'Datos inválidos' } },
-      400,
-    );
-  }
-  // Nunca detalles internos al cliente (CWE-209): quedan solo en el log del Worker.
+  // Cualquier otro error (también un ZodError de datos ya guardados, como un perfil corrupto) es
+  // interno. Nunca detalles al cliente (CWE-209): quedan solo en el log del Worker.
   console.error('Error no controlado', err);
   return c.json({ error: { code: 'ERROR_INTERNO', message: 'Error interno del servidor' } }, 500);
 };
@@ -101,9 +96,14 @@ export async function readJson(c: AppContext): Promise<unknown> {
   }
 }
 
+// Solo aquí un ZodError es culpa del cliente: el cuerpo de la petición no es válido.
 export async function parseBody<T>(
   c: AppContext,
   schema: ZodType<T, ZodTypeDef, unknown>,
 ): Promise<T> {
-  return schema.parse(await readJson(c));
+  const result = schema.safeParse(await readJson(c));
+  if (!result.success) {
+    throw new AppError('VALIDACION', result.error.issues[0]?.message ?? 'Datos inválidos', 400);
+  }
+  return result.data;
 }

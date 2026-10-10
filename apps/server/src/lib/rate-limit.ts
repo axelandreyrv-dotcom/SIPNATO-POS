@@ -1,7 +1,13 @@
 import type { MiddlewareHandler } from 'hono';
 import { clientIp, type AppContext, type AppEnv } from './http.js';
 
-// Ventana fija: un contador por clave y ventana en el kv del Durable Object. El DO ya es de
+interface RateWindow {
+  start: number;
+  count: number;
+}
+
+// Ventana fija con una sola entrada por clave en el kv del Durable Object, sobrescrita en su
+// lugar: un cliente que vuelve mucho después no deja claves viejas acumulándose. El DO ya es de
 // un solo negocio, así que la clave por IP equivale a "negocio + IP" (CLAUDE.md §6.4).
 export function hit(
   kv: DurableObjectStorage['kv'],
@@ -11,10 +17,10 @@ export function hit(
 ): { allowed: boolean; retryAfterSec: number } {
   const now = Date.now();
   const windowStart = Math.floor(now / windowMs) * windowMs;
-  const storageKey = `rl:${key}:${windowStart}`;
-  const count = (kv.get<number>(storageKey) ?? 0) + 1;
-  kv.put(storageKey, count);
-  kv.delete(`rl:${key}:${windowStart - windowMs}`);
+  const storageKey = `rl:${key}`;
+  const stored = kv.get<RateWindow>(storageKey);
+  const count = stored?.start === windowStart ? stored.count + 1 : 1;
+  kv.put<RateWindow>(storageKey, { start: windowStart, count });
 
   const allowed = count <= limit;
   return {
