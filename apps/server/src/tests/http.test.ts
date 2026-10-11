@@ -157,6 +157,11 @@ describe('Durable Object del negocio', () => {
       }),
     );
     expect(res.status).toBe(404);
+    expect(res.headers.get('Cache-Control')).toBe('no-store');
+    expect(res.headers.get('X-Frame-Options')).toBe('DENY');
+    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(res.headers.get('Strict-Transport-Security')).toMatch(/^max-age=63072000/);
+    expect(res.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
     expect((await errorOf(res)).code).toBe('NEGOCIO_NO_ENCONTRADO');
 
     const ok = await stub.fetch(

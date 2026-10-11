@@ -17,7 +17,7 @@ import * as schema from '../db/schema.js';
 import type { Env } from '../env.js';
 import { TENANT_HEADER } from '../lib/constants.js';
 import { NegocioNoEncontrado } from '../lib/errors.js';
-import type { AppEnv } from '../lib/http.js';
+import { errorResponse, type AppEnv } from '../lib/http.js';
 import { resetOwner } from '../modules/auth/service.js';
 import { getProfile } from '../modules/business/repository.js';
 import { assignBusiness } from '../modules/business/service.js';
@@ -36,14 +36,6 @@ export interface TenantPlatformSummary {
   modules: ModuleKey[];
   users: number;
   lastSaleAt: string | null;
-}
-
-function negocioNoEncontrado(): Response {
-  const err = new NegocioNoEncontrado();
-  return Response.json(
-    { error: { code: err.code, message: err.message } },
-    { status: err.statusCode, headers: { 'Cache-Control': 'no-store' } },
-  );
 }
 
 export class TenantDO extends DurableObject<Env> {
@@ -144,7 +136,7 @@ export class TenantDO extends DurableObject<Env> {
   override async fetch(request: Request): Promise<Response> {
     const slug = this.slug();
     if (slug === undefined || request.headers.get(TENANT_HEADER) !== slug) {
-      return negocioNoEncontrado();
+      return errorResponse(new NegocioNoEncontrado());
     }
     return this.inContext(slug, () => this.app.fetch(request, this.env));
   }

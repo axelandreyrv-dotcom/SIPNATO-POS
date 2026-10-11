@@ -92,6 +92,15 @@ export const apiHeaders: MiddlewareHandler<AppEnv> = async (c, next) => {
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) c.res.headers.set(name, value);
 };
 
+// Un error que se responde fuera de Hono (el enrutador del Worker, el borde del Durable Object),
+// con el mismo cuerpo y los mismos headers que la API.
+export function errorResponse(err: AppError): Response {
+  return Response.json(
+    { error: { code: err.code, message: err.message } },
+    { status: err.statusCode, headers: SECURITY_HEADERS },
+  );
+}
+
 // Un cuerpo ausente o que no es JSON se trata como vacío: lo rechaza la validación con un 400.
 export async function readJson(c: AppContext): Promise<unknown> {
   try {

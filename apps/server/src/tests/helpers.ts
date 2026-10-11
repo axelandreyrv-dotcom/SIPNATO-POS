@@ -1,7 +1,7 @@
 import { env, runInDurableObject, SELF } from 'cloudflare:test';
 import { TEMPLATE_INFO, type AssignBusinessInput } from '@sipnato/shared';
 import { runInTenant } from '../db/client.js';
-import { runInPlatform } from '../db/control.js';
+import { findTenant, insertTenant, runInPlatform } from '../db/control.js';
 import { COOKIE_NAME, PLATFORM_COOKIE_NAME } from '../lib/constants.js';
 import { generateRecoveryCode, hashPassword, hashRecoveryCode } from '../lib/crypto.js';
 import { platform } from '../lib/platform-client.js';
@@ -32,12 +32,16 @@ export function inTenant<T>(slug: string, fn: () => T | Promise<T>): Promise<T> 
   );
 }
 
-// Como lo haría la plataforma: inicializa el DO con su tipo de negocio y módulos. El dueño se
-// inserta directo, sin código de activación. Devuelve el recovery code del dueño.
+// Como lo haría la plataforma: registra el negocio (el Worker solo enruta a negocios registrados)
+// e inicializa el DO con su tipo de negocio y módulos. El dueño se inserta directo, sin código de
+// activación. Devuelve el recovery code del dueño.
 export async function createTestTenant(
   slug: string,
   opts: { owner?: TestOwner; assignment?: AssignBusinessInput } = {},
 ): Promise<{ recoveryCode: string | null }> {
+  await inPlatform(() => {
+    if (!findTenant(slug)) insertTenant(slug, slug);
+  });
   await tenantStub(slug).initialize(slug, opts.assignment ?? GENERIC_ASSIGNMENT);
   const owner = opts.owner;
   if (!owner) return { recoveryCode: null };

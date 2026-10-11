@@ -54,10 +54,10 @@ async function setupAdmin(app: App, slug: string): Promise<string> {
   return cookie.value;
 }
 
-// Portados a vitest en la Tarea 5 (src/tests/tenancy.test.ts y platform.test.ts). Quedan aquí, como
-// referencia, los casos de enrutado por Host (Tarea 6) y el respaldo diario (Tarea 7). Del legado del
-// panel queda también: "Caddy puede emitir el certificado del panel" (tls-check de admin.<dominio>
-// → 200) y "suspender bloquea al negocio" (petición a un negocio suspendido → 403), Tarea 6.
+// Portados a vitest: aislamiento (Tarea 5, src/tests/tenancy.test.ts) y enrutado por Host, 404/403 y
+// /health (Tarea 6, src/tests/routing.test.ts). Los de tls-check se descartaron: con Universal SSL
+// (D12) ya no hay emisión de certificados bajo demanda ni /internal/tls-check. Queda solo el
+// respaldo diario (Tarea 7).
 describe('aislamiento entre negocios', () => {
   let app: App;
 
@@ -76,56 +76,6 @@ describe('aislamiento entre negocios', () => {
     closeAllTenantDbs();
     closeControlDb();
     rmSync(dataDir, { recursive: true, force: true });
-  });
-
-  it('negocio inexistente → 404', async () => {
-    const res = await app.inject({
-      method: 'GET',
-      url: '/auth/status',
-      headers: { host: host('no-existe') },
-    });
-    assert.equal(res.statusCode, 404);
-    assert.equal(res.json().error.code, 'NEGOCIO_NO_ENCONTRADO');
-  });
-
-  it('dominio base, subdominios anidados y slugs maliciosos → 404', async () => {
-    for (const h of [
-      'dosuxsoft.test',
-      'a.taller-a.dosuxsoft.test',
-      'www.dosuxsoft.test',
-      '..dosuxsoft.test',
-      'otro-dominio.com',
-    ]) {
-      const res = await app.inject({ method: 'GET', url: '/auth/status', headers: { host: h } });
-      assert.equal(res.statusCode, 404, `host ${h} debería ser rechazado`);
-    }
-  });
-
-  it('negocio suspendido → 403', async () => {
-    const res = await app.inject({
-      method: 'GET',
-      url: '/auth/status',
-      headers: { host: host('suspendido') },
-    });
-    assert.equal(res.statusCode, 403);
-    assert.equal(res.json().error.code, 'NEGOCIO_SUSPENDIDO');
-  });
-
-  it('/health responde sin negocio', async () => {
-    const res = await app.inject({ method: 'GET', url: '/health', headers: { host: 'localhost' } });
-    assert.equal(res.statusCode, 200);
-  });
-
-  it('tls-check solo aprueba negocios activos', async () => {
-    const check = (domain: string) =>
-      app.inject({
-        method: 'GET',
-        url: `/internal/tls-check?domain=${domain}`,
-        headers: { host: 'server:3000' },
-      });
-    assert.equal((await check('taller-a.dosuxsoft.test')).statusCode, 200);
-    assert.equal((await check('suspendido.dosuxsoft.test')).statusCode, 404);
-    assert.equal((await check('no-existe.dosuxsoft.test')).statusCode, 404);
   });
 
   it('el backup diario respalda cada negocio activo en su propia carpeta', async () => {

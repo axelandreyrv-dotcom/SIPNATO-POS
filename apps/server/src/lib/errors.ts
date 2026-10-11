@@ -225,6 +225,12 @@ export class NegocioNoEncontrado extends AppError {
   }
 }
 
+export class NegocioSuspendido extends AppError {
+  constructor() {
+    super('NEGOCIO_SUSPENDIDO', 'Este negocio está suspendido', 403);
+  }
+}
+
 export class NegocioYaExiste extends AppError {
   constructor() {
     super('NEGOCIO_YA_EXISTE', 'Ya existe un negocio con ese subdominio', 409);
