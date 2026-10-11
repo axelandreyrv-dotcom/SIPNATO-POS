@@ -44,6 +44,7 @@ export class PlatformDO extends DurableObject<Env> {
     this.app = createPlatformApp();
     // El objeto original (Singapur) solo responde a exportLegacyControl: nunca se migra a sí mismo.
     if (!ctx.id.equals(env.PLATFORM.idFromName(LEGACY_PLATFORM_OBJECT_NAME))) {
+      // Si la copia lanza, blockConcurrencyWhile reinicia el objeto antes de atender nada.
       ctx.blockConcurrencyWhile(async () => {
         const result = await importLegacyControl(ctx.storage, () =>
           legacyPlatform(env).exportLegacyControl(),

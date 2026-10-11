@@ -19,8 +19,10 @@ const API_PATHS = ['/health'];
 const PLATFORM_PREFIX = '/platform/';
 const PLATFORM_PATHS = ['/internal/ops', '/health'];
 
-// Rutas que un negocio nunca atiende: la API del panel y las operaciones internas.
+// Rutas que un negocio nunca atiende: la API del panel, las operaciones internas y el health
+// check (solo existe en el panel).
 const TENANT_FORBIDDEN_PREFIXES = ['/platform/', '/internal/'];
+const TENANT_FORBIDDEN_PATHS = ['/health'];
 
 const DEV_HOSTNAMES = ['localhost', '127.0.0.1'];
 
@@ -62,7 +64,12 @@ async function routeApi(request: Request, path: string, env: Env): Promise<Respo
     return platform(env).fetch(new Request(request, { headers }));
   }
 
-  if (TENANT_FORBIDDEN_PREFIXES.some((prefix) => path.startsWith(prefix))) return notFound();
+  if (
+    TENANT_FORBIDDEN_PATHS.includes(path) ||
+    TENANT_FORBIDDEN_PREFIXES.some((prefix) => path.startsWith(prefix))
+  ) {
+    return notFound();
+  }
 
   // Directo al Durable Object del negocio, sin preguntarle a la plataforma (estaría en otro
   // centro de datos): él responde 404 si nunca se inicializó (sin crear tablas ni guardar nada)

@@ -3,6 +3,7 @@ import { createTenantSchema, slugSchema, superadminUsernameSchema } from '@sipna
 import { findTenant, listTenants } from '../../db/control.js';
 import { RESTORE_ABORT_REASON } from '../../do/tenant-do.js';
 import { AppError, NegocioNoActivado, NegocioNoEncontrado } from '../../lib/errors.js';
+import { withTimeout } from '../../lib/timeout.js';
 import type { Meta } from '../platform/repository.js';
 import {
   changeTenantStatus,
@@ -120,6 +121,24 @@ async function requireInitialized(slug: string) {
   return summary;
 }
 
+// El kv restaurado trae el estado de ese momento (o ninguno): el que vale es el de control.db.
+// Esta llamada también despierta al DO, que aplica la restauración al arrancar. Si falla, la
+// reconciliación del cron diario lo corrige; el operador lo ve en `statusSynced`.
+async function syncStatusAfterRestore(slug: string): Promise<boolean> {
+  const tenant = findTenant(slug);
+  if (!tenant) return false;
+  try {
+    await withTimeout(Promise.resolve(tenantDO(slug).setStatus(tenant.status)), 5_000);
+    return true;
+  } catch (err) {
+    console.error(
+      `No se pudo avisar su estado al negocio "${slug}" tras restaurarlo:`,
+      (err as Error)?.message ?? String(err),
+    );
+    return false;
+  }
+}
+
 async function restoreTenant(slug: string, bookmark: string): Promise<OpsOutcome> {
   await requireInitialized(slug);
   // El bookmark de ahora, para deshacer la restauración con otro restore-tenant si hace falta.
@@ -130,7 +149,8 @@ async function restoreTenant(slug: string, bookmark: string): Promise<OpsOutcome
   } catch (err) {
     // Si funcionó, el DO se reinicia sin responder: su error trae el motivo del reinicio.
     if (err instanceof Error && err.message.includes(RESTORE_ABORT_REASON)) {
-      return { result: { restored: true, undoBookmark }, audit: { undoBookmark } };
+      const statusSynced = await syncStatusAfterRestore(slug);
+      return { result: { restored: true, undoBookmark, statusSynced }, audit: { undoBookmark } };
     }
     // Cualquier otro error (el DO no respondió, la red) no dice si la restauración quedó
     // programada: si quedó, ocurre en el próximo reinicio del DO.

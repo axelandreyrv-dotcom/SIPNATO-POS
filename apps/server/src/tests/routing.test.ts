@@ -419,6 +419,12 @@ describe('rutas de API, plataforma y SPA', () => {
   it('/health solo existe en el panel', async () => {
     const res = await call('rt-a', 'GET', '/health');
     expect(res.status).toBe(404);
+    expect((await errorOf(res)).code).toBe('NO_ENCONTRADO');
+    expectApiHeaders(res);
+    // Se rechaza en el Worker, como /platform/* e /internal/*: no llega al DO del negocio.
+    const t = harness(PROD);
+    expect((await t.fetch('https://rt-a.dosuxsoft.com/health')).status).toBe(404);
+    expect(t.tenant.names).toEqual([]);
     const h = harness(PROD);
     const sinNegocio = await h.fetch('https://dosuxsoft.com/health');
     expect((await errorOf(sinNegocio)).code).toBe('NEGOCIO_NO_ENCONTRADO');

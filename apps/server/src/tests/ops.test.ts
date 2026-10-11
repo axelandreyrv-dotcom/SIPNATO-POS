@@ -1,6 +1,6 @@
 import { env, runInDurableObject, SELF } from 'cloudflare:test';
 import { afterEach, describe, expect, it } from 'vitest';
-import { controlDb, findTenant } from '../db/control.js';
+import { controlDb, findTenant, setTenantStatus } from '../db/control.js';
 import { createPlatformApp } from '../platform-app.js';
 import {
   ADMIN_ORIGIN,
@@ -494,6 +494,8 @@ describe('/internal/ops: recuperación a un punto en el tiempo', () => {
   // que sí: que el DO recibe ese bookmark, que se reinicia, y que un fallo no lo toca.
   it('restore-tenant programa la restauración con ese bookmark y reinicia el DO', async () => {
     await createTestTenant('ops-pitr');
+    // Suspendido en la plataforma; el negocio (como tras restaurar) todavía se cree activo.
+    await inPlatform(() => setTenantStatus('ops-pitr', 'suspended'));
     const seen: string[] = [];
     await runInDurableObject(tenantStub('ops-pitr'), (instance, state) => {
       (instance as unknown as { marker: number }).marker = 1;
@@ -519,6 +521,8 @@ describe('/internal/ops: recuperación a un punto en el tiempo', () => {
       (instance) => (instance as unknown as { marker?: number }).marker,
     );
     expect(marker).toBeUndefined();
+    // El kv restaurado puede traer un estado viejo: la plataforma le vuelve a avisar el suyo.
+    expect((await call('ops-pitr', 'GET', '/auth/status')).status).toBe(403);
     const audit = await lastAudit();
     expect(audit.action).toBe('OPS_RESTORE_TENANT');
     expect(JSON.parse(audit.payload!)).toMatchObject({ ok: true, slug: 'ops-pitr', bookmark });

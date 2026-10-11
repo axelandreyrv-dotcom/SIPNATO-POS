@@ -105,14 +105,15 @@ export class MemoryLimiter {
     };
   }
 
-  // Primero las ventanas que ya terminaron; si aún no hay lugar, las más viejas (la Map conserva
-  // el orden de inserción). Así la memoria queda acotada aunque lleguen IPs nuevas sin parar.
+  // Primero las ventanas que ya terminaron; si no alcanza, las más viejas (la Map conserva el
+  // orden de inserción), hasta el 90 % del tope: así no se recorre la Map en cada IP nueva.
   private prune(windowStart: number): void {
+    const target = Math.floor(this.maxKeys * 0.9);
     for (const [key, value] of this.windows) {
       if (value.start < windowStart) this.windows.delete(key);
     }
     for (const key of this.windows.keys()) {
-      if (this.windows.size < this.maxKeys) break;
+      if (this.windows.size <= target) break;
       this.windows.delete(key);
     }
   }

@@ -58,6 +58,7 @@ import {
   UsuarioBloqueado,
 } from '../../lib/errors.js';
 import { tenantStub } from '../../lib/platform-client.js';
+import { withTimeout } from '../../lib/timeout.js';
 import { INACTIVITY_TIMEOUT_MS, SESSION_DURATION_MS, shouldTouch } from '../../lib/session.js';
 import {
   deletePlatformSession,
@@ -310,14 +311,6 @@ const UNAVAILABLE_INFO: TenantInfo = {
 // Un DO colgado (no falla, solo no contesta) dejaría esperando a todo el panel, porque la lista
 // pregunta a todos los negocios a la vez.
 const SUMMARY_TIMEOUT_MS = 5_000;
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`sin respuesta en ${ms} ms`)), ms);
-  });
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
-}
 
 // El resumen que el panel le pide a cada negocio. Un DO que falla o tarda más de 5 s no tumba el
 // panel ni convierte en error una escritura ya guardada en control.db (el operador la repetiría:

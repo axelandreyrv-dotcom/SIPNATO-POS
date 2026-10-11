@@ -1,3 +1,4 @@
+import { withTimeout } from '../lib/timeout.js';
 import { controlDb, controlTransaction, runInPlatform } from './control.js';
 
 // La plataforma pasó a otro Durable Object (ver PLATFORM_OBJECT_NAME): el nuevo copia una sola vez
@@ -17,7 +18,14 @@ const LEGACY_TABLES = [
 
 export type ControlTables = Partial<Record<string, Record<string, SqlStorageValue>[]>>;
 
-export type LegacyImportResult = 'done' | 'skipped' | 'empty' | 'imported' | 'failed';
+export type LegacyImportResult = 'done' | 'skipped' | 'empty' | 'imported';
+
+// Muy por debajo de los 30 s que permite blockConcurrencyWhile.
+export const LEGACY_FETCH_TIMEOUT_MS = 10_000;
+
+// Pueden existir ya en el objeto nuevo sin que eso sea "datos propios" (p. ej. si el cron del tipo
+// de cambio corrió antes): ahí gana lo que ya está. En las demás tablas un choque es un error.
+const MERGEABLE_TABLES: readonly string[] = ['platform_settings', 'exchange_rates'];
 
 const quote = (name: string) => `"${name.replaceAll('"', '""')}"`;
 
@@ -58,9 +66,10 @@ function insertRows(tables: ControlTables): number {
     );
     for (const row of rows) {
       const keys = Object.keys(row).filter((k) => columns.has(k));
+      const verb = MERGEABLE_TABLES.includes(table) ? 'INSERT OR IGNORE' : 'INSERT';
       controlDb
         .prepare(
-          `INSERT INTO ${quote(table)} (${keys.map(quote).join(', ')}) VALUES (${keys.map(() => '?').join(', ')})`,
+          `${verb} INTO ${quote(table)} (${keys.map(quote).join(', ')}) VALUES (${keys.map(() => '?').join(', ')})`,
         )
         .run(...keys.map((k) => row[k]));
       total++;
@@ -70,11 +79,14 @@ function insertRows(tables: ControlTables): number {
 }
 
 // Lo llama el constructor del objeto nuevo (dentro de blockConcurrencyWhile, antes de atender
-// nada). Con la marca puesta es una lectura del kv. Si el objeto viejo no responde (o la copia
-// falla) no se marca: se reintenta en el próximo arranque y mientras tanto la plataforma atiende vacía.
+// nada). Con la marca puesta es una lectura del kv. Falla cerrado: si el objeto viejo no responde
+// (o la copia falla) lanza sin marcar, el objeto se reinicia sin haber atendido nada y la próxima
+// petición lo reintenta. Atender con control.db vacío dejaría filas (bitácora, tipo de cambio,
+// un superadministrador) que después chocarían con la copia o la harían saltarse.
 export async function importLegacyControl(
   storage: DurableObjectStorage,
   fetchLegacy: () => Promise<ControlTables>,
+  timeoutMs = LEGACY_FETCH_TIMEOUT_MS,
 ): Promise<LegacyImportResult> {
   if (storage.kv.get(LEGACY_IMPORT_FLAG) !== undefined) return 'done';
   if (runInPlatform(storage, hasOwnData)) {
@@ -84,17 +96,16 @@ export async function importLegacyControl(
 
   let tables: ControlTables;
   try {
-    tables = await fetchLegacy();
+    tables = await withTimeout(fetchLegacy(), timeoutMs);
   } catch (err) {
     console.error(
-      'No se pudo leer la plataforma anterior; se reintenta en el próximo arranque:',
+      'No se pudo leer la plataforma anterior; se reintenta en la próxima petición:',
       (err as Error)?.message ?? String(err),
     );
-    return 'failed';
+    throw err;
   }
 
-  // Un error aquí no sale: en blockConcurrencyWhile reiniciaría el objeto en cada arranque y la
-  // plataforma quedaría caída. La transacción deshace lo copiado y se reintenta la próxima vez.
+  // La transacción deshace lo copiado si algo falla.
   try {
     return runInPlatform(storage, () =>
       controlTransaction(() => {
@@ -106,9 +117,9 @@ export async function importLegacyControl(
     );
   } catch (err) {
     console.error(
-      'No se pudo copiar la plataforma anterior; se reintenta en el próximo arranque:',
+      'No se pudo copiar la plataforma anterior; se reintenta en la próxima petición:',
       (err as Error)?.message ?? String(err),
     );
-    return 'failed';
+    throw err;
   }
 }
