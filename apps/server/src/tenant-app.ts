@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { apiHeaders, errorHandler, sameOriginWrites, type AppEnv } from './lib/http.js';
-import { rateLimit } from './lib/rate-limit.js';
+import { memoryRateLimit } from './lib/rate-limit.js';
 import { registerModuleRoutes } from './middleware/module.js';
 import apartadosRoutes from './modules/apartados/routes.js';
 import authRoutes from './modules/auth/routes.js';
@@ -24,8 +24,8 @@ import subscriptionRoutes from './modules/subscription/routes.js';
 import usersRoutes from './modules/users/routes.js';
 
 // API de un negocio. Corre dentro de su Durable Object, con el contexto del negocio ya fijado;
-// `storage` es el de ese DO: su kv lleva los contadores del rate limit y el respaldo vuelca
-// sus tablas.
+// `storage` es el de ese DO: su kv lleva los contadores de los límites de login, recuperación y
+// respaldo, y el respaldo vuelca sus tablas.
 export function createTenantApp(storage: DurableObjectStorage): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
@@ -36,7 +36,7 @@ export function createTenantApp(storage: DurableObjectStorage): Hono<AppEnv> {
     c.set('storage', storage);
     await next();
   });
-  app.use(rateLimit('global', 200, 60_000));
+  app.use(memoryRateLimit('global', 200, 60_000));
   // El mismo tope de 1 MB que traía Fastify: ningún cuerpo legítimo se le acerca.
   app.use(
     bodyLimit({

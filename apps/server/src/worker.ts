@@ -1,10 +1,9 @@
 import { isValidSlug, PLATFORM_SUBDOMAIN } from '@sipnato/shared';
-import type { TenantStatus } from './db/control.js';
 import type { Env } from './env.js';
 import { HOST_HEADER, TENANT_HEADER } from './lib/constants.js';
-import { AppError, NegocioNoEncontrado, NegocioSuspendido } from './lib/errors.js';
+import { AppError, NegocioNoEncontrado } from './lib/errors.js';
 import { errorResponse, requestHost } from './lib/http.js';
-import { platform } from './lib/platform-client.js';
+import { platform, tenantStub } from './lib/platform-client.js';
 
 export { TenantDO } from './do/tenant-do.js';
 export { PlatformDO } from './do/platform-do.js';
@@ -20,14 +19,12 @@ const API_PATHS = ['/health'];
 const PLATFORM_PREFIX = '/platform/';
 const PLATFORM_PATHS = ['/internal/ops', '/health'];
 
-// Rutas que un negocio nunca atiende: la API del panel y las operaciones internas.
+// Rutas que un negocio nunca atiende: la API del panel, las operaciones internas y el health
+// check (solo existe en el panel).
 const TENANT_FORBIDDEN_PREFIXES = ['/platform/', '/internal/'];
+const TENANT_FORBIDDEN_PATHS = ['/health'];
 
 const DEV_HOSTNAMES = ['localhost', '127.0.0.1'];
-
-// Cuánto se recuerda el estado de un negocio en este isolate: suspender rige a más tardar en ese
-// tiempo, y a cambio la mayoría de las peticiones no le pregunta a la plataforma.
-const RESOLVE_TTL_MS = 30_000;
 
 const notFound = () => errorResponse(new AppError('NO_ENCONTRADO', 'Ruta no encontrada', 404));
 
@@ -52,29 +49,6 @@ export function routeHost(host: string, env: Env): HostRoute {
   return isValidSlug(label) ? { kind: 'tenant', slug: label } : null;
 }
 
-// Solo se guardan negocios que existen: el tamaño queda acotado por la cantidad de negocios (un
-// subdominio inventado no ocupa memoria) y uno recién creado responde de inmediato.
-const resolved = new Map<string, { status: TenantStatus; expiresAt: number }>();
-
-async function tenantStatus(slug: string, env: Env): Promise<TenantStatus | null> {
-  const now = Date.now();
-  const cached = resolved.get(slug);
-  if (cached && cached.expiresAt > now) return cached.status;
-
-  const tenant = await platform(env).resolveTenant(slug);
-  if (!tenant) {
-    resolved.delete(slug);
-    return null;
-  }
-  resolved.set(slug, { status: tenant.status, expiresAt: now + RESOLVE_TTL_MS });
-  return tenant.status;
-}
-
-// Solo para tests: cada caso empieza sin estados recordados.
-export function clearTenantCache(): void {
-  resolved.clear();
-}
-
 async function routeApi(request: Request, path: string, env: Env): Promise<Response> {
   const host = requestHost(request, env);
   const route = routeHost(host, env);
@@ -90,15 +64,18 @@ async function routeApi(request: Request, path: string, env: Env): Promise<Respo
     return platform(env).fetch(new Request(request, { headers }));
   }
 
-  if (TENANT_FORBIDDEN_PREFIXES.some((prefix) => path.startsWith(prefix))) return notFound();
+  if (
+    TENANT_FORBIDDEN_PATHS.includes(path) ||
+    TENANT_FORBIDDEN_PREFIXES.some((prefix) => path.startsWith(prefix))
+  ) {
+    return notFound();
+  }
 
-  // Antes de tocar el Durable Object: un slug que la plataforma no conoce nunca crea uno.
-  const status = await tenantStatus(route.slug, env);
-  if (status === null) return errorResponse(new NegocioNoEncontrado());
-  if (status !== 'active') return errorResponse(new NegocioSuspendido());
-
+  // Directo al Durable Object del negocio, sin preguntarle a la plataforma (estaría en otro
+  // centro de datos): él responde 404 si nunca se inicializó (sin crear tablas ni guardar nada)
+  // y 403 si está suspendido.
   headers.set(TENANT_HEADER, route.slug);
-  const stub = env.TENANT.get(env.TENANT.idFromName(route.slug));
+  const stub = tenantStub(env, route.slug);
   return stub.fetch(new Request(request, { headers }));
 }
 
@@ -117,14 +94,15 @@ async function dailyMaintenance(env: Env): Promise<void> {
     console.error('Mantenimiento diario de la plataforma falló:', (err as Error).message);
   }
 
-  const slugs = await control.listMaintainedSlugs();
+  // Cada uno recibe además su estado en control.db: corrige un aviso de suspensión que se perdió.
+  const tenants = await control.listMaintainedTenants();
   const results = await Promise.allSettled(
-    slugs.map((slug) => env.TENANT.get(env.TENANT.idFromName(slug)).dailyMaintenance()),
+    tenants.map(({ slug, status }) => tenantStub(env, slug).dailyMaintenance(status)),
   );
   results.forEach((result, i) => {
     if (result.status === 'rejected') {
       console.error(
-        `Mantenimiento diario del negocio "${slugs[i]}" falló:`,
+        `Mantenimiento diario del negocio "${tenants[i]!.slug}" falló:`,
         (result.reason as Error)?.message ?? String(result.reason),
       );
     }

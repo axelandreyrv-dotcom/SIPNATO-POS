@@ -57,7 +57,9 @@ import {
   SuperadminYaExiste,
   UsuarioBloqueado,
 } from '../../lib/errors.js';
-import { INACTIVITY_TIMEOUT_MS, SESSION_DURATION_MS } from '../../lib/session.js';
+import { tenantStub } from '../../lib/platform-client.js';
+import { withTimeout } from '../../lib/timeout.js';
+import { INACTIVITY_TIMEOUT_MS, SESSION_DURATION_MS, shouldTouch } from '../../lib/session.js';
 import {
   deletePlatformSession,
   deleteSuperadminSessions,
@@ -163,7 +165,7 @@ export async function verifyPlatformSession(
     deletePlatformSession(session.id);
     return null;
   }
-  touchPlatformSession(session.id);
+  if (shouldTouch(session.last_active_at, now)) touchPlatformSession(session.id);
   return { sessionId: session.id, admin: { id: admin.id, username: admin.username } };
 }
 
@@ -277,7 +279,7 @@ export function updatePlatformSettings(
 
 // ─── Negocios ─────────────────────────────────────────────────────────────────
 
-export const tenantDO = (slug: string) => env.TENANT.get(env.TENANT.idFromName(slug));
+export const tenantDO = (slug: string) => tenantStub(env, slug);
 
 const DEFAULT_ASSIGNMENT: AssignBusinessInput = {
   template: 'generico',
@@ -309,14 +311,6 @@ const UNAVAILABLE_INFO: TenantInfo = {
 // Un DO colgado (no falla, solo no contesta) dejaría esperando a todo el panel, porque la lista
 // pregunta a todos los negocios a la vez.
 const SUMMARY_TIMEOUT_MS = 5_000;
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`sin respuesta en ${ms} ms`)), ms);
-  });
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
-}
 
 // El resumen que el panel le pide a cada negocio. Un DO que falla o tarda más de 5 s no tumba el
 // panel ni convierte en error una escritura ya guardada en control.db (el operador la repetiría:
@@ -478,7 +472,7 @@ export async function assignTenantBusiness(
   input: AssignBusinessInput,
   meta: Meta,
 ): Promise<PlatformTenant> {
-  requireTenant(slug);
+  const { status } = requireTenant(slug);
   const stub = tenantDO(slug);
   let before: Pick<TenantPlatformSummary, 'template' | 'modules'> | null = null;
   let after: Pick<TenantPlatformSummary, 'template' | 'modules'>;
@@ -486,7 +480,7 @@ export async function assignTenantBusiness(
   try {
     if ((await stub.platformSummary()) === null) {
       // El alta falló antes de inicializar el DO: asignar el tipo lo termina de crear.
-      await stub.initialize(slug, input);
+      await stub.initialize(slug, input, status);
       after = { template: input.template, modules: [...input.modules] };
     } else {
       ({ before, after } = await stub.assignBusiness(input, meta));
@@ -542,6 +536,18 @@ export async function changeTenantStatus(
   meta: Meta,
 ): Promise<PlatformTenant> {
   requireTenant(slug);
+  // Primero el negocio, que es quien responde 403: si no recibe el cambio, control.db no cambia y
+  // el operador reintenta (como al eliminar). Al revés, el panel diría "suspendido" y el negocio
+  // seguiría atendiendo.
+  try {
+    await withTimeout(Promise.resolve(tenantDO(slug).setStatus(status)), SUMMARY_TIMEOUT_MS);
+  } catch (err) {
+    console.error(
+      `No se pudo cambiar el estado del negocio "${slug}":`,
+      (err as Error)?.message ?? String(err),
+    );
+    throw new NegocioNoDisponible();
+  }
   controlTransaction(() => {
     setTenantStatus(slug, status);
     insertPlatformAudit({
@@ -581,13 +587,13 @@ export async function regenerateSetupCode(
   slug: string,
   meta: Meta,
 ): Promise<string> {
-  requireTenant(slug);
+  const { status } = requireTenant(slug);
   const stub = tenantDO(slug);
   const summary = await stub.platformSummary();
   if (summary?.activated) throw new NegocioYaActivado();
   // El alta falló antes de inicializar el DO: sin esto el código nunca serviría (el subdominio
   // respondería 404). Se inicializa con el tipo por defecto, como el alta por consola.
-  if (summary === null) await stub.initialize(slug, DEFAULT_ASSIGNMENT);
+  if (summary === null) await stub.initialize(slug, DEFAULT_ASSIGNMENT, status);
   const code = generateSetupCode();
   const codeHash = await hashSetupCode(code);
   controlTransaction(() => {

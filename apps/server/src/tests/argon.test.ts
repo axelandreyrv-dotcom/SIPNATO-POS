@@ -8,7 +8,7 @@ import { DUMMY_HASH } from '../lib/crypto.js';
 import { CredencialesInvalidas } from '../lib/errors.js';
 import { verifyCredentials } from '../modules/users/service.js';
 import nodeArgon2 from './fixtures/node-argon2.txt?raw';
-import { GENERIC_ASSIGNMENT } from './helpers.js';
+import { GENERIC_ASSIGNMENT, tenantStub } from './helpers.js';
 
 // Hash generado por la librería `argon2` de Node (la del servidor anterior) para esta clave.
 const NODE_HASH = nodeArgon2.trim();
@@ -18,7 +18,7 @@ const NEW_PREFIX = '$argon2id$v=19$m=19456,t=2,p=1$';
 let counter = 0;
 const newTenant = async () => {
   const slug = `argon-${++counter}`;
-  const stub = env.TENANT.get(env.TENANT.idFromName(slug));
+  const stub = tenantStub(slug);
   await stub.initialize(slug, GENERIC_ASSIGNMENT);
   return stub;
 };

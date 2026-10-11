@@ -25,6 +25,8 @@ import {
   inTenant,
   loginToken,
   platformLogin,
+  platformStub,
+  setTestTenantStatus,
   tenantStub,
   type Method,
 } from './helpers.js';
@@ -303,7 +305,7 @@ describe('cron diario: mantenimiento y respaldos en R2', () => {
         ).status,
       ).toBe(201);
     }
-    await inPlatform(() => setTenantStatus('diario-susp', 'suspended'));
+    await setTestTenantStatus('diario-susp', 'suspended');
     await createSuperadmin('raiz', 'clave-raiz-123');
     expect((await platformLogin('raiz', 'clave-raiz-123')).status).toBe(200);
   });
@@ -325,6 +327,20 @@ describe('cron diario: mantenimiento y respaldos en R2', () => {
     const control = await readJson(`_control/${today()}.json`);
     expect(Object.keys(control.tables)).toContain('tenants');
     expect(Object.keys(control.tables)).toContain('superadmins');
+  });
+
+  it('reconcilia el estado de cada negocio con el de la plataforma', async () => {
+    await createTestTenant('diario-desfasado');
+    // Solo control.db: como si el aviso al negocio se hubiera perdido.
+    await inPlatform(() => setTenantStatus('diario-desfasado', 'suspended'));
+    expect((await call('diario-desfasado', 'GET', '/auth/status')).status).toBe(200);
+
+    await runCron(DAILY);
+    expect((await call('diario-desfasado', 'GET', '/auth/status')).status).toBe(403);
+
+    await inPlatform(() => setTenantStatus('diario-desfasado', 'active'));
+    await runCron(DAILY);
+    expect((await call('diario-desfasado', 'GET', '/auth/status')).status).toBe(200);
   });
 
   it('los respaldos no llevan sesiones', async () => {
@@ -361,9 +377,7 @@ describe('cron diario: mantenimiento y respaldos en R2', () => {
       state.storage.kv.put('rl:login:8.8.8.8', { start: now - 10 * 60_000, count: 1 });
     };
     await runInDurableObject(tenantStub('diario-a'), (_i, state) => putRl(state));
-    await runInDurableObject(env.PLATFORM.get(env.PLATFORM.idFromName('platform')), (_i, state) =>
-      putRl(state),
-    );
+    await runInDurableObject(platformStub(), (_i, state) => putRl(state));
     await inPlatform(() =>
       controlDb
         .prepare(
@@ -391,10 +405,7 @@ describe('cron diario: mantenimiento y respaldos en R2', () => {
     const tenantRl = await runInDurableObject(tenantStub('diario-a'), (_i, s) => rlKeys(s));
     expect(tenantRl).not.toContain('rl:login:9.9.9.9');
     expect(tenantRl).toContain('rl:login:8.8.8.8');
-    const platformRl = await runInDurableObject(
-      env.PLATFORM.get(env.PLATFORM.idFromName('platform')),
-      (_i, s) => rlKeys(s),
-    );
+    const platformRl = await runInDurableObject(platformStub(), (_i, s) => rlKeys(s));
     expect(platformRl).not.toContain('rl:login:9.9.9.9');
     expect(platformRl).toContain('rl:login:8.8.8.8');
 

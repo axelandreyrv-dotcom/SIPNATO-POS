@@ -11,6 +11,7 @@ import {
 } from '@sipnato/shared';
 import { bootstrapTenant } from '../db/bootstrap.js';
 import { runInTenant, type TenantDb } from '../db/client.js';
+import type { TenantStatus } from '../db/control.js';
 import { MIGRATIONS } from '../db/migrations.js';
 import { PRE_MIGRATION_PREFIX, runMigrations } from '../db/migrator.js';
 import * as schema from '../db/schema.js';
@@ -18,7 +19,7 @@ import type { Env } from '../env.js';
 import { runAutoClose, scheduleAutoClose } from '../lib/auto-close.js';
 import { TENANT_HEADER } from '../lib/constants.js';
 import { todayCR } from '../lib/cr-time.js';
-import { NegocioNoEncontrado } from '../lib/errors.js';
+import { NegocioNoEncontrado, NegocioSuspendido } from '../lib/errors.js';
 import { exportTenant } from '../lib/export.js';
 import { errorResponse, type AppEnv } from '../lib/http.js';
 import { sweepRateLimits } from '../lib/rate-limit.js';
@@ -29,6 +30,11 @@ import { assignBusiness } from '../modules/business/service.js';
 import { createTenantApp } from '../tenant-app.js';
 
 const SLUG_KEY = 'slug';
+// Lo escribe la plataforma (initialize, setStatus y la reconciliación diaria): el Worker manda
+// cada petición directo aquí, sin preguntarle a la plataforma, y aquí se responde 403. Sin la
+// clave (negocios creados antes de guardarla) el negocio está activo.
+const STATUS_KEY = 'status';
+const TENANT_STATUSES: readonly TenantStatus[] = ['active', 'suspended'];
 
 interface AuditMeta {
   ip: string | null;
@@ -93,6 +99,17 @@ export class TenantDO extends DurableObject<Env> {
     return runInTenant({ slug, db: this.db, actor: null, env: this.env }, fn);
   }
 
+  private status(): TenantStatus {
+    return this.ctx.storage.kv.get<TenantStatus>(STATUS_KEY) ?? 'active';
+  }
+
+  private writeStatus(status: TenantStatus): void {
+    if (!TENANT_STATUSES.includes(status)) throw new Error(`Estado inválido: "${status}"`);
+    if (this.ctx.storage.kv.get<TenantStatus>(STATUS_KEY) !== status) {
+      this.ctx.storage.kv.put(STATUS_KEY, status);
+    }
+  }
+
   private requireSlug(): string {
     const slug = this.slug();
     if (slug === undefined) throw new Error('Este negocio no está inicializado');
@@ -103,13 +120,19 @@ export class TenantDO extends DurableObject<Env> {
   // Un error lanzado aquí cruza el RPC solo con su mensaje: un AppError pierde code y status, así
   // que el llamador nunca debe depender de ellos.
 
-  // La plataforma lo llama al crear el negocio. Repetirlo con la misma asignación no cambia nada;
-  // un DO ya inicializado nunca pasa a ser de otro negocio.
-  async initialize(slug: string, assignment: AssignBusinessInput): Promise<void> {
+  // La plataforma lo llama al crear el negocio (o al terminar un alta que falló a medias, con el
+  // estado que tenga en control.db). Repetirlo con la misma asignación no cambia nada; un DO ya
+  // inicializado nunca pasa a ser de otro negocio.
+  async initialize(
+    slug: string,
+    assignment: AssignBusinessInput,
+    status: TenantStatus = 'active',
+  ): Promise<void> {
     const current = this.slug();
     if (current !== undefined && current !== slug) {
       throw new Error(`Este Durable Object ya pertenece al negocio "${current}"`);
     }
+    this.writeStatus(status);
     await this.ctx.blockConcurrencyWhile(() => this.ensureSchema());
     this.inContext(slug, () => {
       const profile = getProfile();
@@ -121,6 +144,14 @@ export class TenantDO extends DurableObject<Env> {
     await this.scheduleAutoClose();
   }
 
+  // Suspender o reactivar (panel, consola y la reconciliación diaria). En un DO que nunca se
+  // inicializó no escribe nada: false, y initialize recibirá el estado cuando se termine el alta.
+  setStatus(status: TenantStatus): boolean {
+    if (this.slug() === undefined) return false;
+    this.writeStatus(status);
+    return true;
+  }
+
   // Programa (o borra) la alarma del cierre automático según la configuración del negocio.
   async scheduleAutoClose(): Promise<void> {
     const slug = this.slug();
@@ -128,11 +159,13 @@ export class TenantDO extends DurableObject<Env> {
     await this.inContext(slug, () => scheduleAutoClose(this.ctx.storage));
   }
 
-  // Lo llama el cron diario (03:00 CR): limpieza y respaldo JSON del negocio en R2. Un DO que
-  // nunca se inicializó (el alta falló a medias) no tiene nada que respaldar ni debe crear tablas.
-  async dailyMaintenance(): Promise<void> {
+  // Lo llama el cron diario (03:00 CR): el estado que tiene la plataforma (por si un aviso se
+  // perdió), limpieza y respaldo JSON del negocio en R2. Un DO que nunca se inicializó (el alta
+  // falló a medias) no tiene nada que respaldar ni debe crear tablas.
+  async dailyMaintenance(status?: TenantStatus): Promise<void> {
     const slug = this.slug();
     if (slug === undefined) return;
+    if (status !== undefined) this.writeStatus(status);
     const backup = this.inContext(slug, () => {
       deleteStaleSessions();
       return exportTenant(this.ctx.storage);
@@ -230,6 +263,7 @@ export class TenantDO extends DurableObject<Env> {
     if (slug === undefined || request.headers.get(TENANT_HEADER) !== slug) {
       return errorResponse(new NegocioNoEncontrado());
     }
+    if (this.status() === 'suspended') return errorResponse(new NegocioSuspendido());
     return this.inContext(slug, () => this.app.fetch(request, this.env));
   }
 }

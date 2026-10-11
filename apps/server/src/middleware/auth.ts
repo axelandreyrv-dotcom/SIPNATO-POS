@@ -19,7 +19,7 @@ export const requireAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
     return c.json({ error: { code: 'SESSION_EXPIRED', message: 'Sesión expirada' } }, 401);
   }
 
-  await touchSession(result.session.id);
+  await touchSession(result.session);
   c.set('sessionId', result.session.id);
   c.set('user', result.user);
   setActor(result.user);
