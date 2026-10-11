@@ -192,7 +192,9 @@ export function AppLayout() {
   }
 
   return (
-    <div className="flex h-[100dvh] w-full">
+    // overflow-hidden + main relativo: un elemento con posición absoluta dentro del contenido
+    // (p. ej. los `sr-only`) no puede alargar la página ni hacer que el navegador la desplace entera.
+    <div className="flex h-[100dvh] w-full overflow-hidden">
       {/* ── Desktop sidebar ──────────────────────────────────────────────── */}
       <aside className="hidden sm:flex sm:w-60 sm:shrink-0 flex-col bg-brand-navy">
         <div className="px-4 py-5">
@@ -248,7 +250,7 @@ export function AppLayout() {
 
       {/* ── Main content ──────────────────────────────────────────────────── */}
       <main
-        className="flex-1 overflow-auto pt-14 sm:pt-0 bg-surface-bg vt-page"
+        className="relative flex-1 overflow-auto pt-14 sm:pt-0 bg-surface-bg vt-page"
         inert={drawerOpen || undefined}
       >
         <SubscriptionNotice />
