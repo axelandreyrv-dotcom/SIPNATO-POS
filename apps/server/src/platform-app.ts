@@ -3,9 +3,10 @@ import { bodyLimit } from 'hono/body-limit';
 import { currentPlatformStorage } from './db/control.js';
 import { apiHeaders, errorHandler, type AppEnv } from './lib/http.js';
 import { rateLimit } from './lib/rate-limit.js';
+import opsRoutes from './modules/ops/routes.js';
 import platformRoutes from './modules/platform/routes.js';
 
-// API del panel (admin.<dominio>). Corre dentro del Durable Object de la plataforma: no expone
+// API del panel (admin.<dominio>) y la consola de operaciones (/internal/ops). Corre dentro del Durable Object de la plataforma: no expone
 // ninguna ruta de negocio y nunca entra al contexto de un negocio.
 export function createPlatformApp(): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
@@ -35,6 +36,7 @@ export function createPlatformApp(): Hono<AppEnv> {
     c.json({ status: 'ok', environment: c.env.ENVIRONMENT, time: new Date().toISOString() }),
   );
   app.route('/platform', platformRoutes);
+  app.route('/internal/ops', opsRoutes);
 
   app.notFound((c) =>
     c.json({ error: { code: 'NO_ENCONTRADO', message: 'Ruta no encontrada' } }, 404),

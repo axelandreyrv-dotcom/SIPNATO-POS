@@ -241,7 +241,7 @@ export class NegocioYaActivado extends AppError {
   constructor() {
     super(
       'NEGOCIO_YA_ACTIVADO',
-      'Este negocio ya tiene dueño. Para recuperar el acceso usa reset-admin en el servidor.',
+      'Este negocio ya tiene dueño. Para recuperar el acceso usa `pnpm ops reset-owner`.',
       409,
     );
   }
@@ -256,5 +256,27 @@ export class PagoNoEncontrado extends AppError {
 export class PagoYaAnulado extends AppError {
   constructor() {
     super('PAGO_YA_ANULADO', 'Este pago ya fue anulado', 409);
+  }
+}
+
+export class NegocioNoActivado extends AppError {
+  constructor() {
+    super(
+      'NEGOCIO_NO_ACTIVADO',
+      'Este negocio todavía no tiene dueño: emite un código de activación',
+      409,
+    );
+  }
+}
+
+export class SuperadminNoEncontrado extends AppError {
+  constructor() {
+    super('SUPERADMIN_NO_ENCONTRADO', 'No existe ese superadministrador', 404);
+  }
+}
+
+export class SuperadminYaExiste extends AppError {
+  constructor() {
+    super('SUPERADMIN_YA_EXISTE', 'Ya existe un superadministrador con ese usuario', 409);
   }
 }

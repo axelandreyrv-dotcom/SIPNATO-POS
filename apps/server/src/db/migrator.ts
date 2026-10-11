@@ -2,6 +2,9 @@ export type Migration = { tag: string; sql: string };
 
 const STATEMENT_BREAKPOINT = '--> statement-breakpoint';
 
+// Clave del kv donde queda el bookmark previo a una migración: `pre-migracion:<tag>`.
+export const PRE_MIGRATION_PREFIX = 'pre-migracion:';
+
 // Tablas internas de SQLite y de Durable Objects (`_cf_KV`) no cuentan como datos del negocio.
 function hasBusinessTables(sql: SqlStorage): boolean {
   const row = sql
@@ -38,7 +41,7 @@ export async function runMigrations(
   let bookmark: string | null = null;
   if (hasBusinessTables(sql)) {
     bookmark = await storage.getCurrentBookmark();
-    storage.kv.put(`pre-migracion:${first.tag}`, bookmark);
+    storage.kv.put(`${PRE_MIGRATION_PREFIX}${first.tag}`, bookmark);
   }
 
   for (const migration of pending) {

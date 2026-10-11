@@ -21,6 +21,16 @@ export function verifyPassword(password: string, hash: string): Promise<boolean>
 export const DUMMY_HASH =
   '$argon2id$v=19$m=19456,t=2,p=1$gO2LpUKKzWOKwUGqXPYL6Q$O3kGdu0NjthnnEW/Yc2kFmA27aIkBpCnIOII2b/Te4Q';
 
+// Contraseña temporal (base64url, sin relleno): se muestra una vez y se cambia al entrar.
+// 9 bytes → 12 caracteres, 18 bytes → 24.
+export function generateTemporaryPassword(byteCount: number): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(byteCount));
+  return btoa(String.fromCharCode(...bytes))
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replace(/=+$/, '');
+}
+
 // ─── Recovery codes ───────────────────────────────────────────────────────────
 // High-entropy random string, shown once. Hashed with argon2id at rest
 // because the user types it in (brute-force protection needed).

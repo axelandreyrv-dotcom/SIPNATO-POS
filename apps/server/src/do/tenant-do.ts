@@ -12,7 +12,7 @@ import {
 import { bootstrapTenant } from '../db/bootstrap.js';
 import { runInTenant, type TenantDb } from '../db/client.js';
 import { MIGRATIONS } from '../db/migrations.js';
-import { runMigrations } from '../db/migrator.js';
+import { PRE_MIGRATION_PREFIX, runMigrations } from '../db/migrator.js';
 import * as schema from '../db/schema.js';
 import type { Env } from '../env.js';
 import { runAutoClose, scheduleAutoClose } from '../lib/auto-close.js';
@@ -33,6 +33,14 @@ const SLUG_KEY = 'slug';
 interface AuditMeta {
   ip: string | null;
   userAgent: string | null;
+}
+
+// Motivo del reinicio tras programar una restauración: el llamador lo reconoce en el error.
+export const RESTORE_ABORT_REASON = 'Restauracion a un bookmark: reinicio del Durable Object';
+
+export interface TenantBookmarks {
+  current: string;
+  preMigration: { tag: string; bookmark: string }[];
 }
 
 export interface TenantPlatformSummary {
@@ -169,6 +177,34 @@ export class TenantDO extends DurableObject<Env> {
   async resetOwner(): Promise<{ username: string; tempPassword: string; recoveryCode: string }> {
     const slug = this.requireSlug();
     return this.inContext(slug, () => resetOwner());
+  }
+
+  // ─── Recuperación a un punto en el tiempo (consola de operaciones) ───
+
+  // Los bookmarks guardados antes de cada migración y el del momento actual.
+  async bookmarks(): Promise<TenantBookmarks> {
+    this.requireSlug();
+    const preMigration = [
+      ...this.ctx.storage.kv.list<string>({ prefix: PRE_MIGRATION_PREFIX }),
+    ].map(([key, bookmark]) => ({ tag: key.slice(PRE_MIGRATION_PREFIX.length), bookmark }));
+    return { current: await this.ctx.storage.getCurrentBookmark(), preMigration };
+  }
+
+  // Deja la BD (tablas y kv) como estaba en `bookmark` y reinicia el DO para que la restauración
+  // ocurra ya. Si funciona no devuelve nada: el llamador recibe el error del reinicio, con
+  // RESTORE_ABORT_REASON en el mensaje. Si no se pudo programar (bookmark inválido, fuera de los
+  // 30 días, o un runtime sin PITR como el local) lo devuelve sin lanzar y el DO sigue igual.
+  async restoreToBookmark(bookmark: string): Promise<{ scheduled: false; reason: string }> {
+    if (this.slug() === undefined) {
+      return { scheduled: false, reason: 'Este negocio no está inicializado' };
+    }
+    try {
+      await this.ctx.storage.onNextSessionRestoreBookmark(bookmark);
+    } catch (err) {
+      return { scheduled: false, reason: err instanceof Error ? err.message : String(err) };
+    }
+    this.ctx.abort(RESTORE_ABORT_REASON);
+    throw new Error(RESTORE_ABORT_REASON);
   }
 
   // Cierre automático de caja (CLAUDE.md §7: el corte agrupa por caja, no por fecha).

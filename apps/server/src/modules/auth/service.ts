@@ -1,6 +1,7 @@
 import type { SetupInput } from '@sipnato/shared';
 import {
   generateRecoveryCode,
+  generateTemporaryPassword,
   hashPassword,
   hashRecoveryCode,
   verifyRecoveryCode,
@@ -155,10 +156,7 @@ export async function resetOwner(): Promise<{
   tempPassword: string;
   recoveryCode: string;
 }> {
-  const bytes = crypto.getRandomValues(new Uint8Array(9));
-  const tempPassword = btoa(String.fromCharCode(...bytes))
-    .replaceAll('+', '-')
-    .replaceAll('/', '_');
+  const tempPassword = generateTemporaryPassword(9);
   const recoveryCode = generateRecoveryCode();
   const secretHash = await hashPassword(tempPassword);
   const recoveryCodeHash = await hashRecoveryCode(recoveryCode);

@@ -36,6 +36,7 @@ import {
   DUMMY_HASH,
   generateSessionToken,
   generateSetupCode,
+  generateTemporaryPassword,
   hashPassword,
   hashSessionToken,
   hashSetupCode,
@@ -49,6 +50,8 @@ import {
   NegocioYaExiste,
   PagoNoEncontrado,
   PagoYaAnulado,
+  SuperadminNoEncontrado,
+  SuperadminYaExiste,
   UsuarioBloqueado,
 } from '../../lib/errors.js';
 import { INACTIVITY_TIMEOUT_MS, SESSION_DURATION_MS } from '../../lib/session.js';
@@ -62,13 +65,16 @@ import {
   insertPayment,
   insertPlatformAudit,
   insertPlatformSession,
+  insertSuperadmin,
   latestActivePaymentId,
   listPayments,
   listPlatformAudit,
+  listSuperadmins,
   markPaymentVoided,
   readPlatformSettings,
   recordSuperadminFailure,
   resetSuperadminFailures,
+  setSuperadminActive,
   sumPaymentsBetween,
   touchPlatformSession,
   updateSuperadminPassword,
@@ -177,6 +183,67 @@ export async function changeSuperadminPassword(
   return openSession(admin.id, meta);
 }
 
+// ─── Cuentas de superadministrador ────────────────────────────────────────────
+// No hay alta ni recuperación desde el panel: quien controla el panel controla todos los
+// negocios. Solo la consola de operaciones (/internal/ops) llama a estas funciones.
+
+// 18 bytes → 24 caracteres: se copia una vez y se cambia en "Mi cuenta" del panel.
+const SUPERADMIN_TEMP_PASSWORD_BYTES = 18;
+
+function requireSuperadmin(username: string) {
+  const admin = findSuperadminByUsername(username);
+  if (!admin) throw new SuperadminNoEncontrado();
+  return admin;
+}
+
+export async function createSuperadminAccount(username: string): Promise<string> {
+  const tempPassword = generateTemporaryPassword(SUPERADMIN_TEMP_PASSWORD_BYTES);
+  // El hash va primero: entre la verificación y la inserción no hay await (CLAUDE.md §6.13).
+  const hash = await hashPassword(tempPassword);
+  controlTransaction(() => {
+    if (findSuperadminByUsername(username)) throw new SuperadminYaExiste();
+    insertSuperadmin(username, hash);
+  });
+  return tempPassword;
+}
+
+// Contraseña temporal nueva, desbloquea la cuenta y cierra todas sus sesiones.
+export async function resetSuperadminPassword(username: string): Promise<string> {
+  requireSuperadmin(username);
+  const tempPassword = generateTemporaryPassword(SUPERADMIN_TEMP_PASSWORD_BYTES);
+  const hash = await hashPassword(tempPassword);
+  controlTransaction(() => {
+    const admin = requireSuperadmin(username);
+    updateSuperadminPassword(admin.id, hash);
+    deleteSuperadminSessions(admin.id);
+  });
+  return tempPassword;
+}
+
+// Desactivar cierra sus sesiones; la cuenta nunca se borra.
+export function setSuperadminEnabled(username: string, enabled: boolean): void {
+  controlTransaction(() => {
+    const admin = requireSuperadmin(username);
+    setSuperadminActive(admin.id, enabled);
+    if (!enabled) deleteSuperadminSessions(admin.id);
+  });
+}
+
+export function listSuperadminAccounts(): {
+  username: string;
+  active: boolean;
+  locked: boolean;
+  createdAt: string;
+}[] {
+  const now = Date.now();
+  return listSuperadmins().map((a) => ({
+    username: a.username,
+    active: a.active === 1,
+    locked: a.locked_until !== null && new Date(a.locked_until).getTime() > now,
+    createdAt: a.created_at,
+  }));
+}
+
 // ─── Configuración de la plataforma ───────────────────────────────────────────
 
 export function getPlatformSettings(): PlatformSettings {
@@ -207,7 +274,7 @@ export function updatePlatformSettings(
 
 // ─── Negocios ─────────────────────────────────────────────────────────────────
 
-const tenantDO = (slug: string) => env.TENANT.get(env.TENANT.idFromName(slug));
+export const tenantDO = (slug: string) => env.TENANT.get(env.TENANT.idFromName(slug));
 
 const DEFAULT_ASSIGNMENT: AssignBusinessInput = {
   template: 'generico',
@@ -317,7 +384,7 @@ export async function getTenantDetail(slug: string): Promise<PlatformTenantDetai
 }
 
 export async function createTenant(
-  admin: Superadmin,
+  admin: Superadmin | null,
   input: CreateTenantInput,
   meta: Meta,
 ): Promise<{ tenant: PlatformTenant; setupCode: string }> {
@@ -343,7 +410,7 @@ export async function createTenant(
       action: 'TENANT_CREATED',
       tenantSlug: input.slug,
       payload: { ...input },
-      superadminId: admin.id,
+      superadminId: admin?.id ?? null,
       meta,
     });
   });
@@ -414,7 +481,7 @@ export async function updateTenant(
 }
 
 export async function changeTenantStatus(
-  admin: Superadmin,
+  admin: Superadmin | null,
   slug: string,
   status: TenantStatus,
   meta: Meta,
@@ -425,7 +492,7 @@ export async function changeTenantStatus(
     insertPlatformAudit({
       action: status === 'suspended' ? 'TENANT_SUSPENDED' : 'TENANT_ACTIVATED',
       tenantSlug: slug,
-      superadminId: admin.id,
+      superadminId: admin?.id ?? null,
       meta,
     });
   });
@@ -435,7 +502,7 @@ export async function changeTenantStatus(
 // Sirve también si el código se gastó y el dueño no llegó a crearse: mientras el negocio no
 // tenga usuarios se puede emitir otro.
 export async function regenerateSetupCode(
-  admin: Superadmin,
+  admin: Superadmin | null,
   slug: string,
   meta: Meta,
 ): Promise<string> {
@@ -453,7 +520,7 @@ export async function regenerateSetupCode(
     insertPlatformAudit({
       action: 'TENANT_SETUP_CODE_ISSUED',
       tenantSlug: slug,
-      superadminId: admin.id,
+      superadminId: admin?.id ?? null,
       meta,
     });
   });
