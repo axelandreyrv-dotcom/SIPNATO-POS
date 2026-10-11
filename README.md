@@ -2,7 +2,8 @@
 
 Punto de venta web para negocios en Costa Rica: talleres de celulares o electrónica, talleres mecánicos,
 tiendas y otros. Cada negocio tiene **su propia base de datos** y entra por su subdominio HTTPS
-(`taller.dosuxsoft.com`); la plataforma se administra desde `admin.dosuxsoft.com`.
+(`taller.dosuxsoft.com`); la plataforma se administra desde `admin.dosuxsoft.com`. Corre completo en
+**Cloudflare Workers**.
 
 **País:** Costa Rica · **Moneda:** colones (₡), con cobro en dólares convertido a colones
 
@@ -35,18 +36,19 @@ Fuera de alcance por decisión del proyecto: facturación electrónica de Hacien
 | Paquete | Tecnología |
 |---|---|
 | `apps/web` | React 19, Vite 6, Tailwind CSS v4, TanStack Router y Query, Recharts |
-| `apps/server` | Fastify 5, better-sqlite3, Drizzle ORM, argon2id, node-cron |
+| `apps/server` | Cloudflare Workers, Durable Objects con SQLite, Hono, Drizzle ORM (`durable-sqlite`), argon2id en WebAssembly |
 | `packages/shared` | Esquemas Zod y utilidades compartidas (montos en ₡, plantillas, fechas de la suscripción) |
 
-Infraestructura: VPS Ubuntu · Docker Compose · Caddy (HTTPS automático por subdominio) · SQLite en WAL.
+Infraestructura: Cloudflare Workers (plan Workers Paid) · un Durable Object SQLite por negocio y otro para la
+plataforma · R2 para los respaldos · Static Assets para el frontend · Universal SSL para `*.dosuxsoft.com`.
 
 ```
 [Navegador: SPA en <negocio>.dosuxsoft.com]  ──window.print()──►  ticketera 80 mm
-        │ HTTPS (Caddy)
+        │ HTTPS (Cloudflare)
         ▼
-   API Fastify ── Host → negocio ── /app/data/tenants/<slug>.db   (un archivo por negocio)
-        │                          /app/data/control.db            (negocios, mensualidades, panel)
-        └── node-cron: cierre de caja, backups, limpieza de sesiones, tipo de cambio BCCR
+   Worker "dosuxsoft" ── Host → destino ──┬─ admin.*  → PlatformDO  (negocios, mensualidades, panel)
+        │                                 └─ <slug>.* → TenantDO    (todos los datos de ese negocio)
+        └── Cron Triggers y alarmas: cierre de caja, tipo de cambio BCCR, mantenimiento y respaldos a R2
 ```
 
 ---
@@ -57,77 +59,90 @@ Infraestructura: VPS Ubuntu · Docker Compose · Caddy (HTTPS automático por su
 git clone https://github.com/axelandreyrv-dotcom/SIPNATO-POS.git
 cd SIPNATO-POS
 pnpm install            # también compila packages/shared
-pnpm dev                # servidor :3000 + web :5174
+cp apps/server/.dev.vars.example apps/server/.dev.vars   # completar OPS_TOKEN (openssl rand -hex 32)
+pnpm dev                # Worker (wrangler dev) en :8787 + web en :5174
 ```
 
-La base de desarrollo empieza vacía (`apps/server/data/`). Para crear un negocio y la cuenta del panel:
+El estado local vive en `apps/server/.wrangler/state` (para empezar de cero: detener `pnpm dev` y borrar la
+carpeta). Para crear la cuenta del panel y un negocio:
 
 ```bash
-pnpm --filter @sipnato/server tenant create taller "Taller de prueba"   # imprime el código de activación
-pnpm --filter @sipnato/server superadmin create dev-admin              # imprime una contraseña temporal
+# Node no resuelve *.localhost: la consola se apunta a la IP
+OPS_TOKEN=<el de .dev.vars> pnpm --filter @sipnato/server ops superadmin-create username=admin --url http://127.0.0.1:8787
 ```
 
-- Negocio: `http://taller.localhost:5174` → `/setup` con el código de activación.
-- Panel: `http://admin.localhost:5174`.
-- Opcional: `pnpm --filter @sipnato/server db:seed taller` agrega datos de ejemplo.
-- Variables opcionales en `apps/server/.env` (ver [`apps/server/.env.example`](apps/server/.env.example)).
+- Panel: `http://admin.localhost:5174` → crear un negocio, copiar su código de activación.
+- Negocio: `http://<slug>.localhost:5174` → `/setup` con el código de activación.
+- `http://localhost:5174` usa el negocio `DEV_TENANT` (`taller`).
+- Variables y secretos: [`apps/server/.dev.vars.example`](apps/server/.dev.vars.example) y `apps/server/wrangler.jsonc`.
 
 Verificaciones:
 
 ```bash
 pnpm lint
-pnpm --filter @sipnato/server test
-pnpm build
+pnpm format:check
+pnpm -r exec tsc --noEmit
+pnpm --filter @sipnato/server test    # corre dentro de workerd, con Durable Objects reales
 ```
 
 ---
 
 ## Producción
 
-Guía completa: [`deploy/DEPLOY.md`](deploy/DEPLOY.md). Actualizaciones: [`deploy/ACTUALIZAR-VPS.md`](deploy/ACTUALIZAR-VPS.md).
+Guía completa (activar R2, secretos, DNS, primer superadministrador, restauración, checklist):
+[`deploy/DEPLOY.md`](deploy/DEPLOY.md).
 
 ```bash
-git clone https://github.com/axelandreyrv-dotcom/SIPNATO-POS.git /opt/dosuxsoft
-cd /opt/dosuxsoft/deploy
-cp .env.example .env     # BCCR_API_TOKEN (opcional)
-docker compose build && docker compose up -d
-docker exec -it deploy-server-1 node apps/server/dist/scripts/superadmin.js create admin
+cd apps/server
+npx wrangler secret put OPS_TOKEN        # una vez; también BCCR_API_TOKEN (opcional)
+pnpm run deploy                          # con "run": compila shared y web, y despliega el Worker
+pnpm ops superadmin-create username=admin   # con OPS_TOKEN en el entorno
 ```
+
+Actualizar es volver a ejecutar `pnpm run deploy`: las migraciones corren solas en cada negocio.
 
 ---
 
 ## Seguridad
 
-- Una base de datos por negocio; el negocio se resuelve solo en el servidor, desde el subdominio.
+- Una base de datos (Durable Object) por negocio; el negocio se resuelve solo en el servidor, desde el subdominio.
   El panel (`admin.`) no expone rutas de negocio y viceversa.
 - Contraseñas, PIN, códigos de activación y de recuperación con **argon2id**; bloqueo tras 5 intentos.
 - Sesiones: token aleatorio en cookie `HttpOnly + Secure + SameSite=Strict`, 8 h absolutas y 60 min de
-  inactividad. Sin CORS: cada interfaz llama a su API en su mismo origen.
-- Rate limiting por negocio + IP; headers HSTS, CSP, X-Frame-Options en Caddy.
+  inactividad. Sin CORS: cada interfaz llama a su API en su mismo origen, y toda escritura exige origen propio
+  y `application/json` (protección CSRF).
+- Rate limiting por negocio + IP; headers HSTS, CSP y X-Frame-Options en `apps/web/public/_headers` y en el Worker.
 - Ventas y gastos con borrado lógico; bitácora de solo inserción por negocio y otra para el panel.
-- Backups diarios por negocio y de la plataforma, copia antes de cada migración.
-- Scripts de emergencia por SSH: `reset-admin.js <negocio>`, `superadmin.js reset <usuario>`.
+- Respaldos: recuperación a un punto en el tiempo (30 días), exportación JSON diaria a R2 y descarga del dueño.
+  Antes de cada migración se guarda un punto de restauración.
+- Operaciones de emergencia por la consola `pnpm ops` (endpoint `/internal/ops` protegido por `OPS_TOKEN`):
+  cuentas del panel, negocios, restablecer al dueño y restaurar un negocio.
 
 ---
 
 ## Estructura
 
 ```
-apps/server/src/
-  db/           schema Drizzle, migraciones, control.db, cliente por negocio, seed
-  jobs/         cierre automático, backups, limpieza de sesiones, tipo de cambio
-  lib/          errores, crypto, sesiones, hora de CR, cliente del BCCR
-  middleware/   negocio por Host, auth y roles, autorización de supervisor, módulos, panel
-  modules/      un módulo por dominio (routes + service + repository), incluido platform/
-  scripts/      tenant, superadmin, reset-admin
-  tests/        tests de integración (node:test)
+apps/server/
+  wrangler.jsonc  Worker, Durable Objects, R2, crons y Static Assets
+  scripts/        ops.ts (consola de operaciones)
+  src/
+    worker.ts     enrutador por Host y Cron Triggers
+    do/           TenantDO (un negocio) y PlatformDO (la plataforma)
+    tenant-app.ts, platform-app.ts   apps Hono de cada tipo de DO
+    db/           schema Drizzle, migraciones, contexto por negocio y de la plataforma
+    lib/          errores, crypto, sesiones, límites de intentos, hora de CR, cliente del BCCR
+    middleware/   auth y roles, autorización de supervisor, módulos, panel
+    modules/      un módulo por dominio (routes + service + repository), incluidos platform/ y ops/
+    tests/        tests de integración (vitest en workerd)
 apps/web/src/
-  features/     una carpeta por módulo, incluido platform/ (panel)
-  routes/       TanStack Router (login, setup, _auth/*)
-  components/   piezas compartidas (gráfico de ventas, WhatsApp, autorización…)
+  features/       una carpeta por módulo, incluido platform/ (panel)
+  routes/         TanStack Router (login, setup, _auth/*)
+  components/     piezas compartidas (gráfico de ventas, WhatsApp, autorización…)
+apps/web/public/  _headers (headers de seguridad y caché)
 packages/shared/src/
-  schemas/      contratos Zod compartidos por web y servidor
-deploy/         docker-compose, Caddyfile, backup.sh, guías
+  schemas/        contratos Zod compartidos por web y servidor
+deploy/           DEPLOY.md
 ```
 
 `CLAUDE.md` documenta las reglas del proyecto y `ROADMAP.md` el historial de fases.

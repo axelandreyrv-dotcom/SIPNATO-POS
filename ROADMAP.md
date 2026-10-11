@@ -2,7 +2,7 @@
 
 > Desarrollo por fases pequeñas y lógicas. Cada fase es atómica: una sola responsabilidad, verificable antes de avanzar.
 > Al completar cada fase: marcar `[x]`, anotar la fecha y actualizar `CLAUDE.md`.
-> Última actualización: 2026-10-10 · Fases 0–15 ✅ · Versión multi-negocio: Fases A–F ✅, fusionadas en `main` · Siguiente: Fase G (Cloudflare Workers)
+> Última actualización: 2026-10-10 · Fases 0–15 ✅ · Versión multi-negocio: Fases A–F ✅, fusionadas en `main` · Fase G (Cloudflare Workers): código completo en la rama `fase-g-cloudflare`, falta el despliegue
 
 ---
 
@@ -39,7 +39,7 @@
 | D | Plantillas por tipo de negocio + órdenes de servicio configurables | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
 | E | Colones + dólares · notificaciones a clientes | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
 | F | Alta de negocios, cobro de suscripción y panel de superadministrador | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
-| G | Migración a Cloudflare Workers (Durable Objects por negocio, sin VPS) | ⏳ PLANIFICADA 2026-10-10 |
+| G | Migración a Cloudflare Workers (Durable Objects por negocio, sin VPS) | 🔶 Código completo 2026-10-10 (213 tests) · pendiente el despliegue |
 
 > IVA y facturación electrónica de Hacienda: **descartados** (decisión del usuario, 2026-10-07).
 
@@ -47,10 +47,13 @@
 
 - **El VPS se borró** (decisión del usuario): producción está fuera de línea y el registro DNS `*` apunta a una IP
   que ya no existe. No hay clientes ni datos que conservar.
-- Prueba de concepto en Cloudflare Workers Paid exitosa (Worker `dosuxsoft-poc`): argon2id en WebAssembly compatible
-  con los hashes actuales y las 11 migraciones corriendo en un Durable Object con Drizzle.
-- Siguiente: **Fase G** — diseño en `docs/superpowers/specs/2026-10-10-fase-g-cloudflare-design.md`, plan en
+- **Fase G: el código está completo** en la rama `fase-g-cloudflare` (tareas 1–9). Un Worker con un Durable Object
+  SQLite por negocio y otro para la plataforma; sin Fastify, Docker ni Caddy. 213 tests en `workerd`, `tsc`, lint y
+  formato limpios. Diseño en `docs/superpowers/specs/2026-10-10-fase-g-cloudflare-design.md`, plan en
   `docs/superpowers/plans/2026-10-10-fase-g-cloudflare.md`.
+- **Pendiente (tarea 10):** activar R2 en la cuenta, crear el bucket y los secretos, desplegar, cambiar el DNS `*` a
+  Proxied, crear el superadministrador en producción y hacer el simulacro de restauración PITR. Pasos en
+  `deploy/DEPLOY.md`.
 
 ### Estado anterior (2026-10-08, histórico)
 
@@ -72,21 +75,27 @@
 
 ---
 
-## Fase G — Cloudflare Workers ⏳ PLANIFICADA 2026-10-10
+## Fase G — Cloudflare Workers 🔶 CÓDIGO COMPLETO 2026-10-10 (falta el despliegue)
 
 > Objetivo: correr todo en Cloudflare Workers Paid ($5/mes) en `*.dosuxsoft.com`, sin VPS. `seitcr.com`, su Worker
 > y los registros `dosuxsoft.com` / `www` / correo no se tocan. Detalle: plan `docs/superpowers/plans/2026-10-10-fase-g-cloudflare.md`.
 
-- [ ] 1. wrangler, esqueleto del Worker y tests en `workerd`
-- [ ] 2. BD por negocio en Durable Object, migraciones y argon2id en WebAssembly
-- [ ] 3. Rutas de los negocios en Hono dentro del Durable Object
-- [ ] 4. Respaldo del negocio descargable en JSON
-- [ ] 5. Panel de la plataforma en su Durable Object y RPC con los negocios
-- [ ] 6. Enrutado por subdominio, SPA y headers de seguridad
-- [ ] 7. Cierre automático con alarmas, crons y respaldos en R2
-- [ ] 8. Operaciones de emergencia por endpoint con secreto (`/internal/ops`)
-- [ ] 9. Desarrollo local con wrangler; fuera Fastify, Docker y Caddy
+- [x] 1. wrangler, esqueleto del Worker y tests en `workerd` — 2026-10-10
+- [x] 2. BD por negocio en Durable Object, migraciones y argon2id en WebAssembly — 2026-10-10
+- [x] 3. Rutas de los negocios en Hono dentro del Durable Object — 2026-10-10
+- [x] 4. Respaldo del negocio descargable en JSON — 2026-10-10
+- [x] 5. Panel de la plataforma en su Durable Object y RPC con los negocios — 2026-10-10
+- [x] 6. Enrutado por subdominio, SPA y headers de seguridad — 2026-10-10
+- [x] 7. Cierre automático con alarmas, crons y respaldos en R2 — 2026-10-10
+- [x] 8. Operaciones de emergencia por endpoint con secreto (`/internal/ops`) — 2026-10-10
+- [x] 9. Desarrollo local con wrangler; fuera Fastify, Docker y Caddy — 2026-10-10
 - [ ] 10. Despliegue, DNS (`*` → Proxied) y documentación · `/grill-me`
+  - [x] Documentación (`CLAUDE.md`, `deploy/DEPLOY.md`, `README.md`, este archivo) — 2026-10-10
+  - [x] Revisión final del código: protección CSRF (`sameOriginWrites`) y panel tolerante a negocios caídos — 2026-10-10
+  - [ ] Despliegue (activar R2, bucket, secretos `OPS_TOKEN` y `BCCR_API_TOKEN`, `pnpm --filter @sipnato/server run deploy`)
+  - [ ] DNS (`*` → `AAAA 100::` Proxied)
+  - [ ] Superadmin en producción (`pnpm ops superadmin-create username=admin`) y cambio de su contraseña temporal
+  - [ ] Simulacro PITR (restaurar un negocio de prueba con `pnpm ops restore-tenant`; en local no se puede probar)
 
 ---
 
