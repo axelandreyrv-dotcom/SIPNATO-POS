@@ -129,7 +129,7 @@ describe('panel de superadministrador', () => {
     const res = await platformCall('GET', '/health');
     expect(res.status).toBe(200);
     const body = await json(res);
-    expect(body).toEqual({ status: 'ok', environment: 'test', time: expect.any(String) });
+    expect(body).toEqual({ status: 'ok', environment: 'test', time: expect.any(String), colo: null });
   });
 
   it('el panel no existe fuera de admin.<dominio> ni expone rutas de negocio', async () => {
