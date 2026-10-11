@@ -1,6 +1,6 @@
 import { env, SELF } from 'cloudflare:test';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { notes } from '../db/schema.js';
+import { auditLog, notes } from '../db/schema.js';
 import { db } from '../db/client.js';
 import type { Env } from '../env.js';
 import { COOKIE_NAME } from '../lib/constants.js';
@@ -145,6 +145,39 @@ describe('protección CSRF de la API', () => {
       headers: { Origin: 'https://otro.dosuxsoft.com', 'Sec-Fetch-Site': 'same-site' },
     });
     expect(res.status).toBe(200);
+  });
+
+  // GET con efectos: queda en la bitácora y gasta el cupo de 5 por hora.
+  it('la descarga del respaldo solo desde el mismo origen; desde otro sitio no deja rastro', async () => {
+    const own = await loginToken(SLUG, 'dueno', PWD);
+    const downloads = () =>
+      inTenant(
+        SLUG,
+        () =>
+          db
+            .select()
+            .from(auditLog)
+            .all()
+            .filter((r) => r.action === 'BACKUP_DOWNLOADED').length,
+      );
+    const before = await downloads();
+
+    for (const site of ['same-site', 'cross-site', 'none']) {
+      const res = await call(SLUG, 'GET', '/api/settings/backup/download', {
+        token: own,
+        headers: { 'Sec-Fetch-Site': site },
+      });
+      expect(res.status, site).toBe(403);
+      expect((await errorOf(res)).code).toBe('ORIGEN_NO_PERMITIDO');
+    }
+    expect(await downloads()).toBe(before);
+
+    const ok = await call(SLUG, 'GET', '/api/settings/backup/download', {
+      token: own,
+      headers: { 'Sec-Fetch-Site': 'same-origin' },
+    });
+    expect(ok.status).toBe(200);
+    expect(await downloads()).toBe(before + 1);
   });
 });
 

@@ -11,7 +11,8 @@
  *   superadmin-create username=<u>    superadmin-reset username=<u>    superadmin-list
  *   superadmin-disable username=<u>   superadmin-enable username=<u>
  *   tenant-list   tenant-create slug=<s> name="<nombre>"   tenant-suspend slug=<s>
- *   tenant-activate slug=<s>   setup-code slug=<s>   reset-owner slug=<s>
+ *   tenant-activate slug=<s>   tenant-delete slug=<s> (solo suspendidos, irreversible)
+ *   setup-code slug=<s>   reset-owner slug=<s>
  *   bookmarks slug=<s>   restore-tenant slug=<s> bookmark=<b>
  */
 

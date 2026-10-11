@@ -128,9 +128,11 @@ export class TenantDO extends DurableObject<Env> {
     await this.inContext(slug, () => scheduleAutoClose(this.ctx.storage));
   }
 
-  // Lo llama el cron diario (03:00 CR): limpieza y respaldo JSON del negocio en R2.
+  // Lo llama el cron diario (03:00 CR): limpieza y respaldo JSON del negocio en R2. Un DO que
+  // nunca se inicializó (el alta falló a medias) no tiene nada que respaldar ni debe crear tablas.
   async dailyMaintenance(): Promise<void> {
-    const slug = this.requireSlug();
+    const slug = this.slug();
+    if (slug === undefined) return;
     const backup = this.inContext(slug, () => {
       deleteStaleSessions();
       return exportTenant(this.ctx.storage);
@@ -177,6 +179,15 @@ export class TenantDO extends DurableObject<Env> {
   async resetOwner(): Promise<{ username: string; tempPassword: string; recoveryCode: string }> {
     const slug = this.requireSlug();
     return this.inContext(slug, () => resetOwner());
+  }
+
+  // Borra todo el negocio: tablas, kv (incluido el slug) y la alarma, que deleteAll no quita. El
+  // DO queda como uno que nunca se inicializó, así que el subdominio puede volver a crearse.
+  async destroy(): Promise<void> {
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
+    // Esta instancia puede seguir viva: sin esto, un initialize() posterior no recrearía el esquema.
+    this.schemaReady = false;
   }
 
   // ─── Recuperación a un punto en el tiempo (consola de operaciones) ───

@@ -18,6 +18,7 @@ import {
 import {
   consumeSetupCodeHash,
   controlTransaction,
+  deleteTenantRecord,
   findTenant,
   getSetupCodeHash,
   insertTenant,
@@ -47,6 +48,7 @@ import {
   CredencialesInvalidas,
   NegocioNoDisponible,
   NegocioNoEncontrado,
+  NegocioNoSuspendido,
   NegocioYaActivado,
   NegocioYaExiste,
   PagoNoEncontrado,
@@ -304,14 +306,29 @@ const UNAVAILABLE_INFO: TenantInfo = {
   unavailable: true,
 };
 
-// El resumen que el panel le pide a cada negocio. Un DO que falla no tumba el panel ni convierte
-// en error una escritura ya guardada en control.db (el operador la repetiría: un pago doble): el
-// negocio se muestra "No disponible". En el log solo el subdominio y el mensaje.
+// Un DO colgado (no falla, solo no contesta) dejaría esperando a todo el panel, porque la lista
+// pregunta a todos los negocios a la vez.
+const SUMMARY_TIMEOUT_MS = 5_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`sin respuesta en ${ms} ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+// El resumen que el panel le pide a cada negocio. Un DO que falla o tarda más de 5 s no tumba el
+// panel ni convierte en error una escritura ya guardada en control.db (el operador la repetiría:
+// un pago doble): el negocio se muestra "No disponible". En el log solo el subdominio y el mensaje.
 async function tenantSummary(
   slug: string,
 ): Promise<{ summary: TenantPlatformSummary | null; info: TenantInfo }> {
   try {
-    const summary = await tenantDO(slug).platformSummary();
+    const summary = await withTimeout(
+      Promise.resolve(tenantDO(slug).platformSummary()),
+      SUMMARY_TIMEOUT_MS,
+    );
     return { summary, info: infoFrom(summary) };
   } catch (err) {
     console.error(
@@ -535,6 +552,26 @@ export async function changeTenantStatus(
     });
   });
   return platformTenant(slug);
+}
+
+// Irreversible (solo por consola; el panel no lo ofrece). Primero se vacía el DO: si eso falla
+// control.db no cambia y el operador reintenta. Al revés quedaría un DO con datos y sin registro,
+// al que ya no se llega para borrarlo. Las copias en R2 se conservan hasta su rotación.
+export async function deleteSuspendedTenant(slug: string): Promise<{ name: string }> {
+  const tenant = requireTenant(slug);
+  if (tenant.status !== 'suspended') throw new NegocioNoSuspendido();
+  try {
+    await tenantDO(slug).destroy();
+  } catch (err) {
+    console.error(
+      `No se pudo vaciar el negocio "${slug}":`,
+      (err as Error)?.message ?? String(err),
+    );
+    throw new NegocioNoDisponible();
+  }
+  // Sin volver a mirar el estado: el DO ya está vacío y el registro no debe quedar apuntándole.
+  controlTransaction(() => deleteTenantRecord(slug));
+  return { name: tenant.name };
 }
 
 // Sirve también si el código se gastó y el dueño no llegó a crearse: mientras el negocio no

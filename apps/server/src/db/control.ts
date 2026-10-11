@@ -224,6 +224,10 @@ const selectAll = controlDb.prepare<[], TenantRow>('SELECT * FROM tenants ORDER 
 const selectActive = controlDb.prepare<[], TenantRow>(
   "SELECT * FROM tenants WHERE status = 'active' ORDER BY slug",
 );
+const deletePayments = controlDb.prepare<[string]>(
+  'DELETE FROM subscription_payments WHERE tenant_slug = ?',
+);
+const deleteOne = controlDb.prepare<[string]>('DELETE FROM tenants WHERE slug = ?');
 const insertOne = controlDb.prepare<[string, string, string]>(
   'INSERT INTO tenants (slug, name, created_at) VALUES (?, ?, ?)',
 );
@@ -255,6 +259,13 @@ export function insertTenant(slug: string, name: string): TenantRecord {
   if (!isValidSlug(slug)) throw new Error(`Slug inválido o reservado: "${slug}"`);
   insertOne.run(slug, name, new Date().toISOString());
   return findTenant(slug)!;
+}
+
+// El registro del negocio y sus pagos (los referencian), para que el subdominio se pueda reusar.
+// La bitácora de la plataforma no se toca: es solo inserción. Va dentro de controlTransaction.
+export function deleteTenantRecord(slug: string): boolean {
+  deletePayments.run(slug);
+  return deleteOne.run(slug).changes > 0;
 }
 
 export function setTenantStatus(slug: string, status: TenantStatus): boolean {

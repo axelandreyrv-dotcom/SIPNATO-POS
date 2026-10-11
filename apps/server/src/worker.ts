@@ -107,7 +107,7 @@ const CRON_EXCHANGE_RATE = '15 * * * *';
 // 09:00 UTC = 03:00 CR.
 const CRON_DAILY = '0 9 * * *';
 
-// Primero la plataforma y después cada negocio activo, todos a la vez: uno que falla queda en el
+// Primero la plataforma y después cada negocio activo o suspendido, todos a la vez: uno que falla queda en el
 // log (solo su slug y el mensaje, ningún dato del negocio) y no frena a los demás.
 async function dailyMaintenance(env: Env): Promise<void> {
   const control = platform(env);
@@ -117,7 +117,7 @@ async function dailyMaintenance(env: Env): Promise<void> {
     console.error('Mantenimiento diario de la plataforma falló:', (err as Error).message);
   }
 
-  const slugs = await control.listActiveSlugs();
+  const slugs = await control.listMaintainedSlugs();
   const results = await Promise.allSettled(
     slugs.map((slug) => env.TENANT.get(env.TENANT.idFromName(slug)).dailyMaintenance()),
   );

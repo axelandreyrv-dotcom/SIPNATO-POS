@@ -7,6 +7,7 @@ import {
   runInDurableObject,
   waitOnExecutionContext,
 } from 'cloudflare:test';
+import { sql } from 'drizzle-orm';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { db } from '../db/client.js';
 import { controlDb, insertTenant, latestExchangeRate, setTenantStatus } from '../db/control.js';
@@ -307,16 +308,16 @@ describe('cron diario: mantenimiento y respaldos en R2', () => {
     expect((await platformLogin('raiz', 'clave-raiz-123')).status).toBe(200);
   });
 
-  it('deja un respaldo por negocio activo, ninguno del suspendido, y el de la plataforma', async () => {
+  it('deja un respaldo por negocio activo o suspendido, y el de la plataforma', async () => {
     await runCron(DAILY);
 
     const a = await readJson(tenantKey('diario-a'));
     expect(JSON.stringify(a.tables['sales'])).toContain('venta de diario-a');
     expect(JSON.stringify(a)).not.toContain('venta de diario-b');
     expect(await env.BACKUPS.head(tenantKey('diario-b'))).not.toBeNull();
-    expect(await env.BACKUPS.head(tenantKey('diario-susp'))).toBeNull();
-    const susp = await env.BACKUPS.list({ prefix: 'tenants/diario-susp/' });
-    expect(susp.objects).toEqual([]);
+    // Suspender no deja de respaldar: sus datos se conservan y pueden reactivarlo.
+    const susp = await readJson(tenantKey('diario-susp'));
+    expect(JSON.stringify(susp.tables['sales'])).toContain('venta de diario-susp');
 
     const head = await env.BACKUPS.head(tenantKey('diario-a'));
     expect(head?.httpMetadata?.contentType).toBe('application/json');
@@ -404,11 +405,33 @@ describe('cron diario: mantenimiento y respaldos en R2', () => {
     expect(platformSessions.length).toBeGreaterThan(0);
   });
 
+  it('un negocio registrado cuyo DO nunca se inicializó no se respalda ni se crea', async () => {
+    await inPlatform(() => insertTenant('diario-fantasma', 'Fantasma'));
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await runCron(DAILY);
+
+    expect(await env.BACKUPS.head(tenantKey('diario-fantasma'))).toBeNull();
+    expect(error.mock.calls.some((args) => String(args[0]).includes('diario-fantasma'))).toBe(
+      false,
+    );
+    const tables = await runInDurableObject(tenantStub('diario-fantasma'), (_i, state) =>
+      state.storage.sql
+        .exec(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT GLOB 'sqlite_*' AND name NOT GLOB '_cf_*'",
+        )
+        .toArray(),
+    );
+    expect(tables).toEqual([]);
+    expect(await tenantStub('diario-fantasma').platformSummary()).toBeNull();
+  });
+
   it('un negocio que falla se registra con su slug y no frena el respaldo de los demás', async () => {
-    // Registrado y activo en la plataforma, pero su DO nunca se inicializó: su mantenimiento falla.
+    // Sin la tabla de sesiones, la limpieza diaria de este negocio falla.
     // (En stderr queda una línea "Uncaught (in promise)" de ese rechazo: la produce el envoltorio
     // del plugin de vitest alrededor de los métodos RPC del DO, igual que en http.test.ts.)
-    await inPlatform(() => insertTenant('diario-roto', 'Roto'));
+    await createTestTenant('diario-roto');
+    await inTenant('diario-roto', () => db.run(sql`DROP TABLE sessions`));
     await env.BACKUPS.delete([tenantKey('diario-a'), tenantKey('diario-b')]);
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -418,7 +441,5 @@ describe('cron diario: mantenimiento y respaldos en R2', () => {
     expect(await env.BACKUPS.head(tenantKey('diario-b'))).not.toBeNull();
     expect(await env.BACKUPS.head(tenantKey('diario-roto'))).toBeNull();
     expect(error.mock.calls.some((args) => String(args[0]).includes('diario-roto'))).toBe(true);
-    // el DO roto sigue vacío
-    expect(await tenantStub('diario-roto').platformSummary()).toBeNull();
   });
 });

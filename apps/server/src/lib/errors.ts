@@ -238,6 +238,17 @@ export class NegocioSuspendido extends AppError {
   }
 }
 
+// Eliminar un negocio exige suspenderlo antes: un paso más para no borrar uno en uso por error.
+export class NegocioNoSuspendido extends AppError {
+  constructor() {
+    super(
+      'NEGOCIO_NO_SUSPENDIDO',
+      'Solo se puede eliminar un negocio suspendido: suspéndelo primero',
+      409,
+    );
+  }
+}
+
 export class NegocioYaExiste extends AppError {
   constructor() {
     super('NEGOCIO_YA_EXISTE', 'Ya existe un negocio con ese subdominio', 409);

@@ -370,6 +370,41 @@ describe('panel de superadministrador', () => {
     }
   });
 
+  it('un negocio que no responde en 5 s queda "no disponible" y el panel responde igual', async () => {
+    await createTestTenant('lento');
+    // El DO queda ocupado 7 s: el resumen que le pide el panel se encola detrás. (Se suelta solo:
+    // resolver desde el test una promesa creada dentro del DO no lo desbloquea.)
+    let started = 0;
+    const blocked = runInDurableObject(tenantStub('lento'), (_i, state) =>
+      state.blockConcurrencyWhile(() => {
+        started = Date.now();
+        return new Promise<void>((resolve) => setTimeout(resolve, 7_000));
+      }),
+    );
+    await vi.waitFor(() => expect(started).toBeGreaterThan(0));
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const before = Date.now();
+      const list = await admin('GET', '/platform/tenants');
+      const elapsed = Date.now() - before;
+      expect(list.status).toBe(200);
+      expect(elapsed).toBeGreaterThanOrEqual(4_900);
+      expect(elapsed).toBeLessThan(10_000);
+      const tenants = (await json<{ tenants: (TenantView & { unavailable: boolean })[] }>(list))
+        .tenants;
+      expect(tenants.find((t) => t.slug === 'lento')!.unavailable).toBe(true);
+      expect(logged.mock.calls.flat().join(' ')).toContain('lento');
+    } finally {
+      logged.mockRestore();
+    }
+    // Cuando el negocio vuelve a contestar, deja de figurar como no disponible.
+    await blocked;
+    const detail = await json<{ tenant: { unavailable: boolean } }>(
+      admin('GET', '/platform/tenants/lento'),
+    );
+    expect(detail.tenant.unavailable).toBe(false);
+  }, 20_000);
+
   it('una BD que ya trae dueño cuenta como activada aunque quede un código', async () => {
     expect(
       (

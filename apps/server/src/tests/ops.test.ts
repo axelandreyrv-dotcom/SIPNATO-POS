@@ -343,6 +343,124 @@ describe('/internal/ops: negocios', () => {
   });
 });
 
+describe('/internal/ops: eliminar un negocio', () => {
+  const DAY = 24 * 60 * 60_000;
+  let adminToken = '';
+
+  const panel = (method: 'GET' | 'POST', path: string, body?: unknown) =>
+    platformCall(method, path, { token: adminToken, body });
+
+  const userTables = (slug: string) =>
+    runInDurableObject(tenantStub(slug), (_i, state) =>
+      state.storage.sql
+        .exec<{
+          name: string;
+        }>(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT GLOB 'sqlite_*' AND name NOT GLOB '_cf_*'",
+        )
+        .toArray()
+        .map((r) => r.name),
+    );
+
+  const paymentCount = (slug: string) =>
+    inPlatform(
+      () =>
+        controlDb
+          .prepare<
+            [string],
+            { n: number }
+          >('SELECT COUNT(*) AS n FROM subscription_payments WHERE tenant_slug = ?')
+          .get(slug)!.n,
+    );
+
+  it('un negocio activo no se elimina: 409 NEGOCIO_NO_SUSPENDIDO y queda igual', async () => {
+    await createTestTenant('ops-borrar-activo', {
+      owner: { username: 'dueno', password: PASSWORD },
+    });
+    const res = await ops({ command: 'tenant-delete', args: { slug: 'ops-borrar-activo' } });
+    expect(res.status).toBe(409);
+    expect((await json(res)).error).toMatchObject({ code: 'NEGOCIO_NO_SUSPENDIDO' });
+    expect(await inPlatform(() => findTenant('ops-borrar-activo'))).not.toBeNull();
+    expect(await userTables('ops-borrar-activo')).toContain('users');
+    expect((await login('ops-borrar-activo', 'dueno', PASSWORD)).status).toBe(200);
+
+    const audit = await lastAudit();
+    expect(audit.action).toBe('OPS_TENANT_DELETE');
+    expect(JSON.parse(audit.payload!)).toMatchObject({ ok: false, error: 'NEGOCIO_NO_SUSPENDIDO' });
+  });
+
+  it('un subdominio que no existe → 404 sin crear nada', async () => {
+    const res = await ops({ command: 'tenant-delete', args: { slug: 'nunca-existio' } });
+    expect(res.status).toBe(404);
+    expect((await json(res)).error).toMatchObject({ code: 'NEGOCIO_NO_ENCONTRADO' });
+    expect(await userTables('nunca-existio')).toEqual([]);
+  });
+
+  it('uno suspendido se borra entero (DO, registro y pagos) y el subdominio se puede reusar', async () => {
+    const slug = 'ops-borrar';
+    await createTestTenant(slug, { owner: { username: 'dueno', password: PASSWORD } });
+    await runInDurableObject(tenantStub(slug), async (_i, state) => {
+      state.storage.kv.put('rl:login:1.1.1.1', { start: Date.now(), count: 1 });
+      await state.storage.setAlarm(Date.now() + DAY);
+    });
+    await createSuperadmin('ops-borra', PASSWORD);
+    adminToken = platformToken(await platformLogin('ops-borra', PASSWORD))!;
+    const paid = await panel('POST', `/platform/tenants/${slug}/payments`, {
+      amount: 15000,
+      months: 1,
+      method: 'sinpe',
+      reference: 'SINPE 1',
+      paidAt: '2026-10-01',
+      notes: '',
+    });
+    expect(paid.status, await paid.clone().text()).toBe(201);
+    expect(await paymentCount(slug)).toBe(1);
+    await opsOk('tenant-suspend', { slug });
+
+    const result = await opsOk('tenant-delete', { slug });
+    expect(result).toEqual({ slug, deleted: true });
+
+    expect(await inPlatform(() => findTenant(slug))).toBeNull();
+    expect(await paymentCount(slug)).toBe(0);
+    expect(await userTables(slug)).toEqual([]);
+    const { kv, alarm } = await runInDurableObject(tenantStub(slug), async (_i, state) => ({
+      kv: [...state.storage.kv.list()].map(([k]) => k),
+      alarm: await state.storage.getAlarm(),
+    }));
+    expect(kv).toEqual([]);
+    expect(alarm).toBeNull();
+
+    const list = await json<{ tenants: { slug: string }[] }>(panel('GET', '/platform/tenants'));
+    expect(list.tenants.map((t) => t.slug)).not.toContain(slug);
+    expect((await panel('GET', `/platform/tenants/${slug}`)).status).toBe(404);
+
+    // En la bitácora: el subdominio y el nombre, nunca datos del negocio.
+    const audit = await lastAudit();
+    expect(audit.action).toBe('OPS_TENANT_DELETE');
+    expect(audit.tenant_slug).toBe(slug);
+    expect(JSON.parse(audit.payload!)).toEqual({ ok: true, slug, name: slug });
+
+    // El mismo subdominio vuelve a crearse desde cero y se activa con su código nuevo.
+    const { setupCode } = await opsOk<{ setupCode: string }>('tenant-create', {
+      slug,
+      name: 'Otra tienda',
+    });
+    expect(await userTables(slug)).toContain('users');
+    const setup = await call(slug, 'POST', '/auth/setup', {
+      body: {
+        setupCode,
+        username: 'nueva',
+        displayName: 'Nueva',
+        password: PASSWORD,
+        confirmPassword: PASSWORD,
+      },
+    });
+    expect(setup.status, await setup.clone().text()).toBe(201);
+    expect((await login(slug, 'dueno', PASSWORD)).status).toBe(401);
+    expect(await paymentCount(slug)).toBe(0);
+  });
+});
+
 describe('/internal/ops: recuperación a un punto en el tiempo', () => {
   type PitrStorage = { onNextSessionRestoreBookmark?: (b: string) => Promise<string> };
   // En workerd el objeto storage sobrevive al reinicio del DO: se quita el doble al terminar.

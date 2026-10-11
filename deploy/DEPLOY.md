@@ -135,6 +135,7 @@ Otros comandos de la consola, todos con `pnpm ops <comando> clave=valor`:
 | `tenant-list` | — | Lista los negocios (lee solo la plataforma: sirve aunque un negocio esté caído) |
 | `tenant-create` | `slug= name=` | Crea un negocio y devuelve su código de activación |
 | `tenant-suspend` / `tenant-activate` | `slug=` | Suspende o reactiva un negocio |
+| `tenant-delete` | `slug=` | **Irreversible.** Borra un negocio **suspendido** (su base de datos, su registro y sus pagos) y libera el subdominio; las copias en R2 quedan hasta que vencen (30 días). No está en el panel |
 | `setup-code` | `slug=` | Código de activación nuevo (si se perdió y el negocio aún no tiene dueño) |
 | `reset-owner` | `slug=` | Restablece al dueño: contraseña temporal y recovery code nuevos, cierra sus sesiones |
 | `bookmarks` | `slug=` | Bookmark actual y los guardados antes de cada migración |
@@ -166,8 +167,8 @@ registra en el negocio y corre su vencimiento. Un atraso **no bloquea** al negoc
 administradores ven un aviso, y la suspensión es manual desde el panel. Un subdominio que no corresponde a un
 negocio activo muestra "Negocio no encontrado" o "Acceso suspendido".
 
-Si el Durable Object de un negocio falla, el panel lo muestra como "No disponible" y sigue funcionando para los
-demás.
+Si el Durable Object de un negocio falla o tarda más de 5 segundos, el panel lo muestra como "No disponible" y
+sigue funcionando para los demás.
 
 ---
 
@@ -213,7 +214,7 @@ producción con un negocio de prueba antes de depender de ella (ver el checklist
 | Copia | Qué contiene | Dónde | Retención |
 |---|---|---|---|
 | PITR | Todo el estado de cada Durable Object | Cloudflare (automático) | 30 días |
-| Exportación diaria | JSON de cada negocio activo y de la plataforma, a las 03:00 hora de CR (`0 9 * * *` UTC) | R2, bucket `dosuxsoft-backups`: `tenants/<slug>/<fecha>.json` y `_control/<fecha>.json` | 30 días (regla de vida) |
+| Exportación diaria | JSON de cada negocio activo o suspendido y de la plataforma, a las 03:00 hora de CR (`0 9 * * *` UTC) | R2, bucket `dosuxsoft-backups`: `tenants/<slug>/<fecha>.json` y `_control/<fecha>.json` | 30 días (regla de vida) |
 | Descarga del dueño | JSON de su negocio, desde **Configuración → Respaldo** (5 por hora) | El navegador del dueño | La que él decida |
 
 Los JSON excluyen las sesiones pero **contienen datos confidenciales** (hashes de usuarios, contraseñas de

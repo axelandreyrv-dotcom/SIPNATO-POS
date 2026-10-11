@@ -8,6 +8,7 @@ import {
   changeTenantStatus,
   createSuperadminAccount,
   createTenant,
+  deleteSuspendedTenant,
   listSuperadminAccounts,
   regenerateSetupCode,
   resetSuperadminPassword,
@@ -64,6 +65,7 @@ export const OPS_COMMANDS = [
   'tenant-create',
   'tenant-suspend',
   'tenant-activate',
+  'tenant-delete',
   'setup-code',
   'reset-owner',
   'bookmarks',
@@ -84,6 +86,7 @@ export const opsRequestSchema = z.discriminatedUnion('command', [
   }),
   z.object({ command: z.literal('tenant-suspend'), args: slugArgs }),
   z.object({ command: z.literal('tenant-activate'), args: slugArgs }),
+  z.object({ command: z.literal('tenant-delete'), args: slugArgs }),
   z.object({ command: z.literal('setup-code'), args: slugArgs }),
   z.object({ command: z.literal('reset-owner'), args: slugArgs }),
   z.object({ command: z.literal('bookmarks'), args: slugArgs }),
@@ -175,6 +178,10 @@ export async function runOpsCommand(request: OpsRequest, meta: Meta): Promise<Op
       const status = request.command === 'tenant-suspend' ? 'suspended' : 'active';
       await changeTenantStatus(null, request.args.slug, status, meta);
       return { result: { slug: request.args.slug, status } };
+    }
+    case 'tenant-delete': {
+      const { name } = await deleteSuspendedTenant(request.args.slug);
+      return { result: { slug: request.args.slug, deleted: true }, audit: { name } };
     }
     case 'setup-code':
       return {

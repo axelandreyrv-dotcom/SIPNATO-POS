@@ -132,12 +132,19 @@ function Detail({ detail }: { detail: PlatformTenantDetail }) {
           </span>
         </Fact>
         <Fact label="Uso">
-          {detail.usage.users} {detail.usage.users === 1 ? 'usuario' : 'usuarios'}
-          <span className="block text-xs font-normal text-text-muted">
-            {detail.usage.lastSaleAt
-              ? `Última venta ${fmtDateTime(detail.usage.lastSaleAt)}`
-              : 'Sin ventas'}
-          </span>
+          {/* Sin respuesta del negocio el uso llega en cero: mostrarlo sería inventarlo. */}
+          {t.unavailable ? (
+            '—'
+          ) : (
+            <>
+              {detail.usage.users} {detail.usage.users === 1 ? 'usuario' : 'usuarios'}
+              <span className="block text-xs font-normal text-text-muted">
+                {detail.usage.lastSaleAt
+                  ? `Última venta ${fmtDateTime(detail.usage.lastSaleAt)}`
+                  : 'Sin ventas'}
+              </span>
+            </>
+          )}
         </Fact>
       </dl>
 
@@ -152,7 +159,9 @@ function Detail({ detail }: { detail: PlatformTenantDetail }) {
           title="Tipo de negocio y módulos"
           description="Lo que el negocio ve en su menú. El dueño no puede cambiarlo; sí ajusta los campos de sus órdenes."
         >
-          <BusinessForm tenant={t} />
+          {/* Se reinicia cuando el negocio vuelve a responder: el estado inicial eran valores de
+              relleno, no los suyos. */}
+          <BusinessForm key={t.unavailable ? 'no-disponible' : 'disponible'} tenant={t} />
         </Block>
         <Block
           title="Datos"
@@ -701,6 +710,16 @@ function BusinessForm({ tenant: t }: { tenant: PlatformTenant }) {
     onError: (err) => setMessage({ ok: false, text: errorText(err) }),
   });
 
+  // Sin respuesta del negocio el tipo y los módulos son de relleno: guardarlos le borraría los
+  // suyos.
+  if (t.unavailable) {
+    return (
+      <p className="text-sm text-text-muted">
+        No se puede mostrar ni cambiar mientras el negocio no responda.
+      </p>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <BusinessTypeFields
@@ -779,7 +798,11 @@ function Access({ tenant: t }: { tenant: PlatformTenant }) {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-text-primary">
-          {t.activated ? 'El dueño ya creó su cuenta.' : 'El dueño todavía no ha creado su cuenta.'}
+          {t.unavailable
+            ? 'No se sabe si el dueño ya creó su cuenta: el negocio no responde.'
+            : t.activated
+              ? 'El dueño ya creó su cuenta.'
+              : 'El dueño todavía no ha creado su cuenta.'}
         </p>
         {!t.activated && (
           <div className="mt-3 space-y-3">
@@ -789,7 +812,7 @@ function Access({ tenant: t }: { tenant: PlatformTenant }) {
               <button
                 type="button"
                 onClick={() => codeMutation.mutate()}
-                disabled={codeMutation.isPending}
+                disabled={t.unavailable || codeMutation.isPending}
                 className={secondaryButton}
               >
                 <KeyRound size={16} strokeWidth={1.5} aria-hidden />
@@ -877,6 +900,7 @@ const ACTION_LABELS: Record<string, string> = {
   OPS_TENANT_CREATE: 'Consola: negocio creado',
   OPS_TENANT_SUSPEND: 'Consola: negocio suspendido',
   OPS_TENANT_ACTIVATE: 'Consola: negocio reactivado',
+  OPS_TENANT_DELETE: 'Consola: negocio eliminado',
   OPS_SETUP_CODE: 'Consola: código de activación nuevo',
   OPS_RESET_OWNER: 'Consola: acceso del dueño restablecido',
   OPS_BOOKMARKS: 'Consola: puntos de restauración consultados',

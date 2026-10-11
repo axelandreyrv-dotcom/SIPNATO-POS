@@ -6,6 +6,7 @@ import {
   initControlSchema,
   latestExchangeRate,
   listActiveTenants,
+  listTenants,
   runInPlatform,
   type ExchangeRateRow,
   type TenantStatus,
@@ -71,6 +72,17 @@ export class PlatformDO extends DurableObject<Env> {
 
   listActiveSlugs(): string[] {
     return this.run(() => listActiveTenants().map((t) => t.slug));
+  }
+
+  // Los que reciben el mantenimiento diario. Un suspendido también: conserva sus datos (puede
+  // reactivarse) y sin esto se quedaría sin respaldos nuevos y con sesiones viejas.
+  listMaintainedSlugs(): string[] {
+    const maintained: TenantStatus[] = ['active', 'suspended'];
+    return this.run(() =>
+      listTenants()
+        .filter((t) => maintained.includes(t.status))
+        .map((t) => t.slug),
+    );
   }
 
   exportControl(): ReturnType<typeof exportTenant> {

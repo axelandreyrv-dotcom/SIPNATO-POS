@@ -135,23 +135,33 @@ function originHost(origin: string): string | null {
   }
 }
 
+// La petición viene de otro origen según los headers que pone el navegador (sin ellos, un cliente
+// que no es navegador: se acepta y lo frena la sesión).
+function crossOrigin(c: AppContext): boolean {
+  const site = c.req.header('Sec-Fetch-Site');
+  const origin = c.req.header('Origin');
+  // El host que fijó el Worker; sin él (no debería pasar) el de la URL.
+  const host = c.req.header(HOST_HEADER) ?? new URL(c.req.url).host;
+  return (
+    (site !== undefined && site !== 'same-origin') ||
+    (origin !== undefined && originHost(origin) !== host.toLowerCase())
+  );
+}
+
+const originRejected = (c: AppContext) =>
+  c.json({ error: { code: 'ORIGEN_NO_PERMITIDO', message: 'Origen no permitido' } }, 403);
+
+// Para un GET con efectos (bitácora, cupo), que sameOriginWrites deja pasar.
+export const sameOriginOnly: MiddlewareHandler<AppEnv> = async (c, next) =>
+  crossOrigin(c) ? originRejected(c) : next();
+
 // CSRF. Todos los subdominios de dosuxsoft.com son el mismo sitio, así que la cookie
 // SameSite=Strict viaja en un POST que otro subdominio haga con `mode: 'no-cors'` o desde un
 // formulario. Una escritura solo se acepta desde el mismo origen y con cuerpo JSON (un formulario
 // o un no-cors no pueden mandar `application/json` sin preflight, y no hay CORS).
 export const sameOriginWrites: MiddlewareHandler<AppEnv> = async (c, next) => {
   if (SAFE_METHODS.includes(c.req.method)) return next();
-
-  const site = c.req.header('Sec-Fetch-Site');
-  const origin = c.req.header('Origin');
-  // El host que fijó el Worker; sin él (no debería pasar) el de la URL.
-  const host = c.req.header(HOST_HEADER) ?? new URL(c.req.url).host;
-  if (
-    (site !== undefined && site !== 'same-origin') ||
-    (origin !== undefined && originHost(origin) !== host.toLowerCase())
-  ) {
-    return c.json({ error: { code: 'ORIGEN_NO_PERMITIDO', message: 'Origen no permitido' } }, 403);
-  }
+  if (crossOrigin(c)) return originRejected(c);
 
   const length = c.req.header('Content-Length');
   const hasBody = length !== undefined ? length !== '0' : c.req.raw.body !== null;
