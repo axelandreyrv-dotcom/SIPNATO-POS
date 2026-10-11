@@ -1,11 +1,16 @@
 import { addMonths, subscriptionStatus } from '@sipnato/shared';
 import { runInDurableObject } from 'cloudflare:test';
-import { beforeAll, describe, expect, it } from 'vitest';
-import { findTenant, getSetupCodeHash, insertTenant } from '../db/control.js';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { db } from '../db/client.js';
+import { controlDb, findTenant, getSetupCodeHash, insertTenant } from '../db/control.js';
+import { businessProfile } from '../db/schema.js';
 import { todayCR } from '../lib/cr-time.js';
+import { listPayments } from '../modules/platform/repository.js';
 import { insertUserRow } from '../modules/users/repository.js';
 import {
   call,
+  createTestTenant,
+  GENERIC_ASSIGNMENT,
   inPlatform,
   inTenant,
   createSuperadmin,
@@ -294,6 +299,75 @@ describe('panel de superadministrador', () => {
     );
     const assigned = detail.activity.find((a) => a.action === 'TENANT_BUSINESS_ASSIGNED')!;
     expect(assigned.payload['template']).toEqual({ from: null, to: 'taller' });
+  });
+
+  it('un negocio cuyo DO falla queda "no disponible" sin tumbar el panel ni repetir escrituras', async () => {
+    await createTestTenant('roto');
+    await createTestTenant('sano');
+    const original = await inTenant('roto', () =>
+      db.select({ modules: businessProfile.modules }).from(businessProfile).get(),
+    );
+    // Un perfil ilegible hace fallar el resumen que la plataforma le pide por RPC.
+    await inTenant('roto', () => db.update(businessProfile).set({ modules: '{roto' }).run());
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const auditCount = (action: string) =>
+      inPlatform(
+        () =>
+          controlDb
+            .prepare<
+              [string, string],
+              { n: number }
+            >('SELECT COUNT(*) AS n FROM platform_audit_log WHERE tenant_slug = ? AND action = ?')
+            .get('roto', action)!.n,
+      );
+    try {
+      const list = await admin('GET', '/platform/tenants');
+      expect(list.status).toBe(200);
+      const tenants = (await json<{ tenants: (TenantView & { unavailable: boolean })[] }>(list))
+        .tenants;
+      expect(tenants.find((t) => t.slug === 'roto')!.unavailable).toBe(true);
+      expect(tenants.find((t) => t.slug === 'sano')!.unavailable).toBe(false);
+
+      // Lo de control.db se guarda y se responde aunque el negocio no conteste.
+      const paid = await pay('roto', 1);
+      expect(paid.status).toBe(201);
+      const { tenant } = await json<{ tenant: TenantView & { unavailable: boolean } }>(paid);
+      expect(tenant.unavailable).toBe(true);
+      expect(tenant.paidUntil).not.toBeNull();
+      expect(
+        await inPlatform(() => listPayments('roto', { includeVoided: true, limit: 100 }).length),
+      ).toBe(1);
+
+      const edited = await admin('PATCH', '/platform/tenants/roto', { notes: 'sin conexión' });
+      expect(edited.status).toBe(200);
+      const suspended = await admin('POST', '/platform/tenants/roto/status', {
+        status: 'suspended',
+      });
+      expect(suspended.status).toBe(200);
+      expect(await inPlatform(() => findTenant('roto')!.status)).toBe('suspended');
+
+      const detail = await admin('GET', '/platform/tenants/roto');
+      expect(detail.status).toBe(200);
+      expect((await json<{ tenant: { unavailable: boolean } }>(detail)).tenant.unavailable).toBe(
+        true,
+      );
+
+      // Aquí el RPC es la escritura: si falla es un error y la actividad no dice que se hizo.
+      const assigned = await admin('PUT', '/platform/tenants/roto/business', GENERIC_ASSIGNMENT);
+      expect(assigned.status).toBe(503);
+      expect((await json<{ error: { code: string } }>(assigned)).error.code).toBe(
+        'NEGOCIO_NO_DISPONIBLE',
+      );
+      expect(await auditCount('TENANT_BUSINESS_ASSIGNED')).toBe(0);
+
+      // El log lleva solo el subdominio, nunca datos del negocio.
+      expect(logged.mock.calls.flat().join(' ')).toContain('roto');
+    } finally {
+      logged.mockRestore();
+      await inTenant('roto', () =>
+        db.update(businessProfile).set({ modules: original!.modules }).run(),
+      );
+    }
   });
 
   it('una BD que ya trae dueño cuenta como activada aunque quede un código', async () => {

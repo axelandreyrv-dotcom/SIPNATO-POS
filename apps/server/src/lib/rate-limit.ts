@@ -29,6 +29,36 @@ export function hit(
   };
 }
 
+// Como `hit`, pero sin contar: ¿la clave ya agotó su límite en esta ventana?
+export function peekLimit(
+  kv: DurableObjectStorage['kv'],
+  key: string,
+  limit: number,
+  windowMs: number,
+): { allowed: boolean; retryAfterSec: number } {
+  const now = Date.now();
+  const windowStart = Math.floor(now / windowMs) * windowMs;
+  const stored = kv.get<RateWindow>(`rl:${key}`);
+  const allowed = stored?.start !== windowStart || stored.count < limit;
+  return {
+    allowed,
+    retryAfterSec: allowed ? 0 : Math.max(1, Math.ceil((windowStart + windowMs - now) / 1000)),
+  };
+}
+
+export function tooManyAttempts(c: AppContext, retryAfterSec: number): Response {
+  c.header('Retry-After', String(retryAfterSec));
+  return c.json(
+    {
+      error: {
+        code: 'DEMASIADOS_INTENTOS',
+        message: 'Demasiados intentos. Espera un momento antes de volver a intentarlo.',
+      },
+    },
+    429,
+  );
+}
+
 // La ventana más larga en uso es de 1 h (descarga de respaldo): una entrada que empezó hace más
 // de 25 h terminó hace más de 24 h y ya no cuenta para nada.
 const STALE_AFTER_MS = 25 * 60 * 60 * 1000;
@@ -51,18 +81,7 @@ export function rateLimit(
 ): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
     const result = hit(c.var.kv, `${name}:${key(c)}`, limit, windowMs);
-    if (!result.allowed) {
-      c.header('Retry-After', String(result.retryAfterSec));
-      return c.json(
-        {
-          error: {
-            code: 'DEMASIADOS_INTENTOS',
-            message: 'Demasiados intentos. Espera un momento antes de volver a intentarlo.',
-          },
-        },
-        429,
-      );
-    }
+    if (!result.allowed) return tooManyAttempts(c, result.retryAfterSec);
     await next();
   };
 }

@@ -24,7 +24,7 @@ function fail(message: string): never {
 
 function parseArgs(argv: string[]): { command: string; args: Record<string, string>; url: string } {
   let url = DEFAULT_URL;
-  const rest: string[] = [];
+  const rest: { arg: string; position: number }[] = [];
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!;
     if (arg === '--url') {
@@ -34,19 +34,21 @@ function parseArgs(argv: string[]): { command: string; args: Record<string, stri
     } else if (arg.startsWith('--url=')) {
       url = arg.slice('--url='.length);
     } else if (arg.startsWith('-')) {
-      fail(`Opción desconocida: ${arg}`);
+      // Solo la posición: el texto podría ser un secreto pegado por error.
+      fail(`Opción desconocida en la posición ${i + 1}`);
     } else {
-      rest.push(arg);
+      rest.push({ arg, position: i + 1 });
     }
   }
 
-  const [command, ...pairs] = rest;
-  if (!command) fail('Uso: pnpm ops <comando> [clave=valor …] [--url <base>]');
+  const [first, ...pairs] = rest;
+  if (!first) fail('Uso: pnpm ops <comando> [clave=valor …] [--url <base>]');
+  const command = first.arg;
 
   const args: Record<string, string> = {};
-  for (const pair of pairs) {
+  for (const { arg: pair, position } of pairs) {
     const eq = pair.indexOf('=');
-    if (eq <= 0) fail(`Argumento inválido "${pair}": se espera clave=valor`);
+    if (eq <= 0) fail(`Argumento inválido en la posición ${position}: se espera clave=valor`);
     const key = pair.slice(0, eq);
     if (/token/i.test(key)) fail('El token va solo en la variable de entorno OPS_TOKEN');
     args[key] = pair.slice(eq + 1);
@@ -94,6 +96,8 @@ async function main(): Promise<void> {
       method: 'POST',
       headers,
       body: JSON.stringify({ command, args }),
+      // Una redirección llevaría el token a otro destino.
+      redirect: 'error',
     });
   } catch (err) {
     fail(`No se pudo conectar: ${(err as Error).message}`);
@@ -106,8 +110,11 @@ async function main(): Promise<void> {
   } catch {
     // Respuesta que no es JSON (una página de error intermedia): se muestra tal cual.
   }
+  if (!res.ok) {
+    console.error(output);
+    process.exit(1);
+  }
   console.log(output);
-  if (!res.ok) process.exit(1);
 }
 
 main().catch((err: unknown) => fail(`Error inesperado: ${(err as Error).message}`));

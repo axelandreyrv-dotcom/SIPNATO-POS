@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { AppError } from '../../lib/errors.js';
-import { readJson, requestMeta, type AppEnv } from '../../lib/http.js';
-import { rateLimit } from '../../lib/rate-limit.js';
+import { clientIp, readJson, requestMeta, type AppEnv } from '../../lib/http.js';
+import { hit, peekLimit, tooManyAttempts } from '../../lib/rate-limit.js';
 import { insertPlatformAudit } from '../platform/repository.js';
 import {
   auditActionFor,
@@ -14,6 +14,7 @@ import {
 } from './service.js';
 
 const FIFTEEN_MINUTES = 15 * 60_000;
+const MAX_AUTH_FAILURES = 10;
 
 const isCommand = (value: unknown): value is OpsCommand =>
   (OPS_COMMANDS as readonly unknown[]).includes(value);
@@ -25,10 +26,14 @@ opsRoutes.post(
   '/',
   // Sin OPS_TOKEN la ruta no existe: misma respuesta que cualquier ruta desconocida.
   async (c, next) => (opsEnabled(c.env.OPS_TOKEN) ? next() : c.notFound()),
-  // Antes de comparar el token: frena a quien intente adivinarlo.
-  rateLimit('ops', 10, FIFTEEN_MINUTES),
   async (c) => {
     const meta = requestMeta(c);
+    // Solo cuentan los tokens que faltan o no coinciden: la consola puede usarse sin límite, y
+    // quien intenta adivinar queda frenado (también si después prueba con el token correcto).
+    const limitKey = `ops:${clientIp(c)}`;
+    const limit = peekLimit(c.var.kv, limitKey, MAX_AUTH_FAILURES, FIFTEEN_MINUTES);
+    if (!limit.allowed) return tooManyAttempts(c, limit.retryAfterSec);
+
     const audit = (action: string, payload: Record<string, unknown>, tenantSlug?: string) =>
       insertPlatformAudit({
         action,
@@ -42,6 +47,7 @@ opsRoutes.post(
     const presented = header.startsWith('Bearer ') ? header.slice('Bearer '.length) : '';
     // La respuesta no dice si faltó o si no coincide; la bitácora sí (nunca el token).
     if (!(await tokenMatches(presented, c.env.OPS_TOKEN!)) || presented === '') {
+      hit(c.var.kv, limitKey, MAX_AUTH_FAILURES, FIFTEEN_MINUTES);
       audit('OPS_AUTH_FAILED', { reason: presented === '' ? 'sin-token' : 'token-incorrecto' });
       throw new AppError('NO_AUTORIZADO', 'No autorizado', 401);
     }

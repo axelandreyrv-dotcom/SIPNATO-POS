@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
-import { apiHeaders, errorHandler, type AppEnv } from './lib/http.js';
+import { apiHeaders, errorHandler, sameOriginWrites, type AppEnv } from './lib/http.js';
 import { rateLimit } from './lib/rate-limit.js';
 import { registerModuleRoutes } from './middleware/module.js';
 import apartadosRoutes from './modules/apartados/routes.js';
@@ -30,6 +30,7 @@ export function createTenantApp(storage: DurableObjectStorage): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
   app.use(apiHeaders);
+  app.use(sameOriginWrites);
   app.use(async (c, next) => {
     c.set('kv', storage.kv);
     c.set('storage', storage);

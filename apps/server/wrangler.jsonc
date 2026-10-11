@@ -26,6 +26,11 @@
   "observability": { "enabled": true },
   "env": {
     "dev": {
+      // `routes` sí se hereda: sin esto un `wrangler deploy --env dev` publicaría el Worker de
+      // desarrollo (X-Forwarded-Host aceptado, cookie sin Secure) en *.dosuxsoft.com.
+      "routes": [],
+      "workers_dev": false,
+      "preview_urls": false,
       // Wrangler no hereda bindings entre entornos: se repiten los que necesita el desarrollo local.
       "vars": {
         "TENANT_BASE_DOMAIN": "localhost",

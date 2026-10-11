@@ -98,7 +98,11 @@ describe('/internal/ops: acceso', () => {
     for (const header of [`Basic ${OPS_TOKEN}`, `Bearer ${OPS_TOKEN}extra`, 'Bearer ', OPS_TOKEN]) {
       const r = await SELF.fetch(`${ADMIN_ORIGIN}/internal/ops`, {
         method: 'POST',
-        headers: { Authorization: header, 'CF-Connecting-IP': nextIp() },
+        headers: {
+          Authorization: header,
+          'Content-Type': 'application/json',
+          'CF-Connecting-IP': nextIp(),
+        },
         body: JSON.stringify({ command: 'superadmin-list', args: {} }),
       });
       expect(r.status, header).toBe(401);
@@ -148,14 +152,21 @@ describe('/internal/ops: acceso', () => {
     }
   });
 
-  it('límite de 10 llamadas cada 15 min por IP, también con el token correcto', async () => {
+  it('las llamadas con el token correcto no cuentan para el límite', async () => {
+    const ip = '7.7.7.3';
+    for (let i = 0; i < 15; i++) {
+      expect((await ops({ command: 'superadmin-list', args: {} }, { ip })).status).toBe(200);
+    }
+  });
+
+  it('10 fallos de token cada 15 min por IP; después 429 aunque el token sea correcto', async () => {
     const ip = '7.7.7.2';
     for (let i = 0; i < 10; i++) {
       const res = await ops(
         { command: 'superadmin-list', args: {} },
-        { ip, token: i % 2 ? null : undefined },
+        { ip, token: i % 2 ? null : 'token-incorrecto' },
       );
-      expect(res.status).not.toBe(429);
+      expect(res.status).toBe(401);
     }
     const blocked = await ops({ command: 'superadmin-list', args: {} }, { ip });
     expect(blocked.status).toBe(429);

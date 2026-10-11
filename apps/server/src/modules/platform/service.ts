@@ -45,6 +45,7 @@ import {
 } from '../../lib/crypto.js';
 import {
   CredencialesInvalidas,
+  NegocioNoDisponible,
   NegocioNoEncontrado,
   NegocioYaActivado,
   NegocioYaExiste,
@@ -281,18 +282,44 @@ const DEFAULT_ASSIGNMENT: AssignBusinessInput = {
   modules: [...TEMPLATE_INFO.generico.profile.modules],
 };
 
-type TenantInfo = Pick<PlatformTenant, 'activated' | 'template' | 'modules'>;
+type TenantInfo = Pick<PlatformTenant, 'activated' | 'template' | 'modules' | 'unavailable'>;
 
 // Lo que el panel muestra de la BD del negocio. Se mira si ya tiene usuarios y no el código de
 // activación: una BD importada ya trae dueño aunque nunca se haya usado un código. Un DO que
 // nunca se inicializó (el alta falló a medias) aparece "Sin activar".
 function infoFrom(summary: TenantPlatformSummary | null): TenantInfo {
-  if (!summary) return { activated: false, template: 'generico', modules: [] };
-  return { activated: summary.activated, template: summary.template, modules: summary.modules };
+  if (!summary) return { activated: false, template: 'generico', modules: [], unavailable: false };
+  return {
+    activated: summary.activated,
+    template: summary.template,
+    modules: summary.modules,
+    unavailable: false,
+  };
 }
 
-async function tenantInfo(slug: string): Promise<TenantInfo> {
-  return infoFrom(await tenantDO(slug).platformSummary());
+const UNAVAILABLE_INFO: TenantInfo = {
+  activated: false,
+  template: 'generico',
+  modules: [],
+  unavailable: true,
+};
+
+// El resumen que el panel le pide a cada negocio. Un DO que falla no tumba el panel ni convierte
+// en error una escritura ya guardada en control.db (el operador la repetiría: un pago doble): el
+// negocio se muestra "No disponible". En el log solo el subdominio y el mensaje.
+async function tenantSummary(
+  slug: string,
+): Promise<{ summary: TenantPlatformSummary | null; info: TenantInfo }> {
+  try {
+    const summary = await tenantDO(slug).platformSummary();
+    return { summary, info: infoFrom(summary) };
+  } catch (err) {
+    console.error(
+      `El negocio "${slug}" no respondió al panel:`,
+      (err as Error)?.message ?? String(err),
+    );
+    return { summary: null, info: UNAVAILABLE_INFO };
+  }
 }
 
 function toPlatformTenant(
@@ -326,7 +353,7 @@ function requireTenant(slug: string): TenantRecord {
 }
 
 async function platformTenant(slug: string): Promise<PlatformTenant> {
-  const info = await tenantInfo(slug);
+  const { info } = await tenantSummary(slug);
   // Se lee después del RPC: así refleja lo último que se escribió en control.db.
   return toPlatformTenant(
     requireTenant(slug),
@@ -341,10 +368,12 @@ export async function listPlatformTenants(): Promise<{
   summary: PlatformSummary;
 }> {
   const records = listTenants();
-  const infos = await Promise.all(records.map((t) => tenantInfo(t.slug)));
+  const infos = await Promise.all(records.map((t) => tenantSummary(t.slug)));
   const today = todayCR();
   const { defaultMonthlyPrice } = getPlatformSettings();
-  const tenants = records.map((t, i) => toPlatformTenant(t, defaultMonthlyPrice, infos[i]!, today));
+  const tenants = records.map((t, i) =>
+    toPlatformTenant(t, defaultMonthlyPrice, infos[i]!.info, today),
+  );
 
   const active = tenants.filter((t) => t.status === 'active');
   const billed = active.filter((t) => t.subscription !== 'sin_cobro');
@@ -369,12 +398,12 @@ function stripInternal({ previousPaidUntil: _, ...payment }: PaymentRecord) {
 export async function getTenantDetail(slug: string): Promise<PlatformTenantDetail> {
   requireTenant(slug);
   // Métricas mínimas para saber si el negocio usa el sistema. No expone datos de sus clientes.
-  const summary = await tenantDO(slug).platformSummary();
+  const { summary, info } = await tenantSummary(slug);
   return {
     tenant: toPlatformTenant(
       requireTenant(slug),
       getPlatformSettings().defaultMonthlyPrice,
-      infoFrom(summary),
+      info,
       todayCR(),
     ),
     payments: listPayments(slug, { includeVoided: true, limit: 100 }).map(stripInternal),
@@ -436,12 +465,21 @@ export async function assignTenantBusiness(
   const stub = tenantDO(slug);
   let before: Pick<TenantPlatformSummary, 'template' | 'modules'> | null = null;
   let after: Pick<TenantPlatformSummary, 'template' | 'modules'>;
-  if ((await stub.platformSummary()) === null) {
-    // El alta falló antes de inicializar el DO: asignar el tipo lo termina de crear.
-    await stub.initialize(slug, input);
-    after = (await stub.platformSummary())!;
-  } else {
-    ({ before, after } = await stub.assignBusiness(input, meta));
+  // Aquí el RPC es la escritura: si falla no se guardó nada y la actividad no lo registra.
+  try {
+    if ((await stub.platformSummary()) === null) {
+      // El alta falló antes de inicializar el DO: asignar el tipo lo termina de crear.
+      await stub.initialize(slug, input);
+      after = { template: input.template, modules: [...input.modules] };
+    } else {
+      ({ before, after } = await stub.assignBusiness(input, meta));
+    }
+  } catch (err) {
+    console.error(
+      `No se pudo asignar el tipo al negocio "${slug}":`,
+      (err as Error)?.message ?? String(err),
+    );
+    throw new NegocioNoDisponible();
   }
   insertPlatformAudit({
     action: 'TENANT_BUSINESS_ASSIGNED',

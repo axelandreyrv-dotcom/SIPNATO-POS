@@ -243,6 +243,24 @@ describe('headers que manda el cliente', () => {
     expect(sinHeader.tenant.names).toEqual(['rt-dev']);
   });
 
+  it('en desarrollo X-Forwarded-Host solo cuenta si la URL es local', async () => {
+    // Un Worker de desarrollo que por error quedara publicado en el dominio real.
+    const h = harness({ ...DEV, TENANT_BASE_DOMAIN: 'dosuxsoft.com' });
+    const res = await h.fetch('https://rt-a.dosuxsoft.com/auth/status', {
+      headers: { 'X-Forwarded-Host': 'rt-b.dosuxsoft.com' },
+    });
+    expect(await res.json()).toEqual({ setup: true }); // rt-a, no rt-b
+    expect(h.tenant.names).toEqual(['rt-a']);
+
+    for (const local of ['http://127.0.0.1:8787', 'http://dev.localhost:8787']) {
+      const l = harness({ ...DEV, TENANT_BASE_DOMAIN: 'dosuxsoft.com' });
+      await l.fetch(`${local}/auth/status`, {
+        headers: { 'X-Forwarded-Host': 'rt-b.dosuxsoft.com' },
+      });
+      expect(l.tenant.names, local).toEqual(['rt-b']);
+    }
+  });
+
   it('X-Dosuxsoft-Tenant enviado por el cliente se descarta', async () => {
     const res = await call('rt-a', 'GET', '/auth/status', {
       headers: { [TENANT_HEADER]: 'rt-b' },

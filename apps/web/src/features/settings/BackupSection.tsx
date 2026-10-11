@@ -18,7 +18,8 @@ export function BackupSection() {
       a.href = url;
       a.download = filename;
       a.click();
-      URL.revokeObjectURL(url);
+      // Safari (sobre todo en iOS) cancela la descarga si el enlace se revoca en el mismo turno.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -51,6 +52,10 @@ export function BackupSection() {
         </button>
         {error && <span className="text-sm text-brand-error">{error}</span>}
       </div>
+      <p className="text-xs text-text-muted">
+        Contiene datos confidenciales (contraseñas de equipos de clientes). Guárdalo en un lugar
+        seguro.
+      </p>
     </Section>
   );
 }

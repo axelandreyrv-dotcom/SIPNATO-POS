@@ -225,6 +225,13 @@ export class NegocioNoEncontrado extends AppError {
   }
 }
 
+// La plataforma no pudo hablar con el Durable Object del negocio.
+export class NegocioNoDisponible extends AppError {
+  constructor() {
+    super('NEGOCIO_NO_DISPONIBLE', 'El negocio no responde. Intenta de nuevo en un momento.', 503);
+  }
+}
+
 export class NegocioSuspendido extends AppError {
   constructor() {
     super('NEGOCIO_SUSPENDIDO', 'Este negocio está suspendido', 403);

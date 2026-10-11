@@ -1,5 +1,6 @@
 import type { SetupInput } from '@sipnato/shared';
 import {
+  DUMMY_HASH,
   generateRecoveryCode,
   generateTemporaryPassword,
   hashPassword,
@@ -117,10 +118,8 @@ export async function recoverAdmin(
 ): Promise<{ newRecoveryCode: string; sessionToken: string; username: string }> {
   const dueno = findDueno();
 
-  // Always verify to prevent timing attacks.
-  const dummyHash =
-    '$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-  const valid = await verifyRecoveryCode(recoveryCode, dueno?.recoveryCodeHash ?? dummyHash);
+  // Sin dueño también se verifica: la respuesta tarda lo mismo.
+  const valid = await verifyRecoveryCode(recoveryCode, dueno?.recoveryCodeHash ?? DUMMY_HASH);
 
   if (!dueno || !valid) {
     insertAuditLog({ action: 'RECOVER_FAILED', ...auditMeta(meta) });

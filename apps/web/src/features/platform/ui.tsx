@@ -58,6 +58,15 @@ export function SuspendedBadge() {
   );
 }
 
+// Su Durable Object no respondió: lo que dice de activación, tipo y módulos no es real.
+export function UnavailableBadge() {
+  return (
+    <span className="inline-flex h-6 items-center rounded-md bg-brand-warning/12 px-2 text-xs font-medium text-brand-warning">
+      No disponible
+    </span>
+  );
+}
+
 export function dueText(t: Pick<PlatformTenant, 'paidUntil' | 'daysLeft'>): string {
   if (!t.paidUntil || t.daysLeft === null) return 'No se le cobra';
   if (t.daysLeft < -1) return `Venció hace ${-t.daysLeft} días`;

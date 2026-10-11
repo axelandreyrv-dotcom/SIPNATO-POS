@@ -1,10 +1,10 @@
 import type { Context, ErrorHandler, MiddlewareHandler } from 'hono';
 import { deleteCookie, setCookie } from 'hono/cookie';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
-import type { ZodType, ZodTypeDef } from 'zod';
 import type { Superadmin } from '@sipnato/shared';
 import type { Actor } from '../db/client.js';
 import type { Env } from '../env.js';
+import { HOST_HEADER } from './constants.js';
 import { AppError } from './errors.js';
 
 export type AppEnv = {
@@ -110,14 +110,62 @@ export async function readJson(c: AppContext): Promise<unknown> {
   }
 }
 
-// Solo aquí un ZodError es culpa del cliente: el cuerpo de la petición no es válido.
-export async function parseBody<T>(
-  c: AppContext,
-  schema: ZodType<T, ZodTypeDef, unknown>,
-): Promise<T> {
-  const result = schema.safeParse(await readJson(c));
-  if (!result.success) {
-    throw new AppError('VALIDACION', result.error.issues[0]?.message ?? 'Datos inválidos', 400);
+const LOCAL_HOSTNAMES = ['localhost', '127.0.0.1'];
+
+// En producción el Host es el de la URL (Cloudflare la arma con él). Solo un Worker de desarrollo
+// que corre en la máquina local acepta X-Forwarded-Host, que pone el proxy de Vite: en cualquier
+// otro caso permitiría elegir negocio con un header.
+export function requestHost(request: Request, env: Env): string {
+  const url = new URL(request.url);
+  const local = LOCAL_HOSTNAMES.includes(url.hostname) || url.hostname.endsWith('.localhost');
+  if (env.ENVIRONMENT === 'development' && local) {
+    const forwarded = request.headers.get('X-Forwarded-Host')?.split(',')[0]?.trim();
+    if (forwarded) return forwarded;
   }
-  return result.data;
+  return url.host;
 }
+
+const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
+
+function originHost(origin: string): string | null {
+  try {
+    return new URL(origin).host;
+  } catch {
+    return null;
+  }
+}
+
+// CSRF. Todos los subdominios de dosuxsoft.com son el mismo sitio, así que la cookie
+// SameSite=Strict viaja en un POST que otro subdominio haga con `mode: 'no-cors'` o desde un
+// formulario. Una escritura solo se acepta desde el mismo origen y con cuerpo JSON (un formulario
+// o un no-cors no pueden mandar `application/json` sin preflight, y no hay CORS).
+export const sameOriginWrites: MiddlewareHandler<AppEnv> = async (c, next) => {
+  if (SAFE_METHODS.includes(c.req.method)) return next();
+
+  const site = c.req.header('Sec-Fetch-Site');
+  const origin = c.req.header('Origin');
+  // El host que fijó el Worker; sin él (no debería pasar) el de la URL.
+  const host = c.req.header(HOST_HEADER) ?? new URL(c.req.url).host;
+  if (
+    (site !== undefined && site !== 'same-origin') ||
+    (origin !== undefined && originHost(origin) !== host.toLowerCase())
+  ) {
+    return c.json({ error: { code: 'ORIGEN_NO_PERMITIDO', message: 'Origen no permitido' } }, 403);
+  }
+
+  const length = c.req.header('Content-Length');
+  const hasBody = length !== undefined ? length !== '0' : c.req.raw.body !== null;
+  const type = c.req.header('Content-Type')?.toLowerCase() ?? '';
+  if (hasBody && !type.startsWith('application/json')) {
+    return c.json(
+      {
+        error: {
+          code: 'TIPO_NO_SOPORTADO',
+          message: 'El cuerpo de la solicitud debe ser JSON',
+        },
+      },
+      415,
+    );
+  }
+  return next();
+};

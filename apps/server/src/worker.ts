@@ -1,9 +1,9 @@
 import { isValidSlug, PLATFORM_SUBDOMAIN } from '@sipnato/shared';
 import type { TenantStatus } from './db/control.js';
 import type { Env } from './env.js';
-import { TENANT_HEADER } from './lib/constants.js';
+import { HOST_HEADER, TENANT_HEADER } from './lib/constants.js';
 import { AppError, NegocioNoEncontrado, NegocioSuspendido } from './lib/errors.js';
-import { errorResponse } from './lib/http.js';
+import { errorResponse, requestHost } from './lib/http.js';
 import { platform } from './lib/platform-client.js';
 
 export { TenantDO } from './do/tenant-do.js';
@@ -52,16 +52,6 @@ export function routeHost(host: string, env: Env): HostRoute {
   return isValidSlug(label) ? { kind: 'tenant', slug: label } : null;
 }
 
-// En producción el Host es el de la URL (Cloudflare la arma con él). Solo en desarrollo se acepta
-// X-Forwarded-Host, que pone el proxy de Vite: en producción permitiría elegir negocio con un header.
-function requestHost(request: Request, env: Env): string {
-  if (env.ENVIRONMENT === 'development') {
-    const forwarded = request.headers.get('X-Forwarded-Host')?.split(',')[0]?.trim();
-    if (forwarded) return forwarded;
-  }
-  return new URL(request.url).host;
-}
-
 // Solo se guardan negocios que existen: el tamaño queda acotado por la cantidad de negocios (un
 // subdominio inventado no ocupa memoria) y uno recién creado responde de inmediato.
 const resolved = new Map<string, { status: TenantStatus; expiresAt: number }>();
@@ -86,12 +76,14 @@ export function clearTenantCache(): void {
 }
 
 async function routeApi(request: Request, path: string, env: Env): Promise<Response> {
-  const route = routeHost(requestHost(request, env), env);
+  const host = requestHost(request, env);
+  const route = routeHost(host, env);
   if (!route) return errorResponse(new NegocioNoEncontrado());
 
-  // El header del negocio solo lo pone este Worker; el que mande el cliente nunca pasa.
+  // Estos headers solo los pone este Worker; los que mande el cliente nunca pasan.
   const headers = new Headers(request.headers);
   headers.delete(TENANT_HEADER);
+  headers.set(HOST_HEADER, host);
 
   if (route.kind === 'platform') {
     if (!path.startsWith(PLATFORM_PREFIX) && !PLATFORM_PATHS.includes(path)) return notFound();

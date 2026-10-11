@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { currentPlatformStorage } from './db/control.js';
-import { apiHeaders, errorHandler, type AppEnv } from './lib/http.js';
+import { apiHeaders, errorHandler, sameOriginWrites, type AppEnv } from './lib/http.js';
 import { rateLimit } from './lib/rate-limit.js';
 import opsRoutes from './modules/ops/routes.js';
 import platformRoutes from './modules/platform/routes.js';
@@ -12,6 +12,7 @@ export function createPlatformApp(): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
   app.use(apiHeaders);
+  app.use(sameOriginWrites);
   app.use(async (c, next) => {
     const storage = currentPlatformStorage();
     c.set('kv', storage.kv);

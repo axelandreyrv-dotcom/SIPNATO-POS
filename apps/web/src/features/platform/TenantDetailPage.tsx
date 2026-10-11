@@ -33,6 +33,7 @@ import {
   secondaryButton,
   SubscriptionBadge,
   SuspendedBadge,
+  UnavailableBadge,
   tenantHost,
   tenantUrl,
   textareaClass,
@@ -85,6 +86,7 @@ function Detail({ detail }: { detail: PlatformTenantDetail }) {
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-semibold tracking-tight text-text-primary">{t.name}</h1>
             {t.status === 'suspended' && <SuspendedBadge />}
+            {t.unavailable && <UnavailableBadge />}
           </div>
           <a
             href={tenantUrl(t.slug)}
@@ -98,6 +100,16 @@ function Detail({ detail }: { detail: PlatformTenantDetail }) {
         </div>
         <ReminderButton tenant={t} />
       </div>
+
+      {t.unavailable && (
+        <p
+          role="alert"
+          className="rounded-lg border border-brand-warning/30 bg-brand-warning/[0.07] px-3 py-2 text-sm text-text-primary"
+        >
+          El negocio no responde. Los pagos y los datos de esta página se guardan igual; el uso, el
+          tipo de negocio y los módulos no se pueden mostrar ni cambiar hasta que vuelva.
+        </p>
+      )}
 
       <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-4">
         <Fact label="Suscripción">
@@ -855,7 +867,26 @@ const ACTION_LABELS: Record<string, string> = {
   TENANT_SETUP_CODE_ISSUED: 'Código de activación nuevo',
   PAYMENT_RECORDED: 'Pago registrado',
   PAYMENT_VOIDED: 'Pago anulado',
+  // Consola de operaciones (/internal/ops).
+  OPS_SUPERADMIN_CREATE: 'Consola: superadministrador creado',
+  OPS_SUPERADMIN_RESET: 'Consola: contraseña de superadministrador restablecida',
+  OPS_SUPERADMIN_DISABLE: 'Consola: superadministrador desactivado',
+  OPS_SUPERADMIN_ENABLE: 'Consola: superadministrador reactivado',
+  OPS_SUPERADMIN_LIST: 'Consola: lista de superadministradores',
+  OPS_TENANT_LIST: 'Consola: lista de negocios',
+  OPS_TENANT_CREATE: 'Consola: negocio creado',
+  OPS_TENANT_SUSPEND: 'Consola: negocio suspendido',
+  OPS_TENANT_ACTIVATE: 'Consola: negocio reactivado',
+  OPS_SETUP_CODE: 'Consola: código de activación nuevo',
+  OPS_RESET_OWNER: 'Consola: acceso del dueño restablecido',
+  OPS_BOOKMARKS: 'Consola: puntos de restauración consultados',
+  OPS_RESTORE_TENANT: 'Consola: restauración de la base de datos',
+  OPS_AUTH_FAILED: 'Consola: token rechazado',
+  OPS_INVALID_REQUEST: 'Consola: solicitud inválida',
 };
+
+// Sin superadministrador: lo hizo la consola de operaciones.
+const CONSOLE_ACTOR = 'Consola de operaciones';
 
 const FIELD_LABELS: Record<string, string> = {
   name: 'nombre',
@@ -869,6 +900,7 @@ const FIELD_LABELS: Record<string, string> = {
 function activityDetail(entry: PlatformAuditEntry): string | null {
   const p = entry.payload;
   if (!p) return null;
+  if (entry.action.startsWith('OPS_') && p['ok'] === false) return 'falló';
   if (entry.action === 'TENANT_BUSINESS_ASSIGNED') {
     const tpl = p['template'] as { from: BusinessTemplate; to: BusinessTemplate } | undefined;
     if (tpl && tpl.from !== tpl.to) {
@@ -901,7 +933,7 @@ function Activity({ entries }: { entries: PlatformAuditEntry[] }) {
             </span>
             <span className="text-xs text-text-muted">
               {fmtDateTime(e.createdAt)}
-              {e.superadmin && ` · @${e.superadmin}`}
+              {` · ${e.superadmin ? `@${e.superadmin}` : CONSOLE_ACTOR}`}
             </span>
           </li>
         );
