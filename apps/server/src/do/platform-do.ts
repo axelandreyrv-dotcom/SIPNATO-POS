@@ -11,10 +11,16 @@ import {
   type ExchangeRateRow,
   type TenantStatus,
 } from '../db/control.js';
+import {
+  exportControlTables,
+  importLegacyControl,
+  type ControlTables,
+} from '../db/legacy-platform.js';
 import type { Env } from '../env.js';
 import { todayCR } from '../lib/cr-time.js';
 import { exportTenant } from '../lib/export.js';
 import type { AppEnv } from '../lib/http.js';
+import { LEGACY_PLATFORM_OBJECT_NAME, legacyPlatform } from '../lib/platform-client.js';
 import { sweepRateLimits } from '../lib/rate-limit.js';
 import { INACTIVITY_TIMEOUT_MS } from '../lib/session.js';
 import { deleteExpiredPlatformSessions } from '../modules/platform/repository.js';
@@ -37,6 +43,12 @@ export class PlatformDO extends DurableObject<Env> {
     super(ctx, env);
     runInPlatform(ctx.storage, initControlSchema);
     this.app = createPlatformApp();
+    // El objeto original (Singapur) solo responde a exportLegacyControl: nunca se migra a sí mismo.
+    if (!ctx.id.equals(env.PLATFORM.idFromName(LEGACY_PLATFORM_OBJECT_NAME))) {
+      ctx.blockConcurrencyWhile(() =>
+        importLegacyControl(ctx.storage, () => legacyPlatform(env).exportLegacyControl()),
+      );
+    }
   }
 
   private run<T>(fn: () => T): T {
@@ -83,6 +95,11 @@ export class PlatformDO extends DurableObject<Env> {
         .filter((t) => maintained.includes(t.status))
         .map((t) => t.slug),
     );
+  }
+
+  // Lo pide una sola vez el objeto nuevo de la plataforma (db/legacy-platform.ts). Sin sesiones.
+  exportLegacyControl(): ControlTables {
+    return this.run(exportControlTables);
   }
 
   exportControl(): ReturnType<typeof exportTenant> {

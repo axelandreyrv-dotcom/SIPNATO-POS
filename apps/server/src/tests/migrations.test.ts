@@ -1,13 +1,13 @@
-import { env, evictDurableObject, runInDurableObject } from 'cloudflare:test';
+import { evictDurableObject, runInDurableObject } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import { runMigrations } from '../db/migrator.js';
 import { MIGRATIONS } from '../db/migrations.js';
-import { GENERIC_ASSIGNMENT } from './helpers.js';
+import { GENERIC_ASSIGNMENT, tenantStub } from './helpers.js';
 
 let counter = 0;
 const freshStub = () => {
   const slug = `migraciones-${++counter}`;
-  return { slug, stub: env.TENANT.get(env.TENANT.idFromName(slug)) };
+  return { slug, stub: tenantStub(slug) };
 };
 // El esquema se crea al inicializar el negocio (lo hace la plataforma), no antes.
 const newTenant = async () => {

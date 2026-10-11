@@ -4,7 +4,7 @@ import { runInTenant } from '../db/client.js';
 import { findTenant, insertTenant, runInPlatform } from '../db/control.js';
 import { COOKIE_NAME, PLATFORM_COOKIE_NAME } from '../lib/constants.js';
 import { generateRecoveryCode, hashPassword, hashRecoveryCode } from '../lib/crypto.js';
-import { platform } from '../lib/platform-client.js';
+import { platform, tenantStub as doStub } from '../lib/platform-client.js';
 import { insertSuperadmin } from '../modules/platform/repository.js';
 import { insertUserRow } from '../modules/users/repository.js';
 
@@ -21,7 +21,7 @@ export const GENERIC_ASSIGNMENT: AssignBusinessInput = {
   modules: [...TEMPLATE_INFO.generico.profile.modules],
 };
 
-export const tenantStub = (slug: string) => env.TENANT.get(env.TENANT.idFromName(slug));
+export const tenantStub = (slug: string) => doStub(env, slug);
 
 export const tenantUrl = (slug: string, path: string) => `https://${slug}.dosuxsoft.com${path}`;
 

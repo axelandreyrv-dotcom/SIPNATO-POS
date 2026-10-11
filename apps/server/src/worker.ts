@@ -4,7 +4,7 @@ import type { Env } from './env.js';
 import { HOST_HEADER, TENANT_HEADER } from './lib/constants.js';
 import { AppError, NegocioNoEncontrado, NegocioSuspendido } from './lib/errors.js';
 import { errorResponse, requestHost } from './lib/http.js';
-import { platform } from './lib/platform-client.js';
+import { platform, tenantStub } from './lib/platform-client.js';
 
 export { TenantDO } from './do/tenant-do.js';
 export { PlatformDO } from './do/platform-do.js';
@@ -98,7 +98,7 @@ async function routeApi(request: Request, path: string, env: Env): Promise<Respo
   if (status !== 'active') return errorResponse(new NegocioSuspendido());
 
   headers.set(TENANT_HEADER, route.slug);
-  const stub = env.TENANT.get(env.TENANT.idFromName(route.slug));
+  const stub = tenantStub(env, route.slug);
   return stub.fetch(new Request(request, { headers }));
 }
 
@@ -119,7 +119,7 @@ async function dailyMaintenance(env: Env): Promise<void> {
 
   const slugs = await control.listMaintainedSlugs();
   const results = await Promise.allSettled(
-    slugs.map((slug) => env.TENANT.get(env.TENANT.idFromName(slug)).dailyMaintenance()),
+    slugs.map((slug) => tenantStub(env, slug).dailyMaintenance()),
   );
   results.forEach((result, i) => {
     if (result.status === 'rejected') {

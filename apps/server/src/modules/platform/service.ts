@@ -57,6 +57,7 @@ import {
   SuperadminYaExiste,
   UsuarioBloqueado,
 } from '../../lib/errors.js';
+import { tenantStub } from '../../lib/platform-client.js';
 import { INACTIVITY_TIMEOUT_MS, SESSION_DURATION_MS } from '../../lib/session.js';
 import {
   deletePlatformSession,
@@ -277,7 +278,7 @@ export function updatePlatformSettings(
 
 // ─── Negocios ─────────────────────────────────────────────────────────────────
 
-export const tenantDO = (slug: string) => env.TENANT.get(env.TENANT.idFromName(slug));
+export const tenantDO = (slug: string) => tenantStub(env, slug);
 
 const DEFAULT_ASSIGNMENT: AssignBusinessInput = {
   template: 'generico',

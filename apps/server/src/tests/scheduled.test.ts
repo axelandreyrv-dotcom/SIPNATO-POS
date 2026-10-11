@@ -25,6 +25,7 @@ import {
   inTenant,
   loginToken,
   platformLogin,
+  platformStub,
   tenantStub,
   type Method,
 } from './helpers.js';
@@ -361,9 +362,7 @@ describe('cron diario: mantenimiento y respaldos en R2', () => {
       state.storage.kv.put('rl:login:8.8.8.8', { start: now - 10 * 60_000, count: 1 });
     };
     await runInDurableObject(tenantStub('diario-a'), (_i, state) => putRl(state));
-    await runInDurableObject(env.PLATFORM.get(env.PLATFORM.idFromName('platform')), (_i, state) =>
-      putRl(state),
-    );
+    await runInDurableObject(platformStub(), (_i, state) => putRl(state));
     await inPlatform(() =>
       controlDb
         .prepare(
@@ -391,10 +390,7 @@ describe('cron diario: mantenimiento y respaldos en R2', () => {
     const tenantRl = await runInDurableObject(tenantStub('diario-a'), (_i, s) => rlKeys(s));
     expect(tenantRl).not.toContain('rl:login:9.9.9.9');
     expect(tenantRl).toContain('rl:login:8.8.8.8');
-    const platformRl = await runInDurableObject(
-      env.PLATFORM.get(env.PLATFORM.idFromName('platform')),
-      (_i, s) => rlKeys(s),
-    );
+    const platformRl = await runInDurableObject(platformStub(), (_i, s) => rlKeys(s));
     expect(platformRl).not.toContain('rl:login:9.9.9.9');
     expect(platformRl).toContain('rl:login:8.8.8.8');
 

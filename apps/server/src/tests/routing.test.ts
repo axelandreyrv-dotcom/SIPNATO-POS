@@ -28,13 +28,15 @@ function expectApiHeaders(res: Response) {
 function spyNamespace<T extends Rpc.DurableObjectBranded>(real: DurableObjectNamespace<T>) {
   const names: string[] = [];
   const forwarded: Request[] = [];
+  const options: (DurableObjectNamespaceGetDurableObjectOptions | undefined)[] = [];
   const ns = {
     idFromName(name: string) {
       names.push(name);
       return real.idFromName(name);
     },
-    get(id: DurableObjectId) {
-      const stub = real.get(id);
+    get(id: DurableObjectId, opts?: DurableObjectNamespaceGetDurableObjectOptions) {
+      options.push(opts);
+      const stub = real.get(id, opts);
       return new Proxy(stub, {
         get(target, prop) {
           if (prop === 'fetch') {
@@ -51,12 +53,13 @@ function spyNamespace<T extends Rpc.DurableObjectBranded>(real: DurableObjectNam
       });
     },
   } as unknown as DurableObjectNamespace<T>;
-  return { ns, names, forwarded };
+  return { ns, names, forwarded, options };
 }
 
 interface Spy {
   names: string[];
   forwarded: Request[];
+  options: (DurableObjectNamespaceGetDurableObjectOptions | undefined)[];
 }
 
 interface Harness {
@@ -191,7 +194,7 @@ describe('enrutado por Host sin tocar Durable Objects', () => {
     expect((await errorOf(res)).code).toBe('NEGOCIO_NO_ENCONTRADO');
     expectApiHeaders(res);
     expect(res.headers.get('Content-Security-Policy')).toBeNull();
-    expect(h.platform.names).toEqual(['platform']);
+    expect(h.platform.names).toEqual(['platform-enam']);
     expect(h.tenant.names).toEqual([]);
   });
 
@@ -200,6 +203,17 @@ describe('enrutado por Host sin tocar Durable Objects', () => {
     const res = await h.fetch('https://rt-a.dosuxsoft.com/auth/status');
     expect(await res.json()).toEqual({ setup: true });
     expect(h.tenant.names).toEqual(['rt-a']);
+  });
+
+  it('los Durable Objects se piden en el este de Norteamérica; la plataforma con su nombre nuevo', async () => {
+    const h = harness(PROD);
+    await h.fetch('https://rt-a.dosuxsoft.com/auth/status');
+    expect(h.tenant.options).toEqual([{ locationHint: 'enam' }]);
+
+    const p = harness(PROD);
+    await p.fetch('https://admin.dosuxsoft.com/health');
+    expect(p.platform.names).toEqual(['platform-enam']);
+    expect(p.platform.options).toEqual([{ locationHint: 'enam' }]);
   });
 
   it('negocio suspendido → 403 sin crear su DO', async () => {
