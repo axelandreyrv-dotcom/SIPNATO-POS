@@ -4,7 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/.gitkeep'],
+    ignores: ['**/dist/**', '**/node_modules/**', '**/.wrangler/**', '**/.gitkeep'],
   },
   ...tseslint.configs.recommended,
   eslintConfigPrettier,

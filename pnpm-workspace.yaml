@@ -2,7 +2,7 @@ packages:
   - 'apps/*'
   - 'packages/*'
 allowBuilds:
-  argon2: true
-  better-sqlite3: true
+  # peer opcional de drizzle-orm que pnpm instala solo; el Worker no lo usa
+  better-sqlite3: false
   esbuild: true
   workerd: true

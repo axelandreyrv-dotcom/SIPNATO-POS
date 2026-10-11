@@ -3,10 +3,11 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { resolve } from 'path';
 
-// El servidor identifica el negocio por el subdominio (taller.localhost:5174), así que el
-// proxy debe conservar el Host original, igual que Caddy en producción. La forma corta
-// '/api': 'http://...' activa changeOrigin y lo reescribiría a localhost:3000.
-const apiProxy: ProxyOptions = { target: 'http://localhost:3000', changeOrigin: false };
+// El Worker identifica el negocio por el subdominio (taller.localhost:5174). El proxy conserva
+// el Host original (changeOrigin: false; la forma corta '/api': 'http://...' lo reescribiría a
+// localhost:8787) y xfwd añade X-Forwarded-Host, que el Worker de desarrollo
+// (ENVIRONMENT=development) usa cuando wrangler reescribe el Host.
+const apiProxy: ProxyOptions = { target: 'http://localhost:8787', changeOrigin: false, xfwd: true };
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -26,6 +27,7 @@ export default defineConfig({
       '/auth': apiProxy,
       '/health': apiProxy,
       '/platform': apiProxy,
+      '/internal': apiProxy,
     },
   },
 });

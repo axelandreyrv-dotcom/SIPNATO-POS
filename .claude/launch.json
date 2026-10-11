@@ -5,8 +5,8 @@
       "name": "server",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@sipnato/server", "dev"],
-      "port": 3000,
-      "url": "http://localhost:3000"
+      "port": 8787,
+      "url": "http://localhost:8787"
     },
     {
       "name": "web",

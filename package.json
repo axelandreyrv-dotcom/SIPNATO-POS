@@ -6,7 +6,7 @@
     "prepare": "pnpm --filter @sipnato/shared build",
     "dev": "concurrently --kill-others -n server,web -c bgBlue.bold,bgGreen.bold \"pnpm run dev:server\" \"pnpm run dev:web\"",
     "dev:server": "pnpm --filter @sipnato/server run dev",
-    "dev:web": "wait-on http://localhost:3000/health && pnpm --filter @sipnato/web run dev",
+    "dev:web": "wait-on tcp:localhost:8787 && pnpm --filter @sipnato/web run dev",
     "build": "pnpm -r run build",
     "lint": "eslint .",
     "format": "prettier --write .",
