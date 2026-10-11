@@ -58,7 +58,7 @@ import {
   UsuarioBloqueado,
 } from '../../lib/errors.js';
 import { tenantStub } from '../../lib/platform-client.js';
-import { INACTIVITY_TIMEOUT_MS, SESSION_DURATION_MS } from '../../lib/session.js';
+import { INACTIVITY_TIMEOUT_MS, SESSION_DURATION_MS, shouldTouch } from '../../lib/session.js';
 import {
   deletePlatformSession,
   deleteSuperadminSessions,
@@ -164,7 +164,7 @@ export async function verifyPlatformSession(
     deletePlatformSession(session.id);
     return null;
   }
-  touchPlatformSession(session.id);
+  if (shouldTouch(session.last_active_at, now)) touchPlatformSession(session.id);
   return { sessionId: session.id, admin: { id: admin.id, username: admin.username } };
 }
 

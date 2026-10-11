@@ -69,11 +69,20 @@ export async function verifySession(
   };
 }
 
-export async function touchSession(sessionId: string): Promise<void> {
+// La última actividad se escribe a lo sumo una vez por minuto: cada escritura es durable y retrasa
+// la respuesta. A cambio, una sesión puede vencer por inactividad hasta un minuto antes.
+export const TOUCH_INTERVAL_MS = 60 * 1000;
+
+export function shouldTouch(lastActiveAt: string, now = Date.now()): boolean {
+  return now - new Date(lastActiveAt).getTime() >= TOUCH_INTERVAL_MS;
+}
+
+export async function touchSession(session: Pick<Session, 'id' | 'lastActiveAt'>): Promise<void> {
+  if (!shouldTouch(session.lastActiveAt)) return;
   await db
     .update(sessions)
     .set({ lastActiveAt: new Date().toISOString() })
-    .where(eq(sessions.id, sessionId));
+    .where(eq(sessions.id, session.id));
 }
 
 export async function revokeSession(token: string): Promise<void> {

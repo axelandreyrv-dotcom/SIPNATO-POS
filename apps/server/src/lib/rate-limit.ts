@@ -73,6 +73,67 @@ export function sweepRateLimits(kv: DurableObjectStorage['kv']): void {
   for (const key of stale) kv.delete(key);
 }
 
+// El tope general (200 por minuto por IP) solo frena ráfagas: no hace falta que sobreviva a que el
+// Durable Object se reinicie, y guardarlo en el kv era una escritura durable en cada petición, que
+// retrasa la respuesta hasta confirmarse. Login, recuperación, respaldo y la consola siguen en el kv.
+export class MemoryLimiter {
+  private readonly windows = new Map<string, RateWindow>();
+
+  constructor(private readonly maxKeys = 10_000) {}
+
+  get size(): number {
+    return this.windows.size;
+  }
+
+  hit(key: string, limit: number, windowMs: number): { allowed: boolean; retryAfterSec: number } {
+    const now = Date.now();
+    const windowStart = Math.floor(now / windowMs) * windowMs;
+    const stored = this.windows.get(key);
+    const count = stored?.start === windowStart ? stored.count + 1 : 1;
+    if (stored) {
+      stored.start = windowStart;
+      stored.count = count;
+    } else {
+      if (this.windows.size >= this.maxKeys) this.prune(windowStart);
+      this.windows.set(key, { start: windowStart, count });
+    }
+
+    const allowed = count <= limit;
+    return {
+      allowed,
+      retryAfterSec: allowed ? 0 : Math.max(1, Math.ceil((windowStart + windowMs - now) / 1000)),
+    };
+  }
+
+  // Primero las ventanas que ya terminaron; si aún no hay lugar, las más viejas (la Map conserva
+  // el orden de inserción). Así la memoria queda acotada aunque lleguen IPs nuevas sin parar.
+  private prune(windowStart: number): void {
+    for (const [key, value] of this.windows) {
+      if (value.start < windowStart) this.windows.delete(key);
+    }
+    for (const key of this.windows.keys()) {
+      if (this.windows.size < this.maxKeys) break;
+      this.windows.delete(key);
+    }
+  }
+}
+
+// Como rateLimit, pero con los contadores en memoria de la instancia (un limitador por app, es
+// decir, por Durable Object).
+export function memoryRateLimit(
+  name: string,
+  limit: number,
+  windowMs: number,
+  key: (c: AppContext) => string = clientIp,
+): MiddlewareHandler<AppEnv> {
+  const limiter = new MemoryLimiter();
+  return async (c, next) => {
+    const result = limiter.hit(`${name}:${key(c)}`, limit, windowMs);
+    if (!result.allowed) return tooManyAttempts(c, result.retryAfterSec);
+    await next();
+  };
+}
+
 export function rateLimit(
   name: string,
   limit: number,
