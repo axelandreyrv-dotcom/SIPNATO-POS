@@ -39,7 +39,7 @@
 | D | Plantillas por tipo de negocio + órdenes de servicio configurables | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
 | E | Colones + dólares · notificaciones a clientes | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
 | F | Alta de negocios, cobro de suscripción y panel de superadministrador | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
-| G | Migración a Cloudflare Workers (Durable Objects por negocio, sin VPS) | ✅ EN PRODUCCIÓN 2026-10-11 (213 tests) · pendiente `/grill-me` y fusionar en `main` |
+| G | Migración a Cloudflare Workers (Durable Objects por negocio, sin VPS) | ✅ EN PRODUCCIÓN 2026-10-11 (219 tests) · `/grill-me` ✅ · fusionada en `main` |
 
 > IVA y facturación electrónica de Hacienda: **descartados** (decisión del usuario, 2026-10-07).
 
@@ -50,8 +50,12 @@
   aislamiento (subdominio inventado → 404, suspendido → 403) y `/internal/ops` verificados. Cuenta del panel `admin`
   creada (contraseña temporal en `apps/server/data/CREDENCIALES-PRODUCCION.txt`, fuera de git). Simulacro PITR exitoso
   con el negocio desechable `prueba-pitr` (suspendido). Worker de prueba `dosuxsoft-poc` borrado; `seitcr` sin cambios.
-- **Pendiente:** cambiar la contraseña temporal del panel, configurar mensualidad por defecto y "Cómo pagar", `/grill-me`
-  de la Fase G y fusionar la rama en `main`. Opcional: regla WAF de límite de intentos en `/api/*` y `/auth/*`.
+- **Pendiente:** cambiar la contraseña temporal del panel, configurar mensualidad por defecto y "Cómo pagar", guardar el `OPS_TOKEN` en un gestor
+  de contraseñas y borrar `CREDENCIALES-PRODUCCION.txt`.
+- `/grill-me` de la Fase G (2026-10-11): respaldo diario también de negocios suspendidos, `pnpm ops tenant-delete`
+  (solo suspendidos), panel sin formularios para negocios no disponibles, descarga de respaldo solo desde la misma página,
+  tiempo límite de 5 s en las consultas del panel. Regla WAF `api-por-ip` (100 pedidos/10 s por IP en `/api/` y `/auth/`)
+  creada y verificada. Negocio de prueba `prueba-pitr` eliminado.
 - El VPS anterior se borró (decisión del usuario); no había clientes ni datos que conservar.
 - **Fase G: el código está completo** en la rama `fase-g-cloudflare` (tareas 1–9). Un Worker con un Durable Object
   SQLite por negocio y otro para la plataforma; sin Fastify, Docker ni Caddy. 213 tests en `workerd`, `tsc`, lint y
@@ -92,7 +96,7 @@
 - [x] 7. Cierre automático con alarmas, crons y respaldos en R2 — 2026-10-10
 - [x] 8. Operaciones de emergencia por endpoint con secreto (`/internal/ops`) — 2026-10-10
 - [x] 9. Desarrollo local con wrangler; fuera Fastify, Docker y Caddy — 2026-10-10
-- [x] 10. Despliegue, DNS (`*` → Proxied) y documentación — 2026-10-11 (falta `/grill-me`)
+- [x] 10. Despliegue, DNS (`*` → Proxied) y documentación — 2026-10-11 · `/grill-me` ✅
   - [x] Documentación (`CLAUDE.md`, `deploy/DEPLOY.md`, `README.md`, este archivo) — 2026-10-10
   - [x] Revisión final del código: protección CSRF (`sameOriginWrites`) y panel tolerante a negocios caídos — 2026-10-10
   - [x] Despliegue (activar R2, bucket, secretos `OPS_TOKEN` y `BCCR_API_TOKEN`, `pnpm --filter @sipnato/server run deploy`) — 2026-10-11
