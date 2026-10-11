@@ -2,7 +2,7 @@
 
 > Desarrollo por fases pequeñas y lógicas. Cada fase es atómica: una sola responsabilidad, verificable antes de avanzar.
 > Al completar cada fase: marcar `[x]`, anotar la fecha y actualizar `CLAUDE.md`.
-> Última actualización: 2026-10-10 · Fases 0–15 ✅ · Versión multi-negocio: Fases A–F ✅, fusionadas en `main` · Fase G (Cloudflare Workers): código completo en la rama `fase-g-cloudflare`, falta el despliegue
+> Última actualización: 2026-10-11 · Fases 0–15 ✅ · Versión multi-negocio: Fases A–F ✅, fusionadas en `main` · Fase G (Cloudflare Workers): desplegada en producción desde la rama `fase-g-cloudflare`
 
 ---
 
@@ -39,21 +39,24 @@
 | D | Plantillas por tipo de negocio + órdenes de servicio configurables | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
 | E | Colones + dólares · notificaciones a clientes | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
 | F | Alta de negocios, cobro de suscripción y panel de superadministrador | ✅ COMPLETADA 2026-10-07 · `/grill-me` ✅ |
-| G | Migración a Cloudflare Workers (Durable Objects por negocio, sin VPS) | 🔶 Código completo 2026-10-10 (213 tests) · pendiente el despliegue |
+| G | Migración a Cloudflare Workers (Durable Objects por negocio, sin VPS) | ✅ EN PRODUCCIÓN 2026-10-11 (213 tests) · pendiente `/grill-me` y fusionar en `main` |
 
 > IVA y facturación electrónica de Hacienda: **descartados** (decisión del usuario, 2026-10-07).
 
-### Estado actual (2026-10-10)
+### Estado actual (2026-10-11)
 
-- **El VPS se borró** (decisión del usuario): producción está fuera de línea y el registro DNS `*` apunta a una IP
-  que ya no existe. No hay clientes ni datos que conservar.
+- **Producción en Cloudflare** (2026-10-11): Worker `dosuxsoft` en `*.dosuxsoft.com/*`, DNS `*` → `AAAA 100::` Proxied,
+  bucket R2 `dosuxsoft-backups` con borrado a los 30 días, secretos `OPS_TOKEN` y `BCCR_API_TOKEN`. `/health`, headers,
+  aislamiento (subdominio inventado → 404, suspendido → 403) y `/internal/ops` verificados. Cuenta del panel `admin`
+  creada (contraseña temporal en `apps/server/data/CREDENCIALES-PRODUCCION.txt`, fuera de git). Simulacro PITR exitoso
+  con el negocio desechable `prueba-pitr` (suspendido). Worker de prueba `dosuxsoft-poc` borrado; `seitcr` sin cambios.
+- **Pendiente:** cambiar la contraseña temporal del panel, configurar mensualidad por defecto y "Cómo pagar", `/grill-me`
+  de la Fase G y fusionar la rama en `main`. Opcional: regla WAF de límite de intentos en `/api/*` y `/auth/*`.
+- El VPS anterior se borró (decisión del usuario); no había clientes ni datos que conservar.
 - **Fase G: el código está completo** en la rama `fase-g-cloudflare` (tareas 1–9). Un Worker con un Durable Object
   SQLite por negocio y otro para la plataforma; sin Fastify, Docker ni Caddy. 213 tests en `workerd`, `tsc`, lint y
   formato limpios. Diseño en `docs/superpowers/specs/2026-10-10-fase-g-cloudflare-design.md`, plan en
   `docs/superpowers/plans/2026-10-10-fase-g-cloudflare.md`.
-- **Pendiente (tarea 10):** activar R2 en la cuenta, crear el bucket y los secretos, desplegar, cambiar el DNS `*` a
-  Proxied, crear el superadministrador en producción y hacer el simulacro de restauración PITR. Pasos en
-  `deploy/DEPLOY.md`.
 
 ### Estado anterior (2026-10-08, histórico)
 
@@ -75,7 +78,7 @@
 
 ---
 
-## Fase G — Cloudflare Workers 🔶 CÓDIGO COMPLETO 2026-10-10 (falta el despliegue)
+## Fase G — Cloudflare Workers ✅ EN PRODUCCIÓN 2026-10-11
 
 > Objetivo: correr todo en Cloudflare Workers Paid ($5/mes) en `*.dosuxsoft.com`, sin VPS. `seitcr.com`, su Worker
 > y los registros `dosuxsoft.com` / `www` / correo no se tocan. Detalle: plan `docs/superpowers/plans/2026-10-10-fase-g-cloudflare.md`.
@@ -89,13 +92,14 @@
 - [x] 7. Cierre automático con alarmas, crons y respaldos en R2 — 2026-10-10
 - [x] 8. Operaciones de emergencia por endpoint con secreto (`/internal/ops`) — 2026-10-10
 - [x] 9. Desarrollo local con wrangler; fuera Fastify, Docker y Caddy — 2026-10-10
-- [ ] 10. Despliegue, DNS (`*` → Proxied) y documentación · `/grill-me`
+- [x] 10. Despliegue, DNS (`*` → Proxied) y documentación — 2026-10-11 (falta `/grill-me`)
   - [x] Documentación (`CLAUDE.md`, `deploy/DEPLOY.md`, `README.md`, este archivo) — 2026-10-10
   - [x] Revisión final del código: protección CSRF (`sameOriginWrites`) y panel tolerante a negocios caídos — 2026-10-10
-  - [ ] Despliegue (activar R2, bucket, secretos `OPS_TOKEN` y `BCCR_API_TOKEN`, `pnpm --filter @sipnato/server run deploy`)
-  - [ ] DNS (`*` → `AAAA 100::` Proxied)
-  - [ ] Superadmin en producción (`pnpm ops superadmin-create username=admin`) y cambio de su contraseña temporal
-  - [ ] Simulacro PITR (restaurar un negocio de prueba con `pnpm ops restore-tenant`; en local no se puede probar)
+  - [x] Despliegue (activar R2, bucket, secretos `OPS_TOKEN` y `BCCR_API_TOKEN`, `pnpm --filter @sipnato/server run deploy`) — 2026-10-11
+  - [x] DNS (`*` → `AAAA 100::` Proxied) — 2026-10-11
+  - [x] Superadmin en producción (`superadmin-create username=admin`) — 2026-10-11
+  - [ ] Cambiar la contraseña temporal del panel (la hace el usuario)
+  - [x] Simulacro PITR con el negocio desechable `prueba-pitr` (restaurado y luego suspendido) — 2026-10-11
 
 ---
 
