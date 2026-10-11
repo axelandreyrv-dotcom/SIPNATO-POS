@@ -86,8 +86,8 @@ export function LoginPage() {
         </form>
 
         <p className="mt-8 text-xs leading-relaxed text-text-muted">
-          Las cuentas del panel se crean en el servidor con{' '}
-          <code className="font-mono">superadmin create</code>.
+          Las cuentas del panel se crean con la consola de operaciones:{' '}
+          <code className="font-mono">pnpm ops superadmin-create</code>.
         </p>
       </div>
     </div>

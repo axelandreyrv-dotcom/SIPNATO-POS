@@ -1,44 +1,40 @@
-import type { FastifyReply, FastifyRequest } from 'fastify';
-import { setActor, type Actor, type UserRole } from '../db/client.js';
+import type { MiddlewareHandler } from 'hono';
+import { getCookie } from 'hono/cookie';
+import { setActor, type UserRole } from '../db/client.js';
 import { COOKIE_NAME } from '../lib/constants.js';
+import { clearSessionCookie, type AppEnv } from '../lib/http.js';
 import { touchSession, verifySession } from '../lib/session.js';
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    sessionId: string;
-    user: Actor;
-  }
-}
-
-export async function requireAuth(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-  const token = request.cookies[COOKIE_NAME];
+export const requireAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
+  const token = getCookie(c, COOKIE_NAME);
 
   if (!token) {
-    return reply.status(401).send({ error: { code: 'UNAUTHORIZED', message: 'Sesión requerida' } });
+    return c.json({ error: { code: 'UNAUTHORIZED', message: 'Sesión requerida' } }, 401);
   }
 
   const result = await verifySession(token);
 
   if (!result) {
-    reply.clearCookie(COOKIE_NAME, { path: '/' });
-    return reply
-      .status(401)
-      .send({ error: { code: 'SESSION_EXPIRED', message: 'Sesión expirada' } });
+    clearSessionCookie(c, COOKIE_NAME);
+    return c.json({ error: { code: 'SESSION_EXPIRED', message: 'Sesión expirada' } }, 401);
   }
 
   await touchSession(result.session.id);
-  request.sessionId = result.session.id;
-  request.user = result.user;
+  c.set('sessionId', result.session.id);
+  c.set('user', result.user);
   setActor(result.user);
-}
+  await next();
+};
 
-// Usar DESPUÉS de requireAuth: `preHandler: [requireAuth, requireRole('dueno', 'admin')]`.
-export function requireRole(...roles: UserRole[]) {
-  return async function checkRole(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    if (!roles.includes(request.user.role)) {
-      return reply
-        .status(403)
-        .send({ error: { code: 'FORBIDDEN', message: 'No tienes permiso para esta acción' } });
+// Usar DESPUÉS de requireAuth: `routes.post('/', requireAuth, requireRole('dueno', 'admin'), …)`.
+export function requireRole(...roles: UserRole[]): MiddlewareHandler<AppEnv> {
+  return async (c, next) => {
+    if (!roles.includes(c.var.user.role)) {
+      return c.json(
+        { error: { code: 'FORBIDDEN', message: 'No tienes permiso para esta acción' } },
+        403,
+      );
     }
+    await next();
   };
 }

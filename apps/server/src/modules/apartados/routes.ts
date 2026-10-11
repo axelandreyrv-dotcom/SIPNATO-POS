@@ -1,7 +1,7 @@
-import type { FastifyPluginAsync } from 'fastify';
-import { AppError } from '../../lib/errors.js';
-import { requireAuth, requireRole } from '../../middleware/auth.js';
+import { Hono } from 'hono';
 import { createApartadoSchema, addApartadoPaymentSchema } from '@sipnato/shared';
+import { readJson, requestMetaCompact, type AppEnv } from '../../lib/http.js';
+import { requireAuth, requireRole } from '../../middleware/auth.js';
 import {
   createApartado,
   listApartados,
@@ -10,117 +10,71 @@ import {
   cancelApartado,
 } from './service.js';
 
-const apartadosRoutes: FastifyPluginAsync = async (app) => {
-  // GET /api/apartados?status=activo&search=...
-  app.get('/', { preHandler: requireAuth }, async (req, reply) => {
-    const { status, search } = req.query as { status?: string; search?: string };
-    const result = listApartados({
+const invalidId = { error: { code: 'INVALID_ID', message: 'ID inválido' } };
+
+const apartadosRoutes = new Hono<AppEnv>();
+
+// GET /api/apartados?status=activo&search=...
+apartadosRoutes.get('/', requireAuth, (c) => {
+  const status = c.req.query('status');
+  const search = c.req.query('search');
+  return c.json(
+    listApartados({
       ...(status !== undefined && { status }),
       ...(search !== undefined && { search }),
-    });
-    return reply.send(result);
-  });
+    }),
+  );
+});
 
-  // GET /api/apartados/:id
-  app.get('/:id', { preHandler: requireAuth }, async (req, reply) => {
-    const { id } = req.params as { id: string };
-    const parsed = parseInt(id, 10);
-    if (isNaN(parsed))
-      return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });
+// GET /api/apartados/:id
+apartadosRoutes.get('/:id', requireAuth, (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json(invalidId, 400);
+  return c.json(getApartado(id));
+});
 
-    try {
-      const apartado = getApartado(parsed);
-      return reply.send(apartado);
-    } catch (err) {
-      if (err instanceof AppError)
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      throw err;
-    }
-  });
-
-  // POST /api/apartados
-  app.post('/', { preHandler: requireAuth }, async (req, reply) => {
-    const parsed = createApartadoSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return reply.status(400).send({
+// POST /api/apartados
+apartadosRoutes.post('/', requireAuth, async (c) => {
+  const parsed = createApartadoSchema.safeParse(await readJson(c));
+  if (!parsed.success) {
+    return c.json(
+      {
         error: {
           code: 'VALIDATION_ERROR',
           message: parsed.error.errors[0]?.message ?? 'Datos inválidos',
         },
-      });
-    }
+      },
+      400,
+    );
+  }
+  return c.json(createApartado(parsed.data, requestMetaCompact(c)), 201);
+});
 
-    const ua = req.headers['user-agent'];
-    const meta = { ip: req.ip, ...(ua !== undefined && { userAgent: ua }) };
-    try {
-      const apartado = createApartado(parsed.data, meta);
-      return reply.status(201).send(apartado);
-    } catch (err) {
-      if (err instanceof AppError)
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      throw err;
-    }
-  });
+// POST /api/apartados/:id/payments
+apartadosRoutes.post('/:id/payments', requireAuth, async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json(invalidId, 400);
 
-  // POST /api/apartados/:id/payments
-  app.post('/:id/payments', { preHandler: requireAuth }, async (req, reply) => {
-    const { id } = req.params as { id: string };
-    const parsed = parseInt(id, 10);
-    if (isNaN(parsed))
-      return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });
-
-    const bodyParsed = addApartadoPaymentSchema.safeParse(req.body);
-    if (!bodyParsed.success) {
-      return reply.status(400).send({
+  const body = addApartadoPaymentSchema.safeParse(await readJson(c));
+  if (!body.success) {
+    return c.json(
+      {
         error: {
           code: 'VALIDATION_ERROR',
-          message: bodyParsed.error.errors[0]?.message ?? 'Datos inválidos',
+          message: body.error.errors[0]?.message ?? 'Datos inválidos',
         },
-      });
-    }
+      },
+      400,
+    );
+  }
+  return c.json(addPayment(id, body.data, requestMetaCompact(c)).apartado);
+});
 
-    const ua = req.headers['user-agent'];
-    const meta = { ip: req.ip, ...(ua !== undefined && { userAgent: ua }) };
-    try {
-      const result = addPayment(parsed, bodyParsed.data, meta);
-      return reply.send(result.apartado);
-    } catch (err) {
-      if (err instanceof AppError)
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      throw err;
-    }
-  });
-
-  // POST /api/apartados/:id/cancel
-  app.post(
-    '/:id/cancel',
-    { preHandler: [requireAuth, requireRole('dueno', 'admin')] },
-    async (req, reply) => {
-      const { id } = req.params as { id: string };
-      const parsed = parseInt(id, 10);
-      if (isNaN(parsed))
-        return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });
-
-      const ua = req.headers['user-agent'];
-      const meta = { ip: req.ip, ...(ua !== undefined && { userAgent: ua }) };
-      try {
-        const apartado = cancelApartado(parsed, meta);
-        return reply.send(apartado);
-      } catch (err) {
-        if (err instanceof AppError)
-          return reply
-            .status(err.statusCode)
-            .send({ error: { code: err.code, message: err.message } });
-        throw err;
-      }
-    },
-  );
-};
+// POST /api/apartados/:id/cancel
+apartadosRoutes.post('/:id/cancel', requireAuth, requireRole('dueno', 'admin'), (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json(invalidId, 400);
+  return c.json(cancelApartado(id, requestMetaCompact(c)));
+});
 
 export default apartadosRoutes;

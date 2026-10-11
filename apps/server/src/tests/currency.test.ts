@@ -1,45 +1,34 @@
-import { strict as assert } from 'assert';
-import { after, before, describe, it } from 'node:test';
-import { mkdtempSync, rmSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import {
+  formatUsd,
+  parseUsdToCents,
+  renderMessage,
+  usdCentsToColones,
+  whatsappLink,
+} from '@sipnato/shared';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { controlDb, saveExchangeRate } from '../db/control.js';
+import { fetchBccrRates } from '../lib/bccr.js';
+import { todayCR } from '../lib/cr-time.js';
+import {
+  call,
+  createTestTenant,
+  inPlatform,
+  loginToken,
+  platformStub,
+  type Method,
+} from './helpers.js';
 
-// config.ts lee process.env al importarse: el entorno debe fijarse antes de cargar la app.
-const dataDir = mkdtempSync(join(tmpdir(), 'dosuxsoft-currency-'));
-process.env['DATA_DIR'] = dataDir;
-process.env['TENANT_BASE_DOMAIN'] = 'dosuxsoft.test';
-process.env['NODE_ENV'] = 'development';
-delete process.env['BCCR_API_TOKEN'];
-
-const { buildApp } = await import('../app.js');
-const { closeAllTenantDbs } = await import('../db/client.js');
-const { closeControlDb, insertTenant, saveExchangeRate, setSetupCodeHash } =
-  await import('../db/control.js');
-const { COOKIE_NAME } = await import('../lib/constants.js');
-const { generateSetupCode, hashSetupCode } = await import('../lib/crypto.js');
-const { todayCR } = await import('../lib/cr-time.js');
-const { fetchBccrRates } = await import('../lib/bccr.js');
-const { formatUsd, parseUsdToCents, usdCentsToColones, renderMessage, whatsappLink } =
-  await import('@sipnato/shared');
-
-type App = Awaited<ReturnType<typeof buildApp>>;
-const HOST = 'tienda.dosuxsoft.test';
-
-function daysAgo(n: number): string {
-  const d = new Date(`${todayCR()}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - n);
-  return d.toISOString().slice(0, 10);
-}
+const SLUG = 'dolares';
 
 describe('utilidades de dólares y mensajes', () => {
   it('convierte con enteros, sin flotantes', () => {
-    assert.equal(usdCentsToColones(2000, 50000), 10_000);
-    assert.equal(usdCentsToColones(2000, 50523), 10_105); // 10104.6 → 10105
-    assert.equal(parseUsdToCents('20'), 2000);
-    assert.equal(parseUsdToCents('20,5'), 2050);
-    assert.equal(parseUsdToCents('20.05'), 2005);
-    assert.equal(parseUsdToCents('abc'), null);
-    assert.equal(formatUsd(123456), '$1,234.56');
+    expect(usdCentsToColones(2000, 50000)).toBe(10_000);
+    expect(usdCentsToColones(2000, 50523)).toBe(10_105); // 10104.6 → 10105
+    expect(parseUsdToCents('20')).toBe(2000);
+    expect(parseUsdToCents('20,5')).toBe(2050);
+    expect(parseUsdToCents('20.05')).toBe(2005);
+    expect(parseUsdToCents('abc')).toBeNull();
+    expect(formatUsd(123456)).toBe('$1,234.56');
   });
 
   it('arma el mensaje y el enlace de WhatsApp', () => {
@@ -47,193 +36,248 @@ describe('utilidades de dólares y mensajes', () => {
       cliente: 'Ana',
       numero: '7',
     });
-    assert.equal(msg, 'Hola Ana, orden #7 {desconocida}');
-    assert.equal(whatsappLink('8888-7777', 'hola'), 'https://wa.me/50688887777?text=hola');
-    assert.equal(whatsappLink(null, 'a b'), 'https://wa.me/?text=a%20b');
+    expect(msg).toBe('Hola Ana, orden #7 {desconocida}');
+    expect(whatsappLink('8888-7777', 'hola')).toBe('https://wa.me/50688887777?text=hola');
+    expect(whatsappLink(null, 'a b')).toBe('https://wa.me/?text=a%20b');
   });
 });
 
 describe('cliente del API SDDE del BCCR', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('combina compra (317) y venta (318) por fecha y pasa a centésimas', async () => {
-    const original = globalThis.fetch;
     const calls: string[] = [];
-    globalThis.fetch = (async (url: string, init?: RequestInit) => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url = String(input);
       calls.push(url);
-      assert.equal((init?.headers as Record<string, string>)['Authorization'], 'Bearer tok');
+      expect((init?.headers as Record<string, string>)['Authorization']).toBe('Bearer tok');
       const code = url.includes('/317/') ? '317' : '318';
       const values = code === '317' ? [505.23, 506.1] : [511.8, 512.4];
-      return new Response(
-        JSON.stringify({
-          estado: true,
-          datos: [
-            {
-              codigoIndicador: code,
-              series: [
-                { fecha: '2026-10-06T00:00:00', valorDatoPorPeriodo: values[0] },
-                { fecha: '2026-10-07T00:00:00', valorDatoPorPeriodo: values[1] },
-              ],
-            },
-          ],
-        }),
-        { status: 200 },
-      );
-    }) as typeof fetch;
-    try {
-      const rates = await fetchBccrRates('2026-10-01', '2026-10-07', 'tok');
-      assert.deepEqual(rates, [
-        { date: '2026-10-06', buy: 50523, sell: 51180 },
-        { date: '2026-10-07', buy: 50610, sell: 51240 },
-      ]);
-      assert.match(calls[0]!, /fechaInicio=2026\/10\/01&fechaFin=2026\/10\/07/);
-    } finally {
-      globalThis.fetch = original;
-    }
+      return Response.json({
+        estado: true,
+        datos: [
+          {
+            codigoIndicador: code,
+            series: [
+              { fecha: '2026-10-06T00:00:00', valorDatoPorPeriodo: values[0] },
+              { fecha: '2026-10-07T00:00:00', valorDatoPorPeriodo: values[1] },
+            ],
+          },
+        ],
+      });
+    });
+
+    const rates = await fetchBccrRates('2026-10-01', '2026-10-07', 'tok');
+    expect(rates).toEqual([
+      { date: '2026-10-06', buy: 50523, sell: 51180 },
+      { date: '2026-10-07', buy: 50610, sell: 51240 },
+    ]);
+    expect(calls[0]).toMatch(/fechaInicio=2026\/10\/01&fechaFin=2026\/10\/07/);
   });
 
   it('un token rechazado es un error claro', async () => {
-    const original = globalThis.fetch;
-    globalThis.fetch = (async () => new Response('', { status: 401 })) as typeof fetch;
-    try {
-      await assert.rejects(fetchBccrRates('2026-10-01', '2026-10-07', 'malo'), /rechazó el token/);
-    } finally {
-      globalThis.fetch = original;
-    }
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 401 }));
+    await expect(fetchBccrRates('2026-10-01', '2026-10-07', 'malo')).rejects.toThrow(
+      /rechazó el token/,
+    );
   });
 });
 
+// La plataforma aún no tiene ningún tipo de cambio del BCCR guardado: rige el de respaldo.
 describe('cobro en dólares', () => {
-  let app: App;
   let token = '';
 
-  const call = (method: 'GET' | 'POST' | 'PUT', url: string, payload?: object) =>
-    app.inject({
-      method,
-      url,
-      headers: { host: HOST, cookie: `${COOKIE_NAME}=${token}` },
-      ...(payload ? { payload } : {}),
-    });
+  const api = (method: Method, url: string, body?: object) =>
+    call(SLUG, method, url, { token, body });
+  const json = async <T = Record<string, unknown>>(res: Response | Promise<Response>) =>
+    (await (await res).json()) as T;
 
   async function setManualRate(rate: string) {
-    const settings = (await call('GET', '/api/settings')).json();
-    assert.equal(
-      (await call('PUT', '/api/settings', { ...settings, usd_manual_rate: rate })).statusCode,
+    const settings = await json(api('GET', '/api/settings'));
+    expect((await api('PUT', '/api/settings', { ...settings, usd_manual_rate: rate })).status).toBe(
       200,
     );
   }
 
   const saleUsd = (amount: number, usdReceivedCents: number) =>
-    call('POST', '/api/sales', { amount, paymentMethod: 'dolares', usdReceivedCents });
+    api('POST', '/api/sales', { amount, paymentMethod: 'dolares', usdReceivedCents });
 
-  before(async () => {
-    insertTenant('tienda', 'Tienda');
-    const code = generateSetupCode();
-    setSetupCodeHash('tienda', await hashSetupCode(code));
-    app = await buildApp({ startJobs: false });
-    const setup = await app.inject({
-      method: 'POST',
-      url: '/auth/setup',
-      headers: { host: HOST },
-      payload: {
-        setupCode: code,
-        username: 'dueno',
-        displayName: 'Dueño',
-        password: 'clave-dueno-1',
-        confirmPassword: 'clave-dueno-1',
-      },
-    });
-    token = setup.cookies.find((c) => c.name === COOKIE_NAME)!.value;
-    assert.equal(
-      (await call('POST', '/api/cash-registers/open', { openingAmount: 0 })).statusCode,
-      201,
-    );
-  });
-
-  after(async () => {
-    await app.close();
-    closeAllTenantDbs();
-    closeControlDb();
-    rmSync(dataDir, { recursive: true, force: true });
+  beforeAll(async () => {
+    await createTestTenant(SLUG, { owner: { username: 'dueno', password: 'clave-dueno-1' } });
+    token = await loginToken(SLUG, 'dueno', 'clave-dueno-1');
+    expect((await api('POST', '/api/cash-registers/open', { openingAmount: 0 })).status).toBe(201);
   });
 
   it('sin tipo de cambio no se puede cobrar en dólares', async () => {
-    assert.deepEqual((await call('GET', '/api/exchange-rate')).json().source, null);
+    expect((await json(api('GET', '/api/exchange-rate'))).source).toBeNull();
     const res = await saleUsd(8000, 2000);
-    assert.equal(res.statusCode, 400);
-    assert.equal(res.json().error.code, 'TIPO_CAMBIO_NO_DISPONIBLE');
+    expect(res.status).toBe(400);
+    expect((await json<{ error: { code: string } }>(res)).error.code).toBe(
+      'TIPO_CAMBIO_NO_DISPONIBLE',
+    );
   });
 
   it('con el tipo de respaldo calcula el vuelto en colones', async () => {
     await setManualRate('500');
-    const info = (await call('GET', '/api/exchange-rate')).json();
-    assert.deepEqual([info.rate, info.source], [50000, 'manual']);
+    const info = await json(api('GET', '/api/exchange-rate'));
+    expect([info.rate, info.source]).toEqual([50000, 'manual']);
 
-    const sale = (await saleUsd(8000, 2000)).json();
-    assert.equal(sale.amount, 8000, 'la venta se registra en colones');
-    assert.deepEqual(
-      [sale.usdReceivedCents, sale.exchangeRate, sale.changeColones],
-      [2000, 50000, 2000],
-    );
+    const sale = await json(saleUsd(8000, 2000));
+    expect(sale.amount, 'la venta se registra en colones').toBe(8000);
+    expect([sale.usdReceivedCents, sale.exchangeRate, sale.changeColones]).toEqual([
+      2000, 50000, 2000,
+    ]);
   });
 
   it('dólares insuficientes se rechazan indicando el mínimo', async () => {
     const res = await saleUsd(8000, 1000);
-    assert.equal(res.statusCode, 400);
-    assert.match(res.json().error.message, /Mínimo: \$16\.00/);
+    expect(res.status).toBe(400);
+    expect((await json<{ error: { message: string } }>(res)).error.message).toMatch(
+      /Mínimo: \$16\.00/,
+    );
   });
 
-  it('un dato viejo del BCCR no se usa; uno reciente manda sobre el respaldo', async () => {
-    saveExchangeRate(daysAgo(10), 49000, 49500);
-    assert.equal((await call('GET', '/api/exchange-rate')).json().source, 'manual');
-
-    saveExchangeRate(todayCR(), 50523, 51180);
-    const info = (await call('GET', '/api/exchange-rate')).json();
-    assert.deepEqual(
-      [info.rate, info.source, info.bccrSell],
-      [50523, 'bccr', 51180],
-      'recibir USD usa el tipo de compra',
-    );
-
-    const sale = (await saleUsd(8000, 2000)).json();
-    assert.equal(sale.changeColones, 10_105 - 8000);
+  it('el respaldo admite centésimas y redondea el vuelto a colones enteros', async () => {
+    await setManualRate('505.23');
+    const sale = await json(saleUsd(8000, 2000));
+    expect(sale.exchangeRate).toBe(50523);
+    expect(sale.changeColones).toBe(10_105 - 8000);
   });
 
   it('la caja separa los dólares recibidos y los vueltos en colones', async () => {
-    await call('POST', '/api/sales', { amount: 3000, paymentMethod: 'efectivo' });
-    const { totals } = (await call('GET', '/api/cash-registers/current')).json();
-    assert.equal(totals.salesDolares, 16_000);
-    assert.equal(totals.usdReceivedCents, 4000);
-    assert.equal(totals.usdChangeColones, 2000 + 2105);
-    assert.equal(totals.salesEfectivo, 3000);
-    assert.equal(totals.totalSales, 19_000);
+    await api('POST', '/api/sales', { amount: 3000, paymentMethod: 'efectivo' });
+    const { totals } = await json<{ totals: Record<string, number> }>(
+      api('GET', '/api/cash-registers/current'),
+    );
+    expect(totals['salesDolares']).toBe(16_000);
+    expect(totals['usdReceivedCents']).toBe(4000);
+    expect(totals['usdChangeColones']).toBe(2000 + 2105);
+    expect(totals['salesEfectivo']).toBe(3000);
+    expect(totals['totalSales']).toBe(19_000);
   });
 
   it('un tipo de respaldo con formato inválido se rechaza', async () => {
-    const settings = (await call('GET', '/api/settings')).json();
-    assert.equal(
-      (await call('PUT', '/api/settings', { ...settings, usd_manual_rate: 'quinientos' }))
-        .statusCode,
-      400,
-    );
+    const settings = await json(api('GET', '/api/settings'));
+    expect(
+      (await api('PUT', '/api/settings', { ...settings, usd_manual_rate: 'quinientos' })).status,
+    ).toBe(400);
   });
 
   it('registra los avisos enviados por WhatsApp', async () => {
-    const ok = await call('POST', '/api/notifications', {
+    const ok = await api('POST', '/api/notifications', {
       event: 'orden_lista',
       entityType: 'boleta',
       entityId: 5,
       phone: '88887777',
     });
-    assert.equal(ok.statusCode, 201);
-    const list = (await call('GET', '/api/notifications?entityType=boleta&entityId=5')).json();
-    assert.equal(list[0].event, 'orden_lista');
-    assert.equal(list[0].username, 'dueno');
+    expect(ok.status).toBe(201);
+    const list = await json<{ event: string; username: string }[]>(
+      api('GET', '/api/notifications?entityType=boleta&entityId=5'),
+    );
+    expect(list[0]!.event).toBe('orden_lista');
+    expect(list[0]!.username).toBe('dueno');
 
-    const bad = await call('POST', '/api/notifications', {
+    const bad = await api('POST', '/api/notifications', {
       event: 'spam',
       entityType: 'boleta',
       entityId: 5,
       phone: null,
     });
-    assert.equal(bad.statusCode, 400);
+    expect(bad.status).toBe(400);
+  });
+});
+
+function daysAgo(days: number): string {
+  const d = new Date(`${todayCR()}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Después de "cobro en dólares": desde aquí la plataforma ya guarda tipos del BCCR.
+describe('tipo de cambio del BCCR guardado en la plataforma', () => {
+  const SLUG_BCCR = 'dolares-bccr';
+  let token = '';
+  const api = (method: Method, url: string, body?: object) =>
+    call(SLUG_BCCR, method, url, { token, body });
+  const json = async <T = Record<string, unknown>>(res: Response | Promise<Response>) =>
+    (await (await res).json()) as T;
+
+  beforeAll(async () => {
+    await createTestTenant(SLUG_BCCR, { owner: { username: 'dueno', password: 'clave-dueno-1' } });
+    token = await loginToken(SLUG_BCCR, 'dueno', 'clave-dueno-1');
+    const settings = await json(api('GET', '/api/settings'));
+    await api('PUT', '/api/settings', { ...settings, usd_manual_rate: '505.23' });
+    expect((await api('POST', '/api/cash-registers/open', { openingAmount: 0 })).status).toBe(201);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('un dato viejo del BCCR no se usa; uno reciente manda sobre el respaldo', async () => {
+    await inPlatform(() => saveExchangeRate(daysAgo(5), 49_000, 50_000));
+    const stale = await json(api('GET', '/api/exchange-rate'));
+    expect(stale).toMatchObject({ rate: 50523, source: 'manual', bccrBuy: 49_000 });
+
+    await inPlatform(() => saveExchangeRate(daysAgo(4), 51_000, 52_000));
+    const fresh = await json(api('GET', '/api/exchange-rate'));
+    expect(fresh).toMatchObject({ rate: 51_000, source: 'bccr', date: daysAgo(4) });
+  });
+
+  it('cobro en dólares usa el tipo del BCCR guardado en PlatformDO si es de los últimos 4 días', async () => {
+    const sale = await json(
+      api('POST', '/api/sales', { amount: 8000, paymentMethod: 'dolares', usdReceivedCents: 2000 }),
+    );
+    expect([sale['exchangeRate'], sale['changeColones']]).toEqual([51_000, 10_200 - 8000]);
+  });
+
+  it('refreshExchangeRate consulta el BCCR con el token de la plataforma y guarda el día', async () => {
+    const today = todayCR();
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      expect((init?.headers as Record<string, string>)['Authorization']).toBe(
+        'Bearer token-de-prueba',
+      );
+      const code = String(input).includes('/317/') ? '317' : '318';
+      return Response.json({
+        estado: true,
+        datos: [
+          {
+            codigoIndicador: code,
+            series: [
+              { fecha: `${today}T00:00:00`, valorDatoPorPeriodo: code === '317' ? 507.5 : 513.25 },
+            ],
+          },
+        ],
+      });
+    });
+
+    await platformStub().refreshExchangeRate();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(await platformStub().latestExchangeRate()).toMatchObject({
+      date: today,
+      buy: 50_750,
+      sell: 51_325,
+    });
+
+    // Con el dato del día ya guardado no vuelve a consultar.
+    await platformStub().refreshExchangeRate();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('si el BCCR falla, la consulta no rompe y queda el último guardado', async () => {
+    await inPlatform(() =>
+      controlDb.prepare('DELETE FROM exchange_rates WHERE date = ?').run(todayCR()),
+    );
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('', { status: 503 }));
+
+    await expect(platformStub().refreshExchangeRate()).resolves.toBeUndefined();
+    expect(fetchSpy).toHaveBeenCalled();
+    expect(warn).toHaveBeenCalled();
+    expect((await platformStub().latestExchangeRate())?.date).toBe(daysAgo(4));
   });
 });

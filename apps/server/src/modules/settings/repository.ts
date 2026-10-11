@@ -86,3 +86,19 @@ export function getSetting(key: SettingKey): string | null {
   const row = db.select().from(settings).where(eq(settings.key, key)).limit(1).get();
   return row?.value ?? null;
 }
+
+export function insertBackupAudit(
+  schemaVersion: string,
+  meta: { ip: string | null; userAgent: string | null },
+): void {
+  db.insert(auditLog)
+    .values({
+      action: 'BACKUP_DOWNLOADED',
+      payloadSnapshot: JSON.stringify({ schemaVersion }),
+      userId: currentActorId(),
+      ip: meta.ip,
+      userAgent: meta.userAgent,
+      createdAt: new Date().toISOString(),
+    })
+    .run();
+}

@@ -224,6 +224,8 @@ export interface PlatformTenant {
   activated: boolean;
   template: BusinessTemplate;
   modules: ModuleKey[];
+  // true = su Durable Object no respondió: activated, template y modules no son reales.
+  unavailable: boolean;
 }
 
 export interface PlatformSummary {

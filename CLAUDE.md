@@ -1,7 +1,7 @@
 # CLAUDE.md — Biblia del Proyecto SIPNATO POS
 
 > Este archivo es la fuente de verdad del proyecto. Se actualiza al finalizar cada fase.
-> Última actualización: 2026-10-08 · Estado: **Fases A–F completas y fusionadas en `main`**; tipo de negocio y módulos se asignan desde el panel (pendiente: desplegar en el servidor, ver ROADMAP) — BD por negocio · usuarios con roles · inventario · plantillas por tipo de negocio · cobro en dólares y avisos por WhatsApp · panel de la plataforma con cobro de la mensualidad ✅
+> Última actualización: 2026-10-10 · Estado: Fases A–F fusionadas en `main`; **Fase G (Cloudflare Workers) con el código completo en la rama `fase-g-cloudflare`** (pendiente: desplegar, DNS y simulacro de restauración, ver ROADMAP) — un Durable Object SQLite por negocio y otro para la plataforma · usuarios con roles · inventario · plantillas por tipo de negocio · cobro en dólares y avisos por WhatsApp · panel de la plataforma con cobro de la mensualidad
 
 ---
 
@@ -14,7 +14,7 @@
 | País / Zona horaria | Costa Rica · `America/Costa_Rica` |
 | Moneda | Colones costarricenses (₡). Los dólares solo se reciben en caja y se convierten (Fase E) |
 | Usuarios | Por negocio: un **dueño**, administradores y cajeros (Fase B, ver §6.13) |
-| Tipo de sistema | Aplicación web privada detrás de login · cada negocio en su subdominio HTTPS (`<slug>.dosuxsoft.com`) con su propia BD |
+| Tipo de sistema | Aplicación web privada detrás de login · corre en Cloudflare Workers; cada negocio en su subdominio HTTPS (`<slug>.dosuxsoft.com`) con su propia BD (un Durable Object SQLite) |
 
 ---
 
@@ -74,16 +74,17 @@
 | TanStack Query | Server state + cache |
 | Zod | Validación de formularios (schemas desde `shared`) |
 
-### `apps/server` — Backend API
+### `apps/server` — Backend API (Cloudflare Worker)
 | Herramienta | Propósito |
 |---|---|
-| Fastify v5 | Framework HTTP |
-| better-sqlite3 | Driver SQLite síncrono de alto rendimiento |
-| Drizzle ORM | Schema, queries type-safe y migraciones |
-| argon2 (argon2id) | Hash de contraseñas y recovery codes |
-| node-cron | Jobs programados (cierre auto, backup) |
-| pino (incluido en Fastify) | Logging estructurado a la salida estándar |
-| zod | Validación de env vars y requests |
+| Cloudflare Workers (`nodejs_compat`) | Runtime. Un Worker enruta por subdominio; el trabajo ocurre dentro de Durable Objects |
+| Durable Objects con SQLite (`TenantDO`, `PlatformDO`) | Un DO por negocio y uno para la plataforma; cada uno con su SQLite |
+| Hono | Framework HTTP (una app por tipo de DO: `tenant-app.ts`, `platform-app.ts`) |
+| drizzle-orm `durable-sqlite` (0.44) | Schema y queries type-safe sobre el SQLite del DO (API síncrona) |
+| `argon2id` (WebAssembly) | Hash de contraseñas, PIN, recovery y códigos de activación |
+| wrangler 4 | Desarrollo local (`wrangler dev`), despliegue y secretos |
+| zod | Validación de requests |
+| vitest + `@cloudflare/vitest-plugin` | Tests dentro de `workerd` con Durable Objects reales |
 
 ### Impresión de tickets — vía navegador
 > Los tickets de 80mm (ventas) y las cotizaciones se imprimen con `window.print()` desde la SPA: un overlay renderizado vía React Portal + `@page { size: 80mm auto }` inyectado dinámicamente. **No hay servicio local ni `apps/print-bridge`** — el print-bridge WebSocket original (ESC/POS sobre `apps/print-bridge` + módulo `/ws/print`) se eliminó el 2026-06-12 por ser demasiado frágil para un solo usuario. La impresora objetivo (Epson TM-T20II) se configura como predeterminada en Windows; el navegador maneja la codificación.
@@ -97,12 +98,15 @@
 ### Infraestructura
 | Componente | Herramienta |
 |---|---|
-| Hosting | VPS Ubuntu 22.04 LTS |
-| Reverse proxy + HTTPS | Caddy (Let's Encrypt automático) |
-| Contenedores | Docker Compose (server + caddy) |
-| Base de datos | SQLite · `control.db` (registro de negocios) + **un archivo por negocio** `tenants/<slug>.db` · WAL mode |
-| Respaldo | backup diario interno por negocio (better-sqlite3 backup API) en `backups/<slug>/` y de `control.db` en `backups/_control/` · rotación 30 días · copia `pre-migracion-*.db` antes de migrar un negocio con datos |
-| HTTPS por negocio | Caddy on-demand TLS · `ask` a `/internal/tls-check` (solo emite para negocios activos) |
+| Cómputo | Cloudflare Workers (plan Workers Paid, $5/mes) · Worker `dosuxsoft` con ruta `*.dosuxsoft.com/*` |
+| Base de datos | Durable Objects con SQLite: uno por negocio (`TenantDO`, `idFromName(slug)`) y uno de plataforma (`PlatformDO`) |
+| Frontend | Static Assets del mismo Worker (`apps/web/dist`, SPA) · headers en `apps/web/public/_headers` |
+| Tareas programadas | Cron Triggers (tipo de cambio y mantenimiento diario) + alarma por negocio (cierre automático de caja) |
+| Respaldo | Point-in-Time Recovery de cada DO (30 días) + exportación JSON diaria a R2 (`dosuxsoft-backups`, regla de vida de 30 días) + descarga JSON del dueño |
+| HTTPS | Universal SSL de Cloudflare cubre `*.dosuxsoft.com` (registro DNS `*` Proxied → `AAAA 100::`) |
+| Logs | Workers Observability (`wrangler tail` para verlos en vivo) |
+
+> Ya no hay VPS, Docker, Caddy, Fastify, `better-sqlite3`, `node-cron` ni scripts por SSH (eliminados en la Fase G).
 
 ---
 
@@ -110,30 +114,38 @@
 
 ```
 [Navegador — SPA React en taller.dosuxsoft.com] ──window.print()──► Ticketera 80mm
-        │ HTTPS (Caddy, on-demand TLS por subdominio)
+        │ HTTPS (Universal SSL de Cloudflare)
         ▼
-   API Fastify ── hook onRequest: Host → slug → control.db (¿existe? ¿activo?)
-        │                                      │
-        │  AsyncLocalStorage: `db` = BD de ese negocio      node-cron: cada job recorre
-        ▼                                                    los negocios activos uno a uno
-   /app/data/control.db                  ← registro de negocios + plataforma (suscripción, superadmins); sin datos operativos
-   /app/data/tenants/<slug>.db           ← TODOS los datos de un negocio (ventas, sesiones, audit…)
-   /app/data/backups/<slug>/             ← respaldos de ese negocio
+   Worker "dosuxsoft" (worker.ts): Host → destino
+        │  páginas y /assets ◄── Static Assets (apps/web/dist)
+        │  /api /auth /platform /internal /health
+        ├── Host = admin.*   ──► PlatformDO ("platform")   SQLite: negocios, suscripción, superadmins,
+        │                          Hono: /platform/*, /internal/ops, /health        pagos, tipo de cambio, bitácora
+        └── Host = <slug>.*  ──► TenantDO (<slug>)          SQLite: TODOS los datos de ese negocio
+                                   Hono: /auth/*, /api/*        alarma: cierre automático de caja
+   Cron Triggers ──► Worker.scheduled ──► PlatformDO (tipo de cambio) / cada TenantDO (mantenimiento) ──► R2
 ```
 
-### Aislamiento multi-negocio (Fase A)
-- **Una BD por negocio.** Sesiones, admin, audit_log y datos viven en `tenants/<slug>.db`. Un token de sesión de un negocio no existe en la BD de otro.
-- El negocio se resuelve **solo en el servidor**, desde el `Host` (`middleware/tenant.ts`). Inexistente → 404 `NEGOCIO_NO_ENCONTRADO`; suspendido → 403 `NEGOCIO_SUSPENDIDO`.
-- `db` (de `db/client.ts`) es un proxy al negocio del contexto actual. **Falla cerrado:** usarlo fuera de un negocio lanza error en vez de caer en una BD por defecto.
-- El slug pasa por un regex de label DNS antes de convertirse en nombre de archivo (barrera contra path traversal). Subdominios reservados: `www`, `api`, `app`, `admin`, `mail`, `static`, `assets`, `control`.
+### Aislamiento multi-negocio (Fase A, reescrito en la Fase G)
+- **Un Durable Object por negocio.** Sesiones, usuarios, audit_log y datos viven en el SQLite de su DO. Un token de sesión de un negocio no existe en el DO de otro.
+- El negocio se resuelve **solo en el servidor**, desde el `Host` (`routeHost` en `worker.ts`): el primer label debe ser un slug válido (`isValidSlug`, regex de label DNS y subdominios reservados), `admin` es el panel. Inexistente → 404 `NEGOCIO_NO_ENCONTRADO`; suspendido → 403 `NEGOCIO_SUSPENDIDO`. El Worker consulta a `PlatformDO.resolveTenant(slug)` (caché de 30 s por isolate).
+- La petición HTTP se atiende **dentro del DO** (el Worker solo reenvía): services y repositories siguen síncronos. El Worker borra cualquier `X-Dosuxsoft-Tenant` que mande el cliente y fija el suyo.
+- `db` (de `db/client.ts`) es un proxy al negocio del contexto actual (`AsyncLocalStorage`, `runInTenant`). **Falla cerrado:** usarlo fuera de un negocio lanza error. Igual `controlDb` (`db/control.ts`) con `runInPlatform`: el código de un negocio nunca puede leer las tablas de la plataforma.
+- Subdominios reservados: `www`, `api`, `app`, `admin`, `mail`, `static`, `assets`, `control`.
 - La cookie de sesión no lleva `Domain` → queda atada a su subdominio.
-- Rate limit por negocio + IP.
-- Test de aislamiento: `apps/server/src/tests/tenancy.test.ts` — **debe pasar siempre**.
+- Rate limit por negocio + IP (contadores en el kv del DO).
+- **Solo con `ENVIRONMENT=development`** el Worker toma el negocio de `X-Forwarded-Host` (y solo si la URL es local); en producción lo ignora. Test en `routing.test.ts`.
+- Tests de aislamiento: `apps/server/src/tests/tenancy.test.ts` y `routing.test.ts` — **deben pasar siempre**.
 
-### Panel de la plataforma (Fase F)
+### Comunicación entre Durable Objects (RPC)
+- `PlatformDO.resolveTenant(slug)`, `consumeSetupCode(slug, code)`, `subscriptionInfo(slug)`, `latestExchangeRate()`.
+- `TenantDO.platformSummary()` (activado, tipo, módulos, usuarios, última venta), `assignBusiness(input)`, `initialize(slug, assignment)`, `exportSnapshot()`, `dailyMaintenance()`, `bookmarks()`, `restoreToBookmark(bookmark)`.
+- El panel solo lee métricas de uso de un negocio por RPC; nunca clientes ni montos. Si el DO de un negocio falla o tarda más de 5 s, el panel lo muestra como "No disponible" (sin uso, y sin poder cambiar tipo, módulos ni emitir código) y sigue funcionando.
+
+### Panel de la plataforma (Fase F, adaptado en la Fase G)
 - `admin.<dominio>` (`PLATFORM_SUBDOMAIN`, reservado como slug) es el panel de superadministrador. Misma SPA: `main.tsx` carga `features/platform/PlatformApp` (lazy) según el Host.
-- En el servidor, `middleware/tenant.ts`: desde `admin.` **solo** responde `/platform/*` y nunca entra al contexto de un negocio; desde cualquier otro subdominio `/platform/*` da 404. `requirePlatformAuth` lo vuelve a comprobar.
-- Test: `apps/server/src/tests/platform.test.ts` — **debe pasar siempre** (aislamiento del panel, bloqueo, pagos, suspensión).
+- En el Worker: desde `admin.` **solo** se reenvían `/platform/*`, `/internal/ops` y `/health` (el health check existe únicamente en este host) y nunca se entra al contexto de un negocio; desde cualquier otro subdominio `/platform/*` e `/internal/*` dan 404. `requirePlatformAuth` lo vuelve a comprobar.
+- Test: `apps/server/src/tests/platform.test.ts` — **debe pasar siempre** (aislamiento del panel, bloqueo, pagos, suspensión, negocio caído).
 
 ### Principio de módulos
 Cada módulo de negocio sigue el patrón:
@@ -195,39 +207,48 @@ Agregar un módulo nuevo = crear esas carpetas. **Nada existente se modifica.**
 ### 6.1 Autenticación
 | Decisión | Valor |
 |---|---|
-| Hash de contraseñas | `argon2id` con `{ memoryCost: 65536, timeCost: 3, parallelism: 4 }` |
+| Hash de contraseñas | `argon2id` en WebAssembly con `m=19456 KiB, t=2, p=1` (mínimo OWASP; cabe en los 128 MB de un isolate). Si un login válido trae un hash con otros parámetros, se vuelve a guardar con los vigentes (rehash) |
 | Sesión — duración absoluta | **8 horas** |
 | Sesión — timeout de inactividad | **60 minutos** |
 | Almacenamiento de sesión | Cookie `HttpOnly` + `Secure` + `SameSite=Strict` · tabla `sessions` en BD |
 | Al cambiar contraseña/PIN o desactivar | Invalidar **todas** las filas de `sessions` de ese usuario (`revokeUserSessions`) |
 | Login | Usuario + contraseña (dueño/admin) o usuario + PIN de 6 dígitos (cajero). 5 fallos → bloqueo de 15 min por usuario (además del rate limit por IP). Usuario inexistente = mismo tiempo y mensaje que contraseña incorrecta |
 | Recovery code | Generado con `crypto.randomBytes(16).toString('hex')` · mostrado UNA vez · almacenado hasheado con argon2id · invalidado al usarse (genera uno nuevo) |
-| Código de activación (Fase A) | `/auth/setup` exige un código de un solo uso emitido por `tenant create` / `tenant setup-code` (64 bits, `XXXX-XXXX-XXXX-XXXX`, argon2id en `control.db`, se borra al usarse). Sin código vigente el setup queda cerrado. Evita que un tercero reclame un negocio recién creado (los subdominios son adivinables y aparecen en los logs públicos de Certificate Transparency). |
+| Código de activación (Fase A) | `/auth/setup` exige un código de un solo uso emitido al crear el negocio desde el panel (o con `pnpm ops tenant-create` / `setup-code`; 64 bits, `XXXX-XXXX-XXXX-XXXX`, argon2id en `PlatformDO`, se borra al usarse). Sin código vigente el setup queda cerrado. Evita que un tercero reclame un negocio recién creado (los subdominios son adivinables y aparecen en los logs públicos de Certificate Transparency). |
 
 ### 6.2 Impresión de tickets (sin token de bridge)
 - La impresión ocurre **100% en el navegador** vía `window.print()` — no hay servicio externo, WebSocket ni token que proteger.
 - *(Histórico: existió un print-bridge WebSocket con token argon2id de 256 bits; se eliminó el 2026-06-12 junto con su superficie de seguridad.)*
 
 ### 6.3 Endpoint de descarga de backup
-- Verificación de sesión activa **server-side** obligatoria antes de servir el archivo.
-- La ruta del archivo la deriva el servidor **solo del negocio resuelto por el Host** (`/app/data/backups/<slug>/latest.db`) — un negocio nunca puede descargar el backup de otro.
-- El endpoint **nunca** acepta parámetros del cliente para construir la ruta (previene path traversal · CWE-22).
-- Respuesta con header `Content-Disposition: attachment` — nunca inline.
+- `GET /api/settings/backup/download`: solo el **dueño**, con sesión activa verificada **server-side**.
+- Entrega una **exportación JSON** de todas las tablas del negocio (`dosuxsoft-<slug>-<fecha>.json`), generada al pedirla; **excluye `sessions`** y `__migrations`. No hay archivo `.db` que descargar.
+- Contiene datos confidenciales: hashes de usuarios y contraseñas de equipos de clientes en texto plano. La pantalla de Configuración lo avisa; guardarlo en un lugar seguro.
+- El slug sale del negocio resuelto por el Host; el endpoint **nunca** acepta parámetros del cliente para elegir qué exportar (un negocio no puede descargar el de otro).
+- Respuesta con `Content-Disposition: attachment` — nunca inline. Queda en el `audit_log` (`BACKUP_DOWNLOADED`).
+- Es un GET con efectos (bitácora y cupo): `sameOriginOnly` lo rechaza con 403 `ORIGEN_NO_PERMITIDO` si viene de otro origen (misma regla que `sameOriginWrites`).
 - Rate limit: máximo **5 descargas por hora** por sesión.
+- La copia diaria automática de cada negocio y de la plataforma va a R2 con el mismo formato (ver §3 Infraestructura).
 
-### 6.4 Rate limiting (Fastify `@fastify/rate-limit`)
-Los contadores se llevan por **negocio + IP** (`keyGenerator` en `app.ts`).
+### 6.4 Rate limiting
+Los contadores viven en el `kv` síncrono de cada DO (`ctx.storage.kv`), por **negocio + IP**; la IP sale de `CF-Connecting-IP`. El mantenimiento diario borra los contadores vencidos.
 
 | Endpoint | Límite |
 |---|---|
+| General de la API | 200 por minuto por IP |
 | `POST /auth/login` | 5 intentos por IP cada 15 minutos |
 | `POST /auth/recover` | 3 intentos por IP cada 30 minutos |
 | `GET /api/settings/backup/download` | 5 descargas por hora por sesión |
+| `POST /internal/ops` | 10 intentos **fallidos** por IP cada 15 minutos (los válidos no cuentan; con 10 fallos acumulados responde 429 aunque el token sea correcto) |
 
-### 6.5 CORS
-- **Sin CORS.** Cada negocio y el panel llaman a su API en su mismo origen (Caddy en producción, proxy de Vite en desarrollo). Habilitarlo permitiría a otro subdominio de `dosuxsoft.com` leer la API con sesión: es el mismo sitio, así que las cookies `SameSite=Strict` viajan. (Hasta la revisión de 2026-10-07 se autorizaba `www.dosuxsoft.com`.)
+Opcional: una regla de WAF de Cloudflare (rate limiting) sobre `/api/*` y `/auth/*` como defensa adicional.
 
-### 6.6 Headers de seguridad HTTP (en `Caddyfile`)
+### 6.5 CORS y CSRF
+- **Sin CORS.** Cada negocio y el panel llaman a su API en su mismo origen (el Worker en producción, el proxy de Vite en desarrollo). Habilitarlo permitiría a otro subdominio de `dosuxsoft.com` leer la API con sesión: es el mismo sitio, así que las cookies `SameSite=Strict` viajan. (Hasta la revisión de 2026-10-07 se autorizaba `www.dosuxsoft.com`.)
+- **Protección CSRF (Fase G):** el middleware `sameOriginWrites` (`lib/http.ts`) se aplica a todo método que no sea GET/HEAD/OPTIONS en `tenant-app.ts` y `platform-app.ts`. Rechaza con 403 `ORIGEN_NO_PERMITIDO` si `Sec-Fetch-Site` no es `same-origin` o si el host de `Origin` no es el que usó el Worker para enrutar (header interno `X-Dosuxsoft-Host`), y con 415 `TIPO_NO_SOPORTADO` si hay cuerpo y el `Content-Type` no es `application/json`. Un cliente sin navegador (la consola de operaciones) no manda `Origin` y pasa. Test: `csrf.test.ts`.
+
+### 6.6 Headers de seguridad HTTP
+Para las páginas y archivos estáticos, en `apps/web/public/_headers` (Static Assets). Las respuestas de la API (Worker y DO) llevan los mismos, salvo el CSP, más `Cache-Control: no-store`.
 ```
 Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
 X-Content-Type-Options: nosniff
@@ -235,6 +256,7 @@ X-Frame-Options: DENY
 Referrer-Policy: strict-origin-when-cross-origin
 Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'
 ```
+- `/assets/*` se sirve con `Cache-Control: public, max-age=31536000, immutable`.
 - Todos los endpoints de la API responden con `Cache-Control: no-store`.
 
 ### 6.7 Soft deletes
@@ -256,21 +278,23 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 - Campos de texto: límites máximos definidos (descripción venta: 500 chars, notas: 5000 chars, etc.).
 
 ### 6.10 Manejo de errores
-- Errores internos → loguear con `pino` (nivel `error`) → responder al cliente con mensaje genérico `{ error: { code, message } }`.
+- Errores internos → loguear con `console.error` (Workers Observability) → responder al cliente con mensaje genérico `{ error: { code, message } }`.
 - **Nunca** stack traces ni detalles internos en respuestas al cliente (CWE-209).
 - Errores tipados del dominio en `server/src/lib/errors.ts` (ej. `CajaYaAbierta`, `UsuarioBloqueado`).
 
 ### 6.11 Observabilidad
-- Logging estructurado con `pino` (JSON) a la salida estándar → `docker compose logs server`. Docker los rota: 5 archivos de 20 MB (`logging` en `docker-compose.yml`).
-- Health check: `GET /health` → estado de `control.db`, entorno y hora.
-- Sin Sentry (decisión del usuario) — los logs de pino son la fuente de diagnóstico.
+- Logs con `console.*` en el Worker y los DO; Workers Observability está activada (`observability.enabled`). En vivo: `pnpm --filter @sipnato/server exec wrangler tail`.
+- Health check: `GET /health` **solo en `admin.dosuxsoft.com`** → estado de la plataforma, entorno y hora. Desde un negocio no existe.
+- Sin Sentry (decisión del usuario) — los logs de Workers son la fuente de diagnóstico.
 
 ### 6.12 Break-glass (recuperación de emergencia)
-- **Riesgo aceptado:** un solo admin + recovery code significa que si se pierden ambos, el sistema queda bloqueado — sin reset por email ni segundo usuario.
-- **Mitigación:** script `apps/server/src/scripts/reset-admin.ts <slug>` (compila a `dist/scripts/reset-admin.js`), ejecutable con acceso directo al servidor, que resetea la contraseña del admin **de ese negocio** (genera contraseña temporal + nuevo recovery code, e invalida todas las sesiones del negocio). Construido en la Fase 2; recibe el slug desde la Fase A.
-- **Administración de negocios:** normalmente desde el panel `admin.<dominio>` (Fase F). Respaldo por consola: `apps/server/src/scripts/tenant.ts` → `create <slug> "<nombre>"`, `list`, `suspend <slug>`, `activate <slug>`.
-- **Superadministradores:** `apps/server/src/scripts/superadmin.ts` → `create <usuario>` (contraseña temporal), `reset`, `disable`, `enable`, `list`. **No hay alta ni recuperación por HTTP**: quien controla el panel controla todos los negocios.
-- El script **no es un endpoint** — solo corre con acceso local al servidor, protegido por el acceso SSH por clave. Esa es la red de seguridad ante un bloqueo total.
+- **Riesgo aceptado:** un solo dueño por negocio + recovery code significa que si se pierden ambos hay que usar la consola de operaciones; sin reset por email.
+- **Mitigación (cambia en la Fase G, aprobado por el usuario el 2026-10-10):** en Workers no hay SSH ni scripts locales. Las operaciones de emergencia son el endpoint `POST /internal/ops` de `PlatformDO` (solo desde `admin.`), protegido por el secreto `OPS_TOKEN` (256 bits, `openssl rand -hex 32`, `wrangler secret put OPS_TOKEN`; con menos de 32 caracteres el endpoint queda apagado y responde 404). El token va en `Authorization: Bearer`, se compara en tiempo constante, y cada llamada (también las rechazadas) queda en `platform_audit_log` como `OPS_<COMANDO>` sin guardar contraseñas ni códigos. El secreto cumple el papel que tenía la llave SSH: quien lo tiene administra la plataforma.
+- **CLI local:** `pnpm ops <comando> [clave=valor …] [--url <base>]` (`apps/server/scripts/ops.ts`), con `OPS_TOKEN` en el entorno (nunca como argumento). Por defecto llama a `https://admin.dosuxsoft.com`; solo acepta `http` hacia localhost.
+- **Comandos:** `superadmin-create`, `superadmin-reset`, `superadmin-disable`, `superadmin-enable`, `superadmin-list` (los cuatro primeros con `username=`), `tenant-list`, `tenant-create slug= name=`, `tenant-suspend`, `tenant-activate`, `setup-code`, `reset-owner` (los cuatro con `slug=`; `reset-owner` restablece al dueño, imprime contraseña temporal y nuevo recovery code, y cierra sus sesiones), `bookmarks slug=` y `restore-tenant slug= bookmark=`.
+- **Restaurar un negocio:** `bookmarks` lista el bookmark actual y los `pre-migracion:<tag>`; `restore-tenant` programa la restauración PITR y reinicia el DO (devuelve un `undoBookmark` para deshacerla). PITR no existe en el runtime local: **la restauración real hay que probarla en producción con un negocio de prueba** (simulacro pendiente, ver ROADMAP).
+- **Eliminar un negocio:** `tenant-delete slug=` (solo por consola, el panel no lo ofrece). Solo si está **suspendido** (si no, 409 `NEGOCIO_NO_SUSPENDIDO`); es **irreversible**: vacía su DO (`destroy()`: alarma + `deleteAll()`) y después borra su fila de `tenants` y sus `subscription_payments` (el subdominio queda libre); si el DO falla no se toca la plataforma. Las copias en R2 quedan hasta que vencen (30 días); la bitácora guarda `OPS_TENANT_DELETE` con subdominio y nombre.
+- Administración normal de negocios: desde el panel `admin.<dominio>`.
 
 ### 6.13 Roles y permisos (Fase B)
 | Acción | Dueño | Admin | Cajero |
@@ -287,19 +311,19 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 - **Autor en audit_log:** columna `user_id`, rellenada con `currentActorId()` (el actor que `requireAuth` deja en el contexto del request). NULL = sistema o sin sesión. Toda inserción nueva en `audit_log` debe incluir `userId: currentActorId()`.
 - Un solo dueño por negocio (índice único parcial).
 - Usuarios nunca se borran: se desactivan. El rol no se cambia (contraseña vs PIN): se desactiva y se crea otro.
-- **Revisar unicidad después de cada `await`:** entre una verificación ("¿existe ya?") y la inserción no puede haber `await` (hash argon2). Calcular los hashes primero y luego verificar e insertar sin pausas; better-sqlite3 es síncrono, así que ese tramo es atómico (setup del dueño, alta de usuarios, alta de negocios).
+- **Revisar unicidad después de cada `await`:** entre una verificación ("¿existe ya?") y la inserción no puede haber `await` (hash argon2). Calcular los hashes primero y luego verificar e insertar sin pausas; el SQLite del Durable Object es síncrono y de un solo hilo, así que ese tramo es atómico (setup del dueño, alta de usuarios, alta de negocios).
 - El recovery code es solo del dueño; admins y cajeros los restablece un superior desde Usuarios.
 
 ### 6.14 Panel de la plataforma (Fase F)
 | Decisión | Valor |
 |---|---|
-| Cuentas | Tabla `superadmins` en `control.db`, argon2id, creadas solo por consola |
-| Sesión | Cookie `dosuxsoft_platform` (distinta a la de los negocios, sin `Domain` → solo `admin.`), tabla `platform_sessions`, mismas 8 h / 60 min |
+| Cuentas | Tabla `superadmins` en `PlatformDO`, argon2id, creadas solo con la consola de operaciones (`pnpm ops superadmin-create`); no hay alta ni recuperación por el panel |
+| Sesión | Cookie `dosuxsoft_platform` (distinta a la de los negocios, sin `Domain` → solo `admin.`), tabla `platform_sessions` (se excluye del respaldo), mismas 8 h / 60 min |
 | Login | 5 fallos → bloqueo 15 min por cuenta + rate limit 5/15 min por IP; usuario inexistente = mismo tiempo y mensaje |
 | Cambio de contraseña | Cierra todas las sesiones de esa cuenta y abre una nueva para quien la cambió |
 | Bitácora | `platform_audit_log` (solo inserción): login, alta, cambios con valor anterior y nuevo, pagos, anulaciones, suspensiones |
 | Datos de un negocio | El panel lee métricas de uso (cantidad de usuarios, fecha de la última venta) y el tipo de negocio y los módulos. Lo único que escribe en la BD de un negocio es esa asignación (`business_profile`). Nunca clientes ni montos |
-| Sin MFA | Igual que el resto del sistema (§10). Mitigación: cuentas solo por consola, bloqueo, bitácora |
+| Sin MFA | Igual que el resto del sistema (§10). Mitigación: cuentas solo por la consola de operaciones (`OPS_TOKEN`), bloqueo, bitácora |
 
 ---
 
@@ -340,25 +364,26 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 ### Reglas de fecha y hora
 - **Todos los timestamps se almacenan en UTC** en la BD.
 - **Fijar `createdAt`/`updatedAt` explícitamente con `new Date().toISOString()`** en cada inserción que se muestre en pantalla. El default `datetime('now')` de SQLite guarda UTC *sin* `Z` (`2026-10-07 19:52:52`) y el navegador lo interpreta como hora local: 6 h de error en Costa Rica (bug encontrado en Fase C en `stock_movements`).
-- **Todos los límites de día/semana/mes** (reportes, "ventas de hoy" por fecha) y el **cron de cierre automático** se computan en `America/Costa_Rica`.
+- **Todos los límites de día/semana/mes** (reportes, "ventas de hoy" por fecha) y la **alarma de cierre automático** se computan en `America/Costa_Rica`.
 - El corte de caja agrupa ventas por `cash_register_id` (FK), **no por fecha** — inmune al problema de zona horaria.
-- El contenedor Docker corre en UTC; la conversión a hora de CR ocurre en la capa de lógica, nunca se asume la TZ del sistema operativo.
+- Workers y Durable Objects corren en UTC; la conversión a hora de CR ocurre en la capa de lógica (`lib/cr-time.ts`), nunca se asume la TZ del entorno.
 
 ### Transacciones SQLite
-- Toda operación que toca más de una tabla debe usar `db.transaction()`.
+- Toda operación que toca más de una tabla debe usar `db.transaction()` (síncrona: dentro no puede haber `await`). En la plataforma, `controlTransaction`.
 - Especialmente: crear venta + incrementar consecutivo, crear cierre + snapshot.
 
 ### Restricción de caja única abierta
 - SQLite no soporta índices parciales (`WHERE`) via Drizzle ORM — no es posible un `UNIQUE INDEX ... WHERE closed_at IS NULL`.
 - La invariante "solo una caja abierta" se garantiza en el **service layer** de Fase 4: `POST /api/cash-registers/open` consulta si existe una fila con `closed_at IS NULL` dentro de una transacción antes de insertar. SQLite es single-writer — no hay race condition real en este modelo.
 
-### Reglas multi-negocio (Fase A)
-- Los repositories importan `db` desde `db/client.ts` como siempre — **nunca** abrir `better-sqlite3` directamente ni guardar una referencia a la BD de un negocio en una variable de módulo.
-- **Jobs (node-cron):** envolver la lógica en `forEachActiveTenant(log, 'nombre-job', fn)` (`jobs/for-each-tenant.ts`). Un job que use `db` sin esto lanza error.
-- **Scripts CLI:** recibir el slug como argumento y ejecutar dentro de `runWithTenant(slug, fn)`.
-- **Rutas sin negocio** (health, tls-check) se declaran en `GLOBAL_PATHS` de `middleware/tenant.ts` y no pueden tocar `db`.
-- Rutas a archivos de un negocio: usar `tenantDbPath(slug)` / `tenantBackupDir(slug)` — validan el slug.
-- `control.db` guarda el registro de negocios y lo de la plataforma (suscripción, pagos de la mensualidad, superadministradores, tipo de cambio). **Nunca** datos operativos de un negocio.
+### Reglas multi-negocio (Fase A, reescritas en la Fase G)
+- Los repositories importan `db` desde `db/client.ts` como siempre — **nunca** guardar una referencia a la BD de un negocio en una variable de módulo ni abrir otro DO desde código de un negocio.
+- **No existen `forEachActiveTenant` ni `runWithTenant`.** El contexto de un negocio se abre con `runInTenant(ctx, fn)` (lo hace `TenantDO`: en cada request, en la alarma y en los métodos RPC) y el de la plataforma con `runInPlatform(storage, fn)` (`PlatformDO`). `controlDb` usado fuera de `runInPlatform` lanza error, igual que `db` fuera de un negocio.
+- **Jobs → crons y alarmas.** Los Cron Triggers (`15 * * * *` y `0 9 * * *`, definidos en `wrangler.jsonc`) llaman desde `worker.ts` (`scheduled`) a métodos RPC: `PlatformDO.refreshExchangeRate()` y, por cada negocio activo o suspendido (`listMaintainedSlugs`, con `Promise.allSettled` para que uno caído no frene a los demás), `TenantDO.dailyMaintenance()` (limpieza de sesiones y contadores, exportación a R2; en un DO nunca inicializado no hace nada). El cierre automático de caja usa una alarma por negocio (`scheduleAutoClose`, que se reprograma al guardar la configuración y al despertar el DO).
+- **Rutas sin negocio:** solo `/health` (únicamente en `admin.`); se enrutan en `worker.ts`.
+- **Errores entre DO:** un error lanzado dentro de un método RPC cruza solo con su mensaje, así que un `AppError` pierde `code` y `status`. Los métodos RPC devuelven resultados explícitos o el llamador traduce el fallo (por ejemplo `NegocioNoDisponible`, 503).
+- El registro de negocios y lo de la plataforma (suscripción, pagos de la mensualidad, superadministradores, tipo de cambio) vive en `PlatformDO`. **Nunca** datos operativos de un negocio.
+- Tests: con `@cloudflare/vitest-plugin` (`runInDurableObject`, `SELF.fetch`); los helpers están en `src/tests/helpers.ts` (`createTestTenant` también registra el negocio en `PlatformDO`).
 
 ### Reglas de inventario (Fase C)
 - `products.stock` es el saldo de `stock_movements`. **Solo** `applyStockChange(tx, …)` (`modules/products/repository.ts`) lo modifica, siempre dentro de la transacción del llamador y dejando el movimiento con `stock_after`.
@@ -369,7 +394,7 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 
 ### Reglas de perfil del negocio (Fase D)
 - `business_profile` (una fila) define plantilla, nombre de las órdenes (`ordersLabel`), qué se recibe (`itemLabel`), campos de la orden y módulos activos. Plantillas en `packages/shared/src/schemas/business.ts` (`TEMPLATE_INFO`).
-- **Tipo de negocio y módulos los asigna la plataforma** (decisión del usuario, 2026-10-08): al crear el negocio en el panel y después con `PUT /platform/tenants/:slug/business` (`assignBusinessSchema`, `assignBusiness` en `modules/business/service.ts`). El dueño solo los ve: `PUT /api/business` acepta `ownerProfileSchema` (nombres y campos) y conserva tipo y módulos aunque lleguen en el body. El setup del dueño ya no elige tipo. `tenant create` por consola asigna "Otro tipo de negocio".
+- **Tipo de negocio y módulos los asigna la plataforma** (decisión del usuario, 2026-10-08): al crear el negocio en el panel y después con `PUT /platform/tenants/:slug/business` (`assignBusinessSchema`, `assignBusiness` en `modules/business/service.ts`). El dueño solo los ve: `PUT /api/business` acepta `ownerProfileSchema` (nombres y campos) y conserva tipo y módulos aunque lleguen en el body. El setup del dueño ya no elige tipo. `pnpm ops tenant-create` asigna "Otro tipo de negocio".
 - Cambiar el tipo reemplaza nombres y campos por los de la plantilla (`applyAssignment`); mismo tipo, solo cambian los módulos.
 - **Módulos activables** (`ordenes`, `cotizaciones`, `facturas`, `apartados`, `creditos`, `inventario`): se registran con `registerModuleRoutes` (`middleware/module.ts`) → 404 `MODULO_DESACTIVADO` si están apagados. En el frontend: `requireModule` en `beforeLoad` y `module` en `NAV_ITEMS`. Un módulo nuevo activable debe hacer las tres cosas.
 - **Campos de la orden:** `boletas.fields` es JSON `OrderFieldValue[]` con la **etiqueta copiada al crear** la orden: renombrar o borrar un campo no altera órdenes viejas. La clave (`key`) es estable y no cambia al renombrar.
@@ -381,20 +406,22 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 - **Contabilidad en colones.** Los dólares solo se *reciben* (método de pago `dolares`): la venta guarda `amount` en ₡ más `usd_received_cents`, `exchange_rate` (centésimas de ₡) y `change_colones`. El vuelto siempre es en colones.
 - Enteros en todo: USD en centavos, tipo de cambio en centésimas. Conversión solo con `usdCentsToColones` (`packages/shared/src/money.ts`). El único decimal→entero es al leer el BCCR (`lib/bccr.ts`).
 - **El tipo de cambio lo decide el servidor** al cobrar (`getExchangeRateInfo`, `lib/exchange-rate.ts`): compra BCCR (317) si es de los últimos 4 días; si no, el de respaldo `usd_manual_rate` del negocio; si no hay, 400 `TIPO_CAMBIO_NO_DISPONIBLE`.
-- BCCR: API SDDE (`apim.bccr.fi.cr`, token Bearer en `BCCR_API_TOKEN`, uno para toda la plataforma). Tabla `exchange_rates` en `control.db` (global). Job horario `jobs/exchange-rate.ts`, no por negocio.
+- BCCR: API SDDE (`apim.bccr.fi.cr`, token Bearer en `BCCR_API_TOKEN`, uno para toda la plataforma). Tabla `exchange_rates` en `PlatformDO` (global). Cron horario (`15 * * * *`), no por negocio.
 - **Avisos por WhatsApp:** enlaces `wa.me/506XXXXXXXX?text=…` (`whatsappLink`), la persona toca Enviar. Plantillas en settings `msg_*` (vacío = `DEFAULT_MESSAGES`). Cada aviso abierto queda en `customer_notifications` (solo inserción). No hay envío automático.
 
 ### Reglas de la plataforma (Fase F)
-- **Alta solo desde el panel** (o `tenant create`): no hay registro público.
+- **Alta solo desde el panel** (o `pnpm ops tenant-create`): no hay registro público.
 - **Cobro manual:** el superadministrador registra cada pago (SINPE / transferencia). `tenants.paid_until` es el último día cubierto (YYYY-MM-DD, calendario de CR); NULL = sin cobro. Un pago extiende **desde el vencimiento actual aunque ya pasó** (`addMonths`, compartido). Los pagos no se borran: se anulan, y anular el último pago devuelve el vencimiento (`previous_paid_until`) si nadie lo corrigió después.
 - **Un atraso nunca bloquea.** Estado derivado con `subscriptionStatus` (compartido): `al_dia`, `por_vencer` (≤ 5 días), `vencido`, `sin_cobro`. El dueño y los admins ven un aviso; suspender es manual desde el panel.
 - Precio: `monthly_price` del negocio o, si es NULL, `default_monthly_price` de `platform_settings`.
-- Las tablas de `control.db` se crean con `CREATE TABLE IF NOT EXISTS` y columnas nuevas con `ALTER TABLE` condicional en `db/control.ts` (no usa las migraciones de Drizzle). Todo lo que escribe más de una tabla usa `controlTransaction`.
+- Las tablas de la plataforma (`db/control.ts`, en `PlatformDO`) se crean con `CREATE TABLE IF NOT EXISTS` y columnas nuevas con `ALTER TABLE` condicional en `db/control.ts` (no usa las migraciones de Drizzle). Todo lo que escribe más de una tabla usa `controlTransaction`.
 - El enrutado del panel en el frontend es un enrutador mínimo propio (`features/platform/router.tsx`), para no mezclar un segundo árbol de TanStack Router con los tipos de la app de los negocios.
 
 ### Regla de migraciones
-- Antes de aplicar migraciones pendientes a un negocio con datos, `openTenantDb` guarda `backups/<slug>/pre-migracion-<fecha>.db` (fuera de la rotación). Test: `src/tests/migrations.test.ts` (incluye subir una BD en el estado de producción, 0006, hasta la última).
-- Migraciones a mano: agregarlas al `_journal.json` con `when` **mayor que la anterior**. Drizzle salta las que tengan `when` menor que la última aplicada (lo encontró el test de la migración 0009 al agregar la 0010).
+- Cada `TenantDO` aplica las migraciones pendientes al arrancar, dentro de `blockConcurrencyWhile` (`db/migrator.ts`): un runner propio sobre el journal, cada archivo en su propia transacción y registrado en `__migrations`. Si una migración falla, el DO no arranca hasta que se despliegue la corrección.
+- Antes de migrar un negocio **con datos**, el runner guarda el bookmark de PITR en el kv del DO como `pre-migracion:<tag>` (reemplaza la copia `pre-migracion-*.db` del VPS). `pnpm ops bookmarks slug=<slug>` lo lista; `restore-tenant` vuelve a él. Si una migración sale mal: **primero desplegar la corrección y después restaurar**, porque el DO volvería a intentar la migración.
+- Migraciones a mano (no hay `drizzle-kit`): crear el `.sql` en `apps/server/src/db/migrations/`, agregarlo al `_journal.json` con `when` **mayor que la anterior** y agregar su `import` y su entrada al final de la lista `MIGRATIONS` en `src/db/migrations.ts`. Un archivo sin esa entrada nunca se aplica.
+- Tests: `src/tests/migrations.test.ts` (incluye subir una BD en el estado anterior hasta la última).
 
 ### Regla de alias en subqueries Drizzle ORM
 - Los campos `sql<T>\`...\`` dentro de un subquery nombrado (`.as('subqueryName')`) **deben** tener su propio `.as('fieldAlias')` o Drizzle v0.36+ lanza en runtime:
@@ -412,31 +439,31 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 
 ## 8. Variables de Entorno
 
-Definidas en `.env` (nunca en el repositorio).
-Producción: `deploy/.env` (lo lee Docker Compose; ver `deploy/.env.example`). Desarrollo: `apps/server/.env`, opcional, cargado por `pnpm dev` con `--env-file-if-exists` (ver `apps/server/.env.example`).
-No hay secretos que generar: las sesiones son tokens aleatorios con hash en BD y la cookie no se firma (`SESSION_SECRET` y `ALLOWED_ORIGIN` se eliminaron el 2026-10-07; si siguen en un `.env` se ignoran).
+No hay archivo `.env` de producción. Las variables no secretas están en `apps/server/wrangler.jsonc`; los secretos se guardan en Cloudflare con `wrangler secret put <NOMBRE>` y en desarrollo en `apps/server/.dev.vars` (ignorado por git; plantilla en `.dev.vars.example`). **Nunca** en el repositorio.
+No hay secretos de sesión que generar: las sesiones son tokens aleatorios con hash en BD y la cookie no se firma.
 
-| Variable | Descripción |
-|---|---|
-| `DATA_DIR` | Directorio de datos: `control.db`, `tenants/<slug>.db`, `backups/<slug>/` (default: `./data`; prod: `/app/data`) |
-| `TENANT_BASE_DOMAIN` | Dominio base de los negocios (default: `localhost`; prod: `dosuxsoft.com`) |
-| `DEV_TENANT` | Solo desarrollo: negocio para `localhost` sin subdominio (opcional) |
-| `BCCR_API_TOKEN` | Token Bearer del API SDDE del BCCR para el tipo de cambio (opcional; sin él rige el respaldo manual de cada negocio) |
-| `PORT` | Puerto del servidor Fastify (default: `3000`) |
-| `NODE_ENV` | `development` o `production` |
+| Variable | Tipo | Descripción |
+|---|---|---|
+| `TENANT_BASE_DOMAIN` | var | Dominio base de los negocios (`dosuxsoft.com`; `localhost` en el entorno `dev`) |
+| `ENVIRONMENT` | var | `production` o `development`. Solo `development` acepta `X-Forwarded-Host` y deja la cookie sin `Secure` |
+| `DEV_TENANT` | var | Solo desarrollo: negocio para `localhost` sin subdominio |
+| `BCCR_API_TOKEN` | secreto | Token Bearer del API SDDE del BCCR para el tipo de cambio (opcional; sin él rige el respaldo manual de cada negocio) |
+| `OPS_TOKEN` | secreto | Token de 256 bits de la consola de operaciones (`/internal/ops`, `pnpm ops`). `openssl rand -hex 32`; con menos de 32 caracteres el endpoint queda apagado |
 
 ---
 
 ## 9. Estructura de Carpetas
 
 ```
-apps/server/src/   db/ (schema, migraciones, control.ts, client.ts, seed) · jobs/ · lib/ · middleware/
-                   modules/<modulo>/ (routes, service, repository) · scripts/ (tenant, superadmin, reset-admin)
-                   tests/ (integración) · db/tests/ (schema)
+apps/server/       wrangler.jsonc (Worker, DO, R2, crons, assets) · .dev.vars.example · scripts/ops.ts (consola de operaciones)
+apps/server/src/   worker.ts (enrutador y crons) · tenant-app.ts · platform-app.ts · do/ (tenant-do, platform-do)
+                   db/ (schema, migrations/, migrations.ts, migrator, client.ts, control.ts, bootstrap) · lib/ · middleware/
+                   modules/<modulo>/ (routes, service, repository) · modules/ops/ · modules/platform/
+                   tests/ (vitest en workerd)
 apps/web/src/      features/<modulo>/ · routes/ (TanStack Router) · components/ · app/layout/ · lib/
+apps/web/public/   _headers (headers de seguridad y caché) · logo y favicon
 packages/shared/   src/schemas/<modulo>.ts · src/money.ts
-deploy/            docker-compose.yml · Caddyfile · backup.sh · DEPLOY.md · ACTUALIZAR-VPS.md · .env.example
-Dockerfile         multi-stage: build → server + caddy
+deploy/            DEPLOY.md (despliegue en Cloudflare)
 ```
 
 El spec original (`docs/superpowers/specs/2026-06-09-sipnato-pos-design.md`) es histórico: describe la versión de un solo negocio.
@@ -499,6 +526,9 @@ El spec original (`docs/superpowers/specs/2026-06-09-sipnato-pos-design.md`) es 
 | 2026-06-17 | Post-launch bugfix | **Apartados eliminado del sidebar** — ítem `/apartados` removido de `NAV_ITEMS` en `AppLayout.tsx` (commit `2cee7ed`). El módulo backend y la página siguen existiendo pero no son accesibles desde la navegación; decisión tomada por el usuario. |
 | 2026-06-17 | Post-launch bugfix | **`drizzle.config.ts` apuntaba a DB incorrecta** — `sipnato.db` → `dosuxsoft.db` (commit `26832fa`). La BD de producción siempre se llamó `dosuxsoft.db` (volumen Docker `dosuxsoft-data`); el config de desarrollo nunca era crítico pero era engañoso. |
 | 2026-06-17 | Post-launch bugfix | **Bug crítico de Drizzle en módulo Créditos** — `listCreditoRows` y `getCreditoWithPaymentsRow` en `modules/creditos/repository.ts` producían 500 en producción: `"You tried to reference 'paidAmount' field from a subquery, which is a raw SQL field, but it doesn't have an alias declared."`. Causa: Drizzle v0.36.4 exige `.as('fieldAlias')` en campos `sql<T>\`...\`` dentro de subqueries nombrados. Fix: añadido `.as('paidAmount')` en ambas funciones (commit `e9cbe24`). El error solo se manifestó en producción porque `tsc` no lo detecta — ver regla de alias en Sección 7. |
+| 2026-10-10 | Fase G | **Migración a Cloudflare Workers (código completo en la rama `fase-g-cloudflare`; falta el despliegue).** Decisiones del usuario: se borra el VPS y se empieza de cero (sin migrar datos, no hay clientes); todo en Cloudflare con Workers Paid; la consola de emergencia pasa de SSH a un endpoint con secreto (cambia §6.12/§6.14, aprobado el 2026-10-10). Arquitectura: un Worker con un Durable Object SQLite por negocio (`TenantDO`) y otro de plataforma (`PlatformDO`, reemplaza a `control.db`); el Worker enruta por Host y la petición se atiende dentro del DO con Hono; `db` y `controlDb` siguen fallando cerrado con `AsyncLocalStorage`; RPC entre DO para resolver negocios, código de activación, suscripción y tipo de cambio. Fastify, better-sqlite3, node-cron, Docker, Caddy y los scripts por SSH desaparecen. argon2id en WebAssembly con m=19456, t=2, p=1 y rehash al iniciar sesión. Frontend como Static Assets con `_headers`. Respaldos: PITR de 30 días + JSON diario a R2 + descarga JSON del dueño (sin sesiones); antes de migrar se guarda un bookmark `pre-migracion:<tag>`. Rate limits en el kv del DO con `CF-Connecting-IP`. Cierre automático de caja con alarma por negocio; crons para el tipo de cambio y el mantenimiento diario. Consola `POST /internal/ops` + `OPS_TOKEN` + `pnpm ops` (superadmins, negocios, reset-owner, bookmarks, restore-tenant). Revisión final: protección CSRF (`sameOriginWrites`: origen propio y `application/json` en toda escritura) y panel tolerante a negocios caídos. Desarrollo local con `wrangler dev` (:8787) + Vite (:5174). Tests: 213 en `workerd` (antes 88), `tsc`, lint y formato limpios. Pendiente: activar R2, desplegar, DNS `*` Proxied, superadmin en producción y simulacro de restauración PITR (no se puede probar en local). |
+| 2026-10-11 | Fase G | **Desplegada en producción** (Worker `dosuxsoft`, R2 `dosuxsoft-backups` con borrado a 30 días, secretos, DNS `*` → `AAAA 100::` Proxied, superadmin `admin`, simulacro PITR exitoso). `/grill-me`: decisiones del usuario — respaldar también negocios suspendidos; eliminar negocios solo por consola (`pnpm ops tenant-delete`, solo suspendidos; borra su DO, registro y pagos; R2 conserva 30 días); regla WAF de límite de pedidos por IP en `/api/` y `/auth/` (100/10 s); el `OPS_TOKEN` va a un gestor de contraseñas. Además: el panel no muestra formularios de un negocio no disponible, la descarga de respaldo exige `Sec-Fetch-Site` de la misma página y las consultas del panel a cada negocio tienen tiempo límite de 5 s. 219 tests. Rama fusionada en `main`. |
+| 2026-10-11 | Fase G (`/grill-me`) | Ajustes de la revisión técnica. Decisiones del usuario: el mantenimiento diario también cubre a los negocios suspendidos (`listMaintainedSlugs`; un DO nunca inicializado no hace nada ni crea tablas) y eliminar un negocio solo por consola (`tenant-delete`, solo suspendidos, irreversible: `TenantDO.destroy()` y después su fila y sus pagos en `control.db`; error `NEGOCIO_NO_SUSPENDIDO`; el panel no tiene botón). Además: el resumen que el panel pide a cada negocio se abandona a los 5 s (queda "No disponible"); en ese estado el detalle oculta el uso y no deja cambiar tipo, módulos ni emitir código; la descarga del respaldo (GET con efectos) exige mismo origen (`sameOriginOnly`). Tests nuevos en `scheduled`, `ops`, `csrf` y `platform`. |
 | 2026-10-08 | Panel | **Tipo de negocio y módulos asignados desde el panel.** Decisiones del usuario: el dueño solo los ve; los campos y nombres de las órdenes los sigue editando el dueño. Shared: `ownerProfileSchema`, `assignBusinessSchema`, `applyAssignment`; `setupSchema` sin `template`; `createTenantSchema` con `template` y `modules`; `PlatformTenant` con tipo y módulos. Backend: `modules/business/service.ts` (NUEVO: `updateOwnerProfile`, `assignBusiness`), `PUT /api/business` solo nombres y campos, `PUT /platform/tenants/:slug/business` (auditado `TENANT_BUSINESS_ASSIGNED`), alta del panel y `tenant create` asignan el tipo, el setup ya no lo toca. Frontend: `features/platform/BusinessTypeFields.tsx` (NUEVO) en Nuevo negocio y en el detalle (advertencia al cambiar de tipo), tipo en la lista; Configuración del negocio muestra tipo y módulos de solo lectura; el setup ya no pide tipo. Tests: business (dueño no cambia tipo/módulos, la plataforma apaga módulos, cambio de tipo) y platform (alta con tipo, reasignación, aislamiento); 88/88. Verificado en navegador: cambio de módulos y de tipo desde el panel y vista de solo lectura del dueño. |
 | 2026-10-08 | Git | PR #1 (Fases A–D), #2 (Fase E) y #3 (Fase F + `/grill-me` + revisión general) fusionados en `main` en ese orden, con merge commit para conservar la historia de las ramas encadenadas. Ramas `fase-a-multi-tenant`, `fase-e-dolares-notificaciones` y `fase-f-registro-superadmin` eliminadas (local y GitHub). Pendiente: despliegue en el servidor (ROADMAP → Estado actual). |
 | 2026-10-07 | Revisión general | Limpieza y correcciones antes de producción. **Seguridad/configuración:** quitado CORS (autorizaba a `www.dosuxsoft.com` a leer la API de los negocios con sesión, porque las cookies `SameSite=Strict` viajan entre subdominios del mismo sitio) y la variable sin uso `SESSION_SECRET`; quitado `LOG_PATH` (los logs nunca fueron a archivo) y la rotación pasó a Docker (5 × 20 MB) para no llenar el disco. **Bug:** el panel marcaba "Sin activar" a un negocio migrado de la versión anterior (miraba el código de activación pendiente); ahora mira si la BD tiene usuarios (test nuevo). **Frontend:** 12 errores de lint corregidos (incluidos 3 `setState` dentro de `useEffect`: al encontrar un cliente por teléfono ya no se sobrescribe el nombre corregido en cada consulta); la animación del login y Recharts se cargan aparte (bundle inicial de 345 a 184 KB gzip) con un `SalesBarChart` compartido por dashboard y reportes; error en consola de la animación del login (elipses sin valor inicial); etiquetas de métodos de pago desde `PAYMENT_METHOD_LABELS`; `og-image.png` con el monograma DS (era el logo viejo de SIPNATO); descripción de `index.html` multi-negocio; Vite en el puerto 5174. **Eliminado:** código sin uso (3 errores, 5 funciones de repositorio, `parseColones`, esquemas y tipos sin referencias), dependencias `pino` y `@fastify/cors` (`tsx` pasó a desarrollo), favicons con el logo viejo, carpetas vacías con `.gitkeep`, `.env.example` de la raíz (ahora `apps/server/.env.example`). **Datos:** la BD de desarrollo se vació (solo había datos de prueba). **Formato:** Prettier aplicado a todo el código por primera vez (excluye `.md` y migraciones, ver `.prettierignore`). `theme-init.js` ahora respeta `prefers-color-scheme` en la primera visita, como decía §5. **Docs:** README, PRODUCT.md, DEPLOY.md (migración de la BD anterior corregida, backups de `_control`, checklist) y ACTUALIZAR-VPS.md reescritos para la versión multi-negocio. 85/85 tests. |

@@ -1,4 +1,4 @@
-// Siempre el mismo origen: Caddy (producción) y el proxy de Vite (desarrollo) llevan /api, /auth
+// Siempre el mismo origen: el Worker (producción) y el proxy de Vite (desarrollo) llevan /api, /auth
 // y /platform al servidor. El servidor no habilita CORS.
 
 export class ApiError extends Error {

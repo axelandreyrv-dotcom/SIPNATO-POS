@@ -1,0 +1,4 @@
+# Cloudflare lee _headers tal cual: un CRLF rompería el último valor de cada cabecera.
+apps/web/public/_headers text eol=lf
+# Las migraciones se empaquetan como texto en el Worker; LF en toda máquina (el índice ya las guarda en LF).
+*.sql text eol=lf

@@ -33,6 +33,7 @@ import {
   secondaryButton,
   SubscriptionBadge,
   SuspendedBadge,
+  UnavailableBadge,
   tenantHost,
   tenantUrl,
   textareaClass,
@@ -85,6 +86,7 @@ function Detail({ detail }: { detail: PlatformTenantDetail }) {
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-semibold tracking-tight text-text-primary">{t.name}</h1>
             {t.status === 'suspended' && <SuspendedBadge />}
+            {t.unavailable && <UnavailableBadge />}
           </div>
           <a
             href={tenantUrl(t.slug)}
@@ -98,6 +100,16 @@ function Detail({ detail }: { detail: PlatformTenantDetail }) {
         </div>
         <ReminderButton tenant={t} />
       </div>
+
+      {t.unavailable && (
+        <p
+          role="alert"
+          className="rounded-lg border border-brand-warning/30 bg-brand-warning/[0.07] px-3 py-2 text-sm text-text-primary"
+        >
+          El negocio no responde. Los pagos y los datos de esta página se guardan igual; el uso, el
+          tipo de negocio y los módulos no se pueden mostrar ni cambiar hasta que vuelva.
+        </p>
+      )}
 
       <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-4">
         <Fact label="Suscripción">
@@ -120,12 +132,19 @@ function Detail({ detail }: { detail: PlatformTenantDetail }) {
           </span>
         </Fact>
         <Fact label="Uso">
-          {detail.usage.users} {detail.usage.users === 1 ? 'usuario' : 'usuarios'}
-          <span className="block text-xs font-normal text-text-muted">
-            {detail.usage.lastSaleAt
-              ? `Última venta ${fmtDateTime(detail.usage.lastSaleAt)}`
-              : 'Sin ventas'}
-          </span>
+          {/* Sin respuesta del negocio el uso llega en cero: mostrarlo sería inventarlo. */}
+          {t.unavailable ? (
+            '—'
+          ) : (
+            <>
+              {detail.usage.users} {detail.usage.users === 1 ? 'usuario' : 'usuarios'}
+              <span className="block text-xs font-normal text-text-muted">
+                {detail.usage.lastSaleAt
+                  ? `Última venta ${fmtDateTime(detail.usage.lastSaleAt)}`
+                  : 'Sin ventas'}
+              </span>
+            </>
+          )}
         </Fact>
       </dl>
 
@@ -140,7 +159,9 @@ function Detail({ detail }: { detail: PlatformTenantDetail }) {
           title="Tipo de negocio y módulos"
           description="Lo que el negocio ve en su menú. El dueño no puede cambiarlo; sí ajusta los campos de sus órdenes."
         >
-          <BusinessForm tenant={t} />
+          {/* Se reinicia cuando el negocio vuelve a responder: el estado inicial eran valores de
+              relleno, no los suyos. */}
+          <BusinessForm key={t.unavailable ? 'no-disponible' : 'disponible'} tenant={t} />
         </Block>
         <Block
           title="Datos"
@@ -689,6 +710,16 @@ function BusinessForm({ tenant: t }: { tenant: PlatformTenant }) {
     onError: (err) => setMessage({ ok: false, text: errorText(err) }),
   });
 
+  // Sin respuesta del negocio el tipo y los módulos son de relleno: guardarlos le borraría los
+  // suyos.
+  if (t.unavailable) {
+    return (
+      <p className="text-sm text-text-muted">
+        No se puede mostrar ni cambiar mientras el negocio no responda.
+      </p>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <BusinessTypeFields
@@ -767,7 +798,11 @@ function Access({ tenant: t }: { tenant: PlatformTenant }) {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-text-primary">
-          {t.activated ? 'El dueño ya creó su cuenta.' : 'El dueño todavía no ha creado su cuenta.'}
+          {t.unavailable
+            ? 'No se sabe si el dueño ya creó su cuenta: el negocio no responde.'
+            : t.activated
+              ? 'El dueño ya creó su cuenta.'
+              : 'El dueño todavía no ha creado su cuenta.'}
         </p>
         {!t.activated && (
           <div className="mt-3 space-y-3">
@@ -777,7 +812,7 @@ function Access({ tenant: t }: { tenant: PlatformTenant }) {
               <button
                 type="button"
                 onClick={() => codeMutation.mutate()}
-                disabled={codeMutation.isPending}
+                disabled={t.unavailable || codeMutation.isPending}
                 className={secondaryButton}
               >
                 <KeyRound size={16} strokeWidth={1.5} aria-hidden />
@@ -855,7 +890,27 @@ const ACTION_LABELS: Record<string, string> = {
   TENANT_SETUP_CODE_ISSUED: 'Código de activación nuevo',
   PAYMENT_RECORDED: 'Pago registrado',
   PAYMENT_VOIDED: 'Pago anulado',
+  // Consola de operaciones (/internal/ops).
+  OPS_SUPERADMIN_CREATE: 'Consola: superadministrador creado',
+  OPS_SUPERADMIN_RESET: 'Consola: contraseña de superadministrador restablecida',
+  OPS_SUPERADMIN_DISABLE: 'Consola: superadministrador desactivado',
+  OPS_SUPERADMIN_ENABLE: 'Consola: superadministrador reactivado',
+  OPS_SUPERADMIN_LIST: 'Consola: lista de superadministradores',
+  OPS_TENANT_LIST: 'Consola: lista de negocios',
+  OPS_TENANT_CREATE: 'Consola: negocio creado',
+  OPS_TENANT_SUSPEND: 'Consola: negocio suspendido',
+  OPS_TENANT_ACTIVATE: 'Consola: negocio reactivado',
+  OPS_TENANT_DELETE: 'Consola: negocio eliminado',
+  OPS_SETUP_CODE: 'Consola: código de activación nuevo',
+  OPS_RESET_OWNER: 'Consola: acceso del dueño restablecido',
+  OPS_BOOKMARKS: 'Consola: puntos de restauración consultados',
+  OPS_RESTORE_TENANT: 'Consola: restauración de la base de datos',
+  OPS_AUTH_FAILED: 'Consola: token rechazado',
+  OPS_INVALID_REQUEST: 'Consola: solicitud inválida',
 };
+
+// Sin superadministrador: lo hizo la consola de operaciones.
+const CONSOLE_ACTOR = 'Consola de operaciones';
 
 const FIELD_LABELS: Record<string, string> = {
   name: 'nombre',
@@ -869,6 +924,7 @@ const FIELD_LABELS: Record<string, string> = {
 function activityDetail(entry: PlatformAuditEntry): string | null {
   const p = entry.payload;
   if (!p) return null;
+  if (entry.action.startsWith('OPS_') && p['ok'] === false) return 'falló';
   if (entry.action === 'TENANT_BUSINESS_ASSIGNED') {
     const tpl = p['template'] as { from: BusinessTemplate; to: BusinessTemplate } | undefined;
     if (tpl && tpl.from !== tpl.to) {
@@ -901,7 +957,7 @@ function Activity({ entries }: { entries: PlatformAuditEntry[] }) {
             </span>
             <span className="text-xs text-text-muted">
               {fmtDateTime(e.createdAt)}
-              {e.superadmin && ` · @${e.superadmin}`}
+              {` · ${e.superadmin ? `@${e.superadmin}` : CONSOLE_ACTOR}`}
             </span>
           </li>
         );

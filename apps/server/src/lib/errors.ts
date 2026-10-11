@@ -225,6 +225,30 @@ export class NegocioNoEncontrado extends AppError {
   }
 }
 
+// La plataforma no pudo hablar con el Durable Object del negocio.
+export class NegocioNoDisponible extends AppError {
+  constructor() {
+    super('NEGOCIO_NO_DISPONIBLE', 'El negocio no responde. Intenta de nuevo en un momento.', 503);
+  }
+}
+
+export class NegocioSuspendido extends AppError {
+  constructor() {
+    super('NEGOCIO_SUSPENDIDO', 'Este negocio está suspendido', 403);
+  }
+}
+
+// Eliminar un negocio exige suspenderlo antes: un paso más para no borrar uno en uso por error.
+export class NegocioNoSuspendido extends AppError {
+  constructor() {
+    super(
+      'NEGOCIO_NO_SUSPENDIDO',
+      'Solo se puede eliminar un negocio suspendido: suspéndelo primero',
+      409,
+    );
+  }
+}
+
 export class NegocioYaExiste extends AppError {
   constructor() {
     super('NEGOCIO_YA_EXISTE', 'Ya existe un negocio con ese subdominio', 409);
@@ -235,7 +259,7 @@ export class NegocioYaActivado extends AppError {
   constructor() {
     super(
       'NEGOCIO_YA_ACTIVADO',
-      'Este negocio ya tiene dueño. Para recuperar el acceso usa reset-admin en el servidor.',
+      'Este negocio ya tiene dueño. Para recuperar el acceso usa `pnpm ops reset-owner`.',
       409,
     );
   }
@@ -250,5 +274,27 @@ export class PagoNoEncontrado extends AppError {
 export class PagoYaAnulado extends AppError {
   constructor() {
     super('PAGO_YA_ANULADO', 'Este pago ya fue anulado', 409);
+  }
+}
+
+export class NegocioNoActivado extends AppError {
+  constructor() {
+    super(
+      'NEGOCIO_NO_ACTIVADO',
+      'Este negocio todavía no tiene dueño: emite un código de activación',
+      409,
+    );
+  }
+}
+
+export class SuperadminNoEncontrado extends AppError {
+  constructor() {
+    super('SUPERADMIN_NO_ENCONTRADO', 'No existe ese superadministrador', 404);
+  }
+}
+
+export class SuperadminYaExiste extends AppError {
+  constructor() {
+    super('SUPERADMIN_YA_EXISTE', 'Ya existe un superadministrador con ese usuario', 409);
   }
 }

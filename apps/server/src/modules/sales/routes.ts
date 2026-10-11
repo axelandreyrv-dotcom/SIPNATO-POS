@@ -1,71 +1,36 @@
-import type { FastifyInstance } from 'fastify';
+import { Hono } from 'hono';
 import { createSaleSchema } from '@sipnato/shared';
-import { AppError } from '../../lib/errors.js';
+import { readJson, requestMeta, type AppEnv } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { authorizeOrEscalate } from '../../middleware/authorization.js';
 import { createSale, deleteSale, listSales } from './service.js';
 
-export default async function salesRoutes(app: FastifyInstance) {
-  // ── POST /api/sales ───────────────────────────────────────────────────────
-  app.post('/', { preHandler: [requireAuth] }, async (request, reply) => {
-    const body = createSaleSchema.safeParse(request.body);
-    if (!body.success) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
-    }
+const salesRoutes = new Hono<AppEnv>();
 
-    try {
-      const sale = createSale(body.data, {
-        ip: request.ip ?? null,
-        userAgent: request.headers['user-agent'] ?? null,
-      });
-      return reply.status(201).send(sale);
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
-  });
+// ── POST /api/sales ───────────────────────────────────────────────────────
+salesRoutes.post('/', requireAuth, async (c) => {
+  const body = createSaleSchema.safeParse(await readJson(c));
+  if (!body.success) {
+    return c.json({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } }, 400);
+  }
+  return c.json(await createSale(body.data, requestMeta(c)), 201);
+});
 
-  // ── DELETE /api/sales/:id ─────────────────────────────────────────────────
-  app.delete('/:id', { preHandler: [requireAuth] }, async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const parsed = parseInt(id, 10);
-    if (isNaN(parsed)) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } });
-    }
+// ── DELETE /api/sales/:id ─────────────────────────────────────────────────
+salesRoutes.delete('/:id', requireAuth, async (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) {
+    return c.json({ error: { code: 'VALIDATION_ERROR', message: 'ID inválido' } }, 400);
+  }
+  const authorizedBy = await authorizeOrEscalate(c, 'deleteMoneyDirectly');
+  deleteSale(id, requestMeta(c), authorizedBy);
+  return c.json({ ok: true });
+});
 
-    try {
-      const authorizedBy = await authorizeOrEscalate(request, 'deleteMoneyDirectly');
-      deleteSale(
-        parsed,
-        {
-          ip: request.ip ?? null,
-          userAgent: request.headers['user-agent'] ?? null,
-        },
-        authorizedBy,
-      );
-      return reply.send({ ok: true });
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
-  });
+// ── GET /api/sales ────────────────────────────────────────────────────────
+salesRoutes.get('/', requireAuth, (c) => {
+  const page = Math.max(1, parseInt(c.req.query('page') ?? '1', 10) || 1);
+  return c.json(listSales(page));
+});
 
-  // ── GET /api/sales ────────────────────────────────────────────────────────
-  app.get('/', { preHandler: [requireAuth] }, async (request) => {
-    const query = request.query as Record<string, string>;
-    const page = Math.max(1, parseInt(query['page'] ?? '1', 10) || 1);
-    return listSales(page);
-  });
-}
+export default salesRoutes;

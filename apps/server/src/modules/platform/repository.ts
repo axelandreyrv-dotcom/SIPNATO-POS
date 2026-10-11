@@ -6,8 +6,8 @@ import type {
 } from '@sipnato/shared';
 import { controlDb } from '../../db/control.js';
 
-// Todo lo de este módulo vive en control.db: nunca toca la BD de un negocio salvo
-// las métricas de uso de `tenantUsage` (service), que se leen dentro de runWithTenant.
+// Todo lo de este módulo vive en control.db (el SQLite del Durable Object de la plataforma):
+// nunca toca la BD de un negocio. Lo que el panel necesita de un negocio lo pide por RPC (service).
 
 export interface Meta {
   ip: string | null;
@@ -384,9 +384,4 @@ export function listPlatformAudit(slug: string, limit: number): PlatformAuditEnt
       superadmin: r.username,
       createdAt: r.created_at,
     }));
-}
-
-// Varias escrituras en control.db que deben ocurrir juntas (p. ej. pago + vencimiento + bitácora).
-export function controlTransaction<T>(fn: () => T): T {
-  return controlDb.transaction(fn)();
 }

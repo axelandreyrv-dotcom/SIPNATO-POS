@@ -1,15 +1,16 @@
 import type { SetupInput } from '@sipnato/shared';
 import {
+  DUMMY_HASH,
   generateRecoveryCode,
+  generateTemporaryPassword,
   hashPassword,
   hashRecoveryCode,
   verifyRecoveryCode,
-  verifySetupCode,
 } from '../../lib/crypto.js';
 import { createSession, revokeSession, revokeUserSessions } from '../../lib/session.js';
 import { AppError, CredencialesInvalidas, UsuarioBloqueado } from '../../lib/errors.js';
 import { currentTenant } from '../../db/client.js';
-import { getSetupCodeHash, setSetupCodeHash } from '../../db/control.js';
+import { platformClient } from '../../lib/platform-client.js';
 import { findDueno, insertUserRow, updateUserRow } from '../users/repository.js';
 import { verifyCredentials } from '../users/service.js';
 import { insertAuditLog, isAdminSetup } from './repository.js';
@@ -33,27 +34,26 @@ export async function setupAdmin(
   input: SetupInput,
   meta: Meta,
 ): Promise<{ recoveryCode: string; sessionToken: string }> {
-  if (isAdminSetup()) {
-    throw new AppError('SETUP_ALREADY_DONE', 'El sistema ya fue configurado', 409);
-  }
+  if (isAdminSetup()) throw setupAlreadyDone();
 
-  // Sin código vigente (nunca emitido o ya usado) el setup queda cerrado: falla cerrado.
-  const { slug } = currentTenant();
-  const codeHash = getSetupCodeHash(slug);
-  if (!codeHash || !(await verifySetupCode(input.setupCode, codeHash))) {
-    throw new AppError('SETUP_CODE_INVALID', 'Código de activación inválido', 403);
-  }
-
+  // Los hashes van primero: después de gastar el código no puede haber ningún await antes de
+  // crear al dueño.
   const recoveryCode = generateRecoveryCode();
   const secretHash = await hashPassword(input.password);
   const recoveryCodeHash = await hashRecoveryCode(recoveryCode);
 
-  // Sin `await` desde aquí hasta consumir el código: dos activaciones simultáneas no pueden
-  // pasar ambas (better-sqlite3 es síncrono). La segunda recibe 409 en vez de chocar con el
-  // índice único del dueño.
-  if (isAdminSetup() || getSetupCodeHash(slug) !== codeHash) {
-    throw new AppError('SETUP_ALREADY_DONE', 'El sistema ya fue configurado', 409);
+  // La plataforma verifica y gasta el código en un solo paso: uno equivocado no crea al dueño y
+  // uno correcto solo sirve una vez, aunque lleguen dos activaciones a la vez. Sin código
+  // vigente (nunca emitido o ya usado) el setup queda cerrado: falla cerrado.
+  const { slug, env } = currentTenant();
+  if (!(await platformClient(env).consumeSetupCode(slug, input.setupCode))) {
+    throw new AppError('SETUP_CODE_INVALID', 'Código de activación inválido', 403);
   }
+
+  // Sin await entre esta verificación y la inserción (el DO atiende el código síncrono de una
+  // en una). Si fallara desde aquí, el código ya está gastado: el panel puede emitir otro
+  // mientras el negocio no tenga usuarios.
+  if (isAdminSetup()) throw setupAlreadyDone();
   const dueno = insertUserRow(
     {
       username: input.username,
@@ -64,12 +64,15 @@ export async function setupAdmin(
     },
     meta,
   );
-  setSetupCodeHash(slug, null);
 
   const { token } = await createSession(dueno.id, meta.ip, meta.userAgent);
   insertAuditLog({ action: 'ADMIN_SETUP', userId: dueno.id, ...auditMeta(meta) });
 
   return { recoveryCode, sessionToken: token };
+}
+
+function setupAlreadyDone(): AppError {
+  return new AppError('SETUP_ALREADY_DONE', 'El sistema ya fue configurado', 409);
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
@@ -115,10 +118,8 @@ export async function recoverAdmin(
 ): Promise<{ newRecoveryCode: string; sessionToken: string; username: string }> {
   const dueno = findDueno();
 
-  // Always verify to prevent timing attacks.
-  const dummyHash =
-    '$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-  const valid = await verifyRecoveryCode(recoveryCode, dueno?.recoveryCodeHash ?? dummyHash);
+  // Sin dueño también se verifica: la respuesta tarda lo mismo.
+  const valid = await verifyRecoveryCode(recoveryCode, dueno?.recoveryCodeHash ?? DUMMY_HASH);
 
   if (!dueno || !valid) {
     insertAuditLog({ action: 'RECOVER_FAILED', ...auditMeta(meta) });
@@ -143,4 +144,31 @@ export async function recoverAdmin(
 
   // Se devuelve el usuario porque quien recupera acceso pudo haberlo olvidado también.
   return { newRecoveryCode, sessionToken: token, username: dueno.username };
+}
+
+// ─── Recuperación de emergencia ───────────────────────────────────────────────
+// Solo desde la consola de operaciones, nunca desde un endpoint del negocio: contraseña temporal
+// y recovery code nuevos, cuenta activa y desbloqueada, y todas las sesiones del dueño cerradas.
+
+export async function resetOwner(): Promise<{
+  username: string;
+  tempPassword: string;
+  recoveryCode: string;
+}> {
+  const tempPassword = generateTemporaryPassword(9);
+  const recoveryCode = generateRecoveryCode();
+  const secretHash = await hashPassword(tempPassword);
+  const recoveryCodeHash = await hashRecoveryCode(recoveryCode);
+
+  const dueno = findDueno();
+  if (!dueno) throw new Error('El negocio no tiene dueño: debe activarse con su código');
+  updateUserRow(
+    dueno.id,
+    { secretHash, recoveryCodeHash, active: true },
+    'BREAK_GLASS_RESET',
+    {},
+    { ip: null, userAgent: 'consola-de-operaciones' },
+  );
+  revokeUserSessions(dueno.id);
+  return { username: dueno.username, tempPassword, recoveryCode };
 }

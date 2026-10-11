@@ -1,179 +1,165 @@
-import { strict as assert } from 'assert';
-import { after, before, describe, it } from 'node:test';
-import { existsSync, mkdtempSync, rmSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { addMonths, subscriptionStatus } from '@sipnato/shared';
+import { runInDurableObject } from 'cloudflare:test';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { db } from '../db/client.js';
+import { controlDb, findTenant, getSetupCodeHash, insertTenant } from '../db/control.js';
+import { businessProfile } from '../db/schema.js';
+import { todayCR } from '../lib/cr-time.js';
+import { listPayments } from '../modules/platform/repository.js';
+import { insertUserRow } from '../modules/users/repository.js';
+import {
+  call,
+  createTestTenant,
+  GENERIC_ASSIGNMENT,
+  inPlatform,
+  inTenant,
+  createSuperadmin,
+  login,
+  nextIp,
+  platformCall,
+  platformLogin,
+  platformStub,
+  platformToken,
+  sessionToken,
+  tenantStub,
+  type Method,
+} from './helpers.js';
 
-// config.ts lee process.env al importarse: el entorno debe fijarse antes de cargar la app.
-const dataDir = mkdtempSync(join(tmpdir(), 'dosuxsoft-platform-'));
-process.env['DATA_DIR'] = dataDir;
-process.env['TENANT_BASE_DOMAIN'] = 'dosuxsoft.test';
-process.env['NODE_ENV'] = 'development';
-delete process.env['DEV_TENANT'];
-
-const { addMonths, subscriptionStatus } = await import('@sipnato/shared');
-const { buildApp } = await import('../app.js');
-const { closeAllTenantDbs, currentTenant, runWithTenant } = await import('../db/client.js');
-const { closeControlDb, findTenant } = await import('../db/control.js');
-const { COOKIE_NAME, PLATFORM_COOKIE_NAME } = await import('../lib/constants.js');
-const { hashPassword } = await import('../lib/crypto.js');
-const { todayCR } = await import('../lib/cr-time.js');
-const { insertSuperadmin } = await import('../modules/platform/repository.js');
-
-type App = Awaited<ReturnType<typeof buildApp>>;
-
-const ADMIN_HOST = 'admin.dosuxsoft.test';
 const PASSWORD = 'clave-segura-123';
-const host = (slug: string) => `${slug}.dosuxsoft.test`;
 
-// El login tiene rate limit por IP: cada prueba que inicia sesión usa su propia IP.
-let ipCounter = 1;
-const nextIp = () => `10.0.0.${ipCounter++}`;
+const json = async <T = Record<string, unknown>>(res: Response | Promise<Response>) =>
+  (await (await res).json()) as T;
 
-async function platformLogin(app: App, username: string, password: string) {
-  return app.inject({
-    method: 'POST',
-    url: '/platform/auth/login',
-    headers: { host: ADMIN_HOST },
-    remoteAddress: nextIp(),
-    payload: { username, password },
-  });
+interface TenantView {
+  slug: string;
+  activated: boolean;
+  subscription: string;
+  template: string;
+  modules: string[];
+  paidUntil: string | null;
+  effectivePrice: number;
 }
 
 describe('panel de superadministrador', () => {
-  let app: App;
-  let platformToken: string;
-  let ownerToken: string;
-  let setupCode: string;
+  let adminToken = '';
+  let ownerToken = '';
+  let setupCode = '';
 
-  const asAdmin = () => ({ host: ADMIN_HOST, cookie: `${PLATFORM_COOKIE_NAME}=${platformToken}` });
-  const asOwner = (slug = 'tienda-nueva') => ({
-    host: host(slug),
-    cookie: `${COOKIE_NAME}=${ownerToken}`,
-  });
+  const admin = (method: Method, path: string, body?: unknown) =>
+    platformCall(method, path, { token: adminToken, body });
+  const owner = (method: Method, path: string, body?: unknown) =>
+    call('tienda-nueva', method, path, { token: ownerToken, body });
 
-  function patchTenant(slug: string, payload: Record<string, unknown>) {
-    return app.inject({
-      method: 'PATCH',
-      url: `/platform/tenants/${slug}`,
-      headers: asAdmin(),
-      payload,
+  const listTenants = async () =>
+    (await json<{ tenants: TenantView[] }>(admin('GET', '/platform/tenants'))).tenants;
+
+  const pay = (slug: string, months: number, amount = 15000) =>
+    admin('POST', `/platform/tenants/${slug}/payments`, {
+      amount,
+      months,
+      method: 'sinpe',
+      reference: 'SINPE 123',
+      paidAt: todayCR(),
+      notes: '',
     });
-  }
 
-  function pay(slug: string, months: number, amount = 15000) {
-    return app.inject({
-      method: 'POST',
-      url: `/platform/tenants/${slug}/payments`,
-      headers: asAdmin(),
-      payload: {
-        amount,
-        months,
-        method: 'sinpe',
-        reference: 'SINPE 123',
-        paidAt: todayCR(),
-        notes: '',
-      },
-    });
-  }
-
-  before(async () => {
-    insertSuperadmin('root', await hashPassword(PASSWORD));
-    insertSuperadmin('otro', await hashPassword(PASSWORD));
-    app = await buildApp({ startJobs: false });
-  });
-
-  after(async () => {
-    await app.close();
-    closeAllTenantDbs();
-    closeControlDb();
-    rmSync(dataDir, { recursive: true, force: true });
+  beforeAll(async () => {
+    await createSuperadmin('root', PASSWORD);
+    await createSuperadmin('otro', PASSWORD);
   });
 
   it('fechas de la suscripción', () => {
-    assert.equal(addMonths('2026-01-31', 1), '2026-02-28');
-    assert.equal(addMonths('2028-01-31', 1), '2028-02-29');
-    assert.equal(addMonths('2026-11-15', 3), '2027-02-15');
-    assert.deepEqual(subscriptionStatus(null, '2026-10-07'), {
-      status: 'sin_cobro',
-      daysLeft: null,
-    });
-    assert.deepEqual(subscriptionStatus('2026-10-07', '2026-10-07'), {
+    expect(addMonths('2026-01-31', 1)).toBe('2026-02-28');
+    expect(addMonths('2028-01-31', 1)).toBe('2028-02-29');
+    expect(addMonths('2026-11-15', 3)).toBe('2027-02-15');
+    expect(subscriptionStatus(null, '2026-10-07')).toEqual({ status: 'sin_cobro', daysLeft: null });
+    expect(subscriptionStatus('2026-10-07', '2026-10-07')).toEqual({
       status: 'por_vencer',
       daysLeft: 0,
     });
-    assert.deepEqual(subscriptionStatus('2026-10-12', '2026-10-07'), {
+    expect(subscriptionStatus('2026-10-12', '2026-10-07')).toEqual({
       status: 'por_vencer',
       daysLeft: 5,
     });
-    assert.deepEqual(subscriptionStatus('2026-10-13', '2026-10-07'), {
+    expect(subscriptionStatus('2026-10-13', '2026-10-07')).toEqual({
       status: 'al_dia',
       daysLeft: 6,
     });
-    assert.deepEqual(subscriptionStatus('2026-10-06', '2026-10-07'), {
+    expect(subscriptionStatus('2026-10-06', '2026-10-07')).toEqual({
       status: 'vencido',
       daysLeft: -1,
     });
   });
 
-  it('credenciales incorrectas → 401; correctas abren sesión', async () => {
-    assert.equal((await platformLogin(app, 'root', 'mala-clave-123')).statusCode, 401);
-    assert.equal((await platformLogin(app, 'nadie', PASSWORD)).statusCode, 401);
+  it('credenciales incorrectas → 401; correctas abren sesión con su propia cookie', async () => {
+    expect((await platformLogin('root', 'mala-clave-123')).status).toBe(401);
+    expect((await platformLogin('nadie', PASSWORD)).status).toBe(401);
 
-    const res = await platformLogin(app, 'root', PASSWORD);
-    assert.equal(res.statusCode, 200, res.body);
-    platformToken = res.cookies.find((c) => c.name === PLATFORM_COOKIE_NAME)!.value;
+    const res = await platformLogin('root', PASSWORD);
+    expect(res.status).toBe(200);
+    adminToken = platformToken(res)!;
+    const cookie = res.headers.getSetCookie()[0]!.toLowerCase();
+    expect(cookie).toMatch(/^dosuxsoft_platform=/);
+    expect(cookie).toContain('httponly');
+    expect(cookie).toContain('secure');
+    expect(cookie).toContain('samesite=strict');
+    expect(cookie).toContain('max-age=28800');
+    expect(cookie).not.toContain('domain');
 
-    const me = await app.inject({ method: 'GET', url: '/platform/auth/me', headers: asAdmin() });
-    assert.equal(me.json().superadmin.username, 'root');
+    const me = await json<{ superadmin: { username: string } }>(admin('GET', '/platform/auth/me'));
+    expect(me.superadmin.username).toBe('root');
   });
 
   it('5 intentos fallidos bloquean la cuenta aunque luego la clave sea correcta', async () => {
     for (let i = 0; i < 4; i++)
-      assert.equal((await platformLogin(app, 'otro', 'mala-clave-123')).statusCode, 401);
-    assert.equal((await platformLogin(app, 'otro', 'mala-clave-123')).statusCode, 429);
-    assert.equal((await platformLogin(app, 'otro', PASSWORD)).statusCode, 429);
+      expect((await platformLogin('otro', 'mala-clave-123')).status).toBe(401);
+    expect((await platformLogin('otro', 'mala-clave-123')).status).toBe(429);
+    expect((await platformLogin('otro', PASSWORD)).status).toBe(429);
+  });
+
+  it('el login del panel tiene límite de 5 intentos por IP cada 15 minutos', async () => {
+    const ip = '198.51.100.20';
+    for (let i = 0; i < 5; i++) expect((await platformLogin('nadie', 'x', ip)).status).toBe(401);
+    const sexto = await platformLogin('nadie', 'x', ip);
+    expect(sexto.status).toBe(429);
+    expect(Number(sexto.headers.get('Retry-After'))).toBeGreaterThan(0);
+  });
+
+  it('/health responde en el panel', async () => {
+    const res = await platformCall('GET', '/health');
+    expect(res.status).toBe(200);
+    const body = await json(res);
+    expect(body).toEqual({ status: 'ok', environment: 'test', time: expect.any(String) });
   });
 
   it('el panel no existe fuera de admin.<dominio> ni expone rutas de negocio', async () => {
-    const created = await app.inject({
-      method: 'POST',
-      url: '/platform/tenants',
-      headers: asAdmin(),
-      payload: {
-        slug: 'tienda-nueva',
-        name: 'Tienda Nueva',
-        contactName: 'Ana',
-        contactPhone: '88887777',
-        paidUntil: null,
-      },
+    const created = await admin('POST', '/platform/tenants', {
+      slug: 'tienda-nueva',
+      name: 'Tienda Nueva',
+      contactName: 'Ana',
+      contactPhone: '88887777',
+      paidUntil: null,
     });
-    assert.equal(created.statusCode, 201, created.body);
-    setupCode = created.json().setupCode;
+    expect(created.status, await created.clone().text()).toBe(201);
+    setupCode = (await json<{ setupCode: string }>(created)).setupCode;
 
     // API del panel desde el subdominio de un negocio, aun con la cookie del panel.
-    const fromTenant = await app.inject({
-      method: 'GET',
-      url: '/platform/tenants',
-      headers: { host: host('tienda-nueva'), cookie: `${PLATFORM_COOKIE_NAME}=${platformToken}` },
+    const fromTenant = await call('tienda-nueva', 'GET', '/platform/tenants', {
+      headers: { Cookie: `dosuxsoft_platform=${adminToken}` },
     });
-    assert.equal(fromTenant.statusCode, 404);
+    expect(fromTenant.status).toBe(404);
 
     // Rutas de negocio desde el panel.
-    for (const url of ['/auth/status', '/api/notes', '/api/subscription']) {
-      const res = await app.inject({ method: 'GET', url, headers: { host: ADMIN_HOST } });
-      assert.equal(res.statusCode, 404, url);
+    for (const path of ['/auth/status', '/api/notes', '/api/subscription']) {
+      expect((await platformCall('GET', path)).status, path).toBe(404);
     }
   });
 
-  it('crea el negocio con su BD y un código de activación que funciona', async () => {
-    assert.ok(existsSync(join(dataDir, 'tenants', 'tienda-nueva.db')));
+  it('crea el negocio inicializado y con un código de activación que funciona', async () => {
+    expect((await json(call('tienda-nueva', 'GET', '/auth/status'))).setup).toBe(false);
 
-    const setup = await app.inject({
-      method: 'POST',
-      url: '/auth/setup',
-      headers: { host: host('tienda-nueva') },
-      payload: {
+    const setup = await call('tienda-nueva', 'POST', '/auth/setup', {
+      body: {
         setupCode,
         username: 'dueno',
         displayName: 'Ana',
@@ -181,114 +167,325 @@ describe('panel de superadministrador', () => {
         confirmPassword: PASSWORD,
       },
     });
-    assert.equal(setup.statusCode, 201, setup.body);
-    ownerToken = setup.cookies.find((c) => c.name === COOKIE_NAME)!.value;
+    expect(setup.status, await setup.clone().text()).toBe(201);
+    ownerToken = sessionToken(setup)!;
 
-    const list = await app.inject({ method: 'GET', url: '/platform/tenants', headers: asAdmin() });
-    const tenant = list.json().tenants.find((t: { slug: string }) => t.slug === 'tienda-nueva');
-    assert.equal(tenant.activated, true);
-    assert.equal(tenant.subscription, 'sin_cobro');
+    const tenant = (await listTenants()).find((t) => t.slug === 'tienda-nueva')!;
+    expect(tenant.activated).toBe(true);
+    expect(tenant.subscription).toBe('sin_cobro');
 
     // Ya tiene dueño: no se emite otro código.
-    const again = await app.inject({
-      method: 'POST',
-      url: '/platform/tenants/tienda-nueva/setup-code',
-      headers: asAdmin(),
-    });
-    assert.equal(again.statusCode, 409);
+    expect((await admin('POST', '/platform/tenants/tienda-nueva/setup-code')).status).toBe(409);
   });
 
-  it('una BD migrada que ya trae dueño cuenta como activada aunque quede un código', async () => {
-    const res = await app.inject({
-      method: 'POST',
-      url: '/platform/tenants',
-      headers: asAdmin(),
-      payload: { slug: 'migrado', name: 'Migrado', paidUntil: null },
+  it('el setup del dueño consume el código por RPC y un segundo uso falla', async () => {
+    const { setupCode: code } = await json<{ setupCode: string }>(
+      admin('POST', '/platform/tenants', { slug: 'dos-usos', name: 'Dos usos', paidUntil: null }),
+    );
+    const body = (username: string, setupCode = code) => ({
+      setupCode,
+      username,
+      displayName: 'Dueño',
+      password: PASSWORD,
+      confirmPassword: PASSWORD,
     });
-    assert.equal(res.statusCode, 201);
-    // Como al copiar el dosuxsoft.db de la versión anterior sobre tenants/<slug>.db.
-    runWithTenant('migrado', () =>
-      currentTenant()
-        .sqlite.prepare(
-          "INSERT INTO users (username, display_name, role, secret_hash) VALUES ('dueno', 'Dueño', 'dueno', 'x')",
+
+    // Un código equivocado no crea al dueño ni gasta el bueno.
+    const wrong = await call('dos-usos', 'POST', '/auth/setup', {
+      body: body('intruso', '0000-0000-0000-0000'),
+    });
+    expect(wrong.status).toBe(403);
+    expect((await json(wrong)).error).toEqual({
+      code: 'SETUP_CODE_INVALID',
+      message: 'Código de activación inválido',
+    });
+    expect((await json(call('dos-usos', 'GET', '/auth/status'))).setup).toBe(false);
+    expect(await inPlatform(() => getSetupCodeHash('dos-usos'))).not.toBeNull();
+
+    expect((await call('dos-usos', 'POST', '/auth/setup', { body: body('dueno') })).status).toBe(
+      201,
+    );
+    expect(await inPlatform(() => getSetupCodeHash('dos-usos'))).toBeNull();
+
+    // El segundo uso: el negocio ya tiene dueño y el código ya no sirve en la plataforma.
+    expect((await call('dos-usos', 'POST', '/auth/setup', { body: body('otro') })).status).toBe(
+      409,
+    );
+    expect(await platformStub().consumeSetupCode('dos-usos', code)).toBe(false);
+    expect((await tenantStub('dos-usos').platformSummary())?.users).toBe(1);
+  });
+
+  it('dos activaciones simultáneas con el mismo código: solo una crea al dueño', async () => {
+    const { setupCode: code } = await json<{ setupCode: string }>(
+      admin('POST', '/platform/tenants', { slug: 'carrera', name: 'Carrera', paidUntil: null }),
+    );
+    const body = (username: string) => ({
+      setupCode: code,
+      username,
+      displayName: 'Dueño',
+      password: PASSWORD,
+      confirmPassword: PASSWORD,
+    });
+    const results = await Promise.all([
+      call('carrera', 'POST', '/auth/setup', { body: body('primero'), ip: nextIp() }),
+      call('carrera', 'POST', '/auth/setup', { body: body('segundo'), ip: nextIp() }),
+    ]);
+    const statuses = results.map((r) => r.status).sort();
+    expect(statuses[0]).toBe(201);
+    // 403 si el otro llegó a consumir el código ya gastado; 409 si ya encontró al dueño.
+    expect([403, 409]).toContain(statuses[1]);
+    expect((await tenantStub('carrera').platformSummary())?.users).toBe(1);
+  });
+
+  it('el panel lista un negocio cuyo DO nunca se inicializó como "Sin activar" sin crear su BD', async () => {
+    // Como si el alta hubiera fallado justo después de guardar el negocio en la plataforma.
+    await inPlatform(() => insertTenant('fantasma', 'Fantasma'));
+    const tenant = (await listTenants()).find((t) => t.slug === 'fantasma')!;
+    expect(tenant.activated).toBe(false);
+
+    expect(await tenantStub('fantasma').platformSummary()).toBeNull();
+    const state = await runInDurableObject(tenantStub('fantasma'), (_i, s) => ({
+      kv: [...s.storage.kv.list()],
+      tables: s.storage.sql
+        .exec(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT GLOB 'sqlite_*' AND name NOT GLOB '_cf_*'",
         )
-        .run(),
+        .toArray(),
+    }));
+    expect(state).toEqual({ kv: [], tables: [] });
+  });
+
+  it('emitir el código de un negocio a medio crear lo inicializa y el código funciona', async () => {
+    await inPlatform(() => insertTenant('fantasma-codigo', 'Fantasma con código'));
+    expect(await tenantStub('fantasma-codigo').platformSummary()).toBeNull();
+
+    const issued = await admin('POST', '/platform/tenants/fantasma-codigo/setup-code');
+    expect(issued.status).toBe(200);
+    const { setupCode: code } = await json<{ setupCode: string }>(issued);
+    expect(await tenantStub('fantasma-codigo').platformSummary()).toMatchObject({
+      activated: false,
+      template: 'generico',
+    });
+
+    const setup = await call('fantasma-codigo', 'POST', '/auth/setup', {
+      body: {
+        setupCode: code,
+        username: 'dueno',
+        displayName: 'Dueño',
+        password: PASSWORD,
+        confirmPassword: PASSWORD,
+      },
+    });
+    expect(setup.status).toBe(201);
+    expect((await listTenants()).find((t) => t.slug === 'fantasma-codigo')!.activated).toBe(true);
+  });
+
+  it('asignar el tipo a un negocio a medio crear lo inicializa con esa asignación', async () => {
+    await inPlatform(() => insertTenant('fantasma-tipo', 'Fantasma con tipo'));
+    const res = await admin('PUT', '/platform/tenants/fantasma-tipo/business', {
+      template: 'taller',
+      modules: ['ordenes', 'inventario'],
+    });
+    expect(res.status).toBe(200);
+    const { tenant } = await json<{ tenant: TenantView }>(res);
+    expect([tenant.template, tenant.modules]).toEqual(['taller', ['ordenes', 'inventario']]);
+    expect(await tenantStub('fantasma-tipo').platformSummary()).toMatchObject({
+      template: 'taller',
+      modules: ['ordenes', 'inventario'],
+    });
+
+    const detail = await json<{ activity: { action: string; payload: Record<string, unknown> }[] }>(
+      admin('GET', '/platform/tenants/fantasma-tipo'),
     );
-    const list = await app.inject({ method: 'GET', url: '/platform/tenants', headers: asAdmin() });
-    assert.equal(
-      list.json().tenants.find((t: { slug: string }) => t.slug === 'migrado').activated,
-      true,
+    const assigned = detail.activity.find((a) => a.action === 'TENANT_BUSINESS_ASSIGNED')!;
+    expect(assigned.payload['template']).toEqual({ from: null, to: 'taller' });
+  });
+
+  it('un negocio cuyo DO falla queda "no disponible" sin tumbar el panel ni repetir escrituras', async () => {
+    await createTestTenant('roto');
+    await createTestTenant('sano');
+    const original = await inTenant('roto', () =>
+      db.select({ modules: businessProfile.modules }).from(businessProfile).get(),
     );
+    // Un perfil ilegible hace fallar el resumen que la plataforma le pide por RPC.
+    await inTenant('roto', () => db.update(businessProfile).set({ modules: '{roto' }).run());
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const auditCount = (action: string) =>
+      inPlatform(
+        () =>
+          controlDb
+            .prepare<
+              [string, string],
+              { n: number }
+            >('SELECT COUNT(*) AS n FROM platform_audit_log WHERE tenant_slug = ? AND action = ?')
+            .get('roto', action)!.n,
+      );
+    try {
+      const list = await admin('GET', '/platform/tenants');
+      expect(list.status).toBe(200);
+      const tenants = (await json<{ tenants: (TenantView & { unavailable: boolean })[] }>(list))
+        .tenants;
+      expect(tenants.find((t) => t.slug === 'roto')!.unavailable).toBe(true);
+      expect(tenants.find((t) => t.slug === 'sano')!.unavailable).toBe(false);
+
+      // Lo de control.db se guarda y se responde aunque el negocio no conteste.
+      const paid = await pay('roto', 1);
+      expect(paid.status).toBe(201);
+      const { tenant } = await json<{ tenant: TenantView & { unavailable: boolean } }>(paid);
+      expect(tenant.unavailable).toBe(true);
+      expect(tenant.paidUntil).not.toBeNull();
+      expect(
+        await inPlatform(() => listPayments('roto', { includeVoided: true, limit: 100 }).length),
+      ).toBe(1);
+
+      const edited = await admin('PATCH', '/platform/tenants/roto', { notes: 'sin conexión' });
+      expect(edited.status).toBe(200);
+      const suspended = await admin('POST', '/platform/tenants/roto/status', {
+        status: 'suspended',
+      });
+      expect(suspended.status).toBe(200);
+      expect(await inPlatform(() => findTenant('roto')!.status)).toBe('suspended');
+
+      const detail = await admin('GET', '/platform/tenants/roto');
+      expect(detail.status).toBe(200);
+      expect((await json<{ tenant: { unavailable: boolean } }>(detail)).tenant.unavailable).toBe(
+        true,
+      );
+
+      // Aquí el RPC es la escritura: si falla es un error y la actividad no dice que se hizo.
+      const assigned = await admin('PUT', '/platform/tenants/roto/business', GENERIC_ASSIGNMENT);
+      expect(assigned.status).toBe(503);
+      expect((await json<{ error: { code: string } }>(assigned)).error.code).toBe(
+        'NEGOCIO_NO_DISPONIBLE',
+      );
+      expect(await auditCount('TENANT_BUSINESS_ASSIGNED')).toBe(0);
+
+      // El log lleva solo el subdominio, nunca datos del negocio.
+      expect(logged.mock.calls.flat().join(' ')).toContain('roto');
+    } finally {
+      logged.mockRestore();
+      await inTenant('roto', () =>
+        db.update(businessProfile).set({ modules: original!.modules }).run(),
+      );
+    }
+  });
+
+  it('un negocio que no responde en 5 s queda "no disponible" y el panel responde igual', async () => {
+    await createTestTenant('lento');
+    // El DO queda ocupado 7 s: el resumen que le pide el panel se encola detrás. (Se suelta solo:
+    // resolver desde el test una promesa creada dentro del DO no lo desbloquea.)
+    let started = 0;
+    const blocked = runInDurableObject(tenantStub('lento'), (_i, state) =>
+      state.blockConcurrencyWhile(() => {
+        started = Date.now();
+        return new Promise<void>((resolve) => setTimeout(resolve, 7_000));
+      }),
+    );
+    await vi.waitFor(() => expect(started).toBeGreaterThan(0));
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const before = Date.now();
+      const list = await admin('GET', '/platform/tenants');
+      const elapsed = Date.now() - before;
+      expect(list.status).toBe(200);
+      expect(elapsed).toBeGreaterThanOrEqual(4_900);
+      expect(elapsed).toBeLessThan(10_000);
+      const tenants = (await json<{ tenants: (TenantView & { unavailable: boolean })[] }>(list))
+        .tenants;
+      expect(tenants.find((t) => t.slug === 'lento')!.unavailable).toBe(true);
+      expect(logged.mock.calls.flat().join(' ')).toContain('lento');
+    } finally {
+      logged.mockRestore();
+    }
+    // Cuando el negocio vuelve a contestar, deja de figurar como no disponible.
+    await blocked;
+    const detail = await json<{ tenant: { unavailable: boolean } }>(
+      admin('GET', '/platform/tenants/lento'),
+    );
+    expect(detail.tenant.unavailable).toBe(false);
+  }, 20_000);
+
+  it('una BD que ya trae dueño cuenta como activada aunque quede un código', async () => {
+    expect(
+      (
+        await admin('POST', '/platform/tenants', {
+          slug: 'migrado',
+          name: 'Migrado',
+          paidUntil: null,
+        })
+      ).status,
+    ).toBe(201);
+    await inTenant('migrado', () =>
+      insertUserRow(
+        {
+          username: 'dueno',
+          displayName: 'Dueño',
+          role: 'dueno',
+          secretHash: 'x',
+          recoveryCodeHash: null,
+        },
+        { ip: null, userAgent: null },
+      ),
+    );
+    expect((await listTenants()).find((t) => t.slug === 'migrado')!.activated).toBe(true);
   });
 
   it('el panel asigna tipo de negocio y módulos; el dueño solo los ve', async () => {
-    const created = await app.inject({
-      method: 'POST',
-      url: '/platform/tenants',
-      headers: asAdmin(),
-      payload: {
-        slug: 'mecanica',
-        name: 'Mecánica',
-        paidUntil: null,
-        template: 'taller',
-        modules: ['ordenes', 'inventario'],
-      },
+    const created = await admin('POST', '/platform/tenants', {
+      slug: 'mecanica',
+      name: 'Mecánica',
+      paidUntil: null,
+      template: 'taller',
+      modules: ['ordenes', 'inventario'],
     });
-    assert.equal(created.statusCode, 201, created.body);
-    assert.equal(created.json().tenant.template, 'taller');
-    assert.deepEqual(created.json().tenant.modules, ['ordenes', 'inventario']);
+    expect(created.status, await created.clone().text()).toBe(201);
+    const { tenant } = await json<{ tenant: TenantView }>(created);
+    expect(tenant.template).toBe('taller');
+    expect(tenant.modules).toEqual(['ordenes', 'inventario']);
 
     // Sin módulos: los de la plantilla.
-    const porDefecto = await app.inject({
-      method: 'POST',
-      url: '/platform/tenants',
-      headers: asAdmin(),
-      payload: { slug: 'boutique', name: 'Boutique', paidUntil: null, template: 'tienda' },
-    });
-    assert.equal(porDefecto.json().tenant.modules.includes('ordenes'), false);
-
-    const reassigned = await app.inject({
-      method: 'PUT',
-      url: '/platform/tenants/mecanica/business',
-      headers: asAdmin(),
-      payload: { template: 'electronica', modules: ['ordenes', 'creditos'] },
-    });
-    assert.equal(reassigned.statusCode, 200, reassigned.body);
-    assert.equal(reassigned.json().tenant.template, 'electronica');
-
-    const invalid = await app.inject({
-      method: 'PUT',
-      url: '/platform/tenants/mecanica/business',
-      headers: asAdmin(),
-      payload: { template: 'nave-espacial', modules: [] },
-    });
-    assert.equal(invalid.statusCode, 400);
-
-    const detail = (
-      await app.inject({ method: 'GET', url: '/platform/tenants/mecanica', headers: asAdmin() })
-    ).json();
-    const assigned = detail.activity.find(
-      (a: { action: string }) => a.action === 'TENANT_BUSINESS_ASSIGNED',
+    const porDefecto = await json<{ tenant: TenantView }>(
+      admin('POST', '/platform/tenants', {
+        slug: 'boutique',
+        name: 'Boutique',
+        paidUntil: null,
+        template: 'tienda',
+      }),
     );
-    assert.deepEqual(assigned.payload.template, { from: 'taller', to: 'electronica' });
+    expect(porDefecto.tenant.modules.includes('ordenes')).toBe(false);
+
+    const reassigned = await admin('PUT', '/platform/tenants/mecanica/business', {
+      template: 'electronica',
+      modules: ['ordenes', 'creditos'],
+    });
+    expect(reassigned.status).toBe(200);
+    expect((await json<{ tenant: TenantView }>(reassigned)).tenant.template).toBe('electronica');
+
+    const invalid = await admin('PUT', '/platform/tenants/mecanica/business', {
+      template: 'nave-espacial',
+      modules: [],
+    });
+    expect(invalid.status).toBe(400);
+
+    const detail = await json<{ activity: { action: string; payload: Record<string, unknown> }[] }>(
+      admin('GET', '/platform/tenants/mecanica'),
+    );
+    const assigned = detail.activity.find((a) => a.action === 'TENANT_BUSINESS_ASSIGNED')!;
+    expect(assigned.payload['template']).toEqual({ from: 'taller', to: 'electronica' });
 
     // Desde el subdominio de un negocio la ruta no existe.
-    const fromTenant = await app.inject({
-      method: 'PUT',
-      url: '/platform/tenants/mecanica/business',
-      headers: { host: host('mecanica'), cookie: `${PLATFORM_COOKIE_NAME}=${platformToken}` },
-      payload: { template: 'tienda', modules: [] },
+    const fromTenant = await call('mecanica', 'PUT', '/platform/tenants/mecanica/business', {
+      headers: { Cookie: `dosuxsoft_platform=${adminToken}` },
+      body: { template: 'tienda', modules: [] },
     });
-    assert.equal(fromTenant.statusCode, 404);
+    expect(fromTenant.status).toBe(404);
   });
 
   it('la sesión de un negocio no abre el panel', async () => {
-    const res = await app.inject({
-      method: 'GET',
-      url: '/platform/tenants',
-      headers: { host: ADMIN_HOST, cookie: `${COOKIE_NAME}=${ownerToken}` },
+    const res = await platformCall('GET', '/platform/tenants', {
+      headers: { Cookie: `sipnato_session=${ownerToken}` },
     });
-    assert.equal(res.statusCode, 401);
+    expect(res.status).toBe(401);
   });
 
   it('rechaza subdominios repetidos, reservados o inválidos', async () => {
@@ -299,154 +496,131 @@ describe('panel de superadministrador', () => {
       ['Mal_Slug', 400],
       ['-x', 400],
     ] as const) {
-      const res = await app.inject({
-        method: 'POST',
-        url: '/platform/tenants',
-        headers: asAdmin(),
-        payload: { slug, name: 'X', paidUntil: null },
-      });
-      assert.equal(res.statusCode, code, `${slug}: ${res.body}`);
+      const res = await admin('POST', '/platform/tenants', { slug, name: 'X', paidUntil: null });
+      expect(res.status, slug).toBe(code);
     }
   });
 
   it('un pago extiende desde el vencimiento, aunque ya haya pasado', async () => {
-    assert.equal((await patchTenant('tienda-nueva', { paidUntil: '2026-01-31' })).statusCode, 200);
+    expect(
+      (await admin('PATCH', '/platform/tenants/tienda-nueva', { paidUntil: '2026-01-31' })).status,
+    ).toBe(200);
     const res = await pay('tienda-nueva', 1);
-    assert.equal(res.statusCode, 201, res.body);
-    assert.equal(res.json().tenant.paidUntil, '2026-02-28');
-    assert.equal((await pay('tienda-nueva', 2)).json().tenant.paidUntil, '2026-04-28');
+    expect(res.status).toBe(201);
+    expect((await json<{ tenant: TenantView }>(res)).tenant.paidUntil).toBe('2026-02-28');
+    expect((await json<{ tenant: TenantView }>(pay('tienda-nueva', 2))).tenant.paidUntil).toBe(
+      '2026-04-28',
+    );
+  });
+
+  it('/api/subscription de un negocio refleja un pago registrado en el panel', async () => {
+    const sub = await json<{ paidUntil: string; payments: { months: number }[] }>(
+      owner('GET', '/api/subscription'),
+    );
+    expect(sub.paidUntil).toBe('2026-04-28');
+    expect(sub.payments.map((p) => p.months)).toEqual([2, 1]);
   });
 
   it('anular el último pago devuelve el vencimiento; uno anterior no', async () => {
-    const detail = (
-      await app.inject({ method: 'GET', url: '/platform/tenants/tienda-nueva', headers: asAdmin() })
-    ).json();
-    const [latest, older] = detail.payments as { id: number }[];
+    const detail = await json<{ payments: { id: number }[] }>(
+      admin('GET', '/platform/tenants/tienda-nueva'),
+    );
+    const [latest, older] = detail.payments;
 
-    const voidOlder = await app.inject({
-      method: 'POST',
-      url: `/platform/tenants/tienda-nueva/payments/${older!.id}/void`,
-      headers: asAdmin(),
-    });
-    assert.equal(voidOlder.json().paidUntilReverted, false);
-    assert.equal(voidOlder.json().tenant.paidUntil, '2026-04-28');
+    const voidOlder = await json<{ paidUntilReverted: boolean; tenant: TenantView }>(
+      admin('POST', `/platform/tenants/tienda-nueva/payments/${older!.id}/void`),
+    );
+    expect(voidOlder.paidUntilReverted).toBe(false);
+    expect(voidOlder.tenant.paidUntil).toBe('2026-04-28');
 
-    const voidLatest = await app.inject({
-      method: 'POST',
-      url: `/platform/tenants/tienda-nueva/payments/${latest!.id}/void`,
-      headers: asAdmin(),
-    });
-    assert.equal(voidLatest.json().paidUntilReverted, true);
-    assert.equal(voidLatest.json().tenant.paidUntil, '2026-02-28');
+    const voidLatest = await json<{ paidUntilReverted: boolean; tenant: TenantView }>(
+      admin('POST', `/platform/tenants/tienda-nueva/payments/${latest!.id}/void`),
+    );
+    expect(voidLatest.paidUntilReverted).toBe(true);
+    expect(voidLatest.tenant.paidUntil).toBe('2026-02-28');
 
-    const twice = await app.inject({
-      method: 'POST',
-      url: `/platform/tenants/tienda-nueva/payments/${latest!.id}/void`,
-      headers: asAdmin(),
-    });
-    assert.equal(twice.statusCode, 409);
+    expect(
+      (await admin('POST', `/platform/tenants/tienda-nueva/payments/${latest!.id}/void`)).status,
+    ).toBe(409);
 
     // Los pagos de un negocio no se anulan desde la URL de otro.
-    await app.inject({
-      method: 'POST',
-      url: '/platform/tenants',
-      headers: asAdmin(),
-      payload: { slug: 'otro-negocio', name: 'Otro', paidUntil: null },
+    await admin('POST', '/platform/tenants', {
+      slug: 'otro-negocio',
+      name: 'Otro',
+      paidUntil: null,
     });
-    const cross = await app.inject({
-      method: 'POST',
-      url: `/platform/tenants/otro-negocio/payments/${older!.id}/void`,
-      headers: asAdmin(),
-    });
-    assert.equal(cross.statusCode, 404);
+    expect(
+      (await admin('POST', `/platform/tenants/otro-negocio/payments/${older!.id}/void`)).status,
+    ).toBe(404);
+    expect((await admin('POST', '/platform/tenants/otro-negocio/payments/abc/void')).status).toBe(
+      400,
+    );
   });
 
   it('vencido no bloquea: el negocio sigue operando y ve su aviso', async () => {
-    await app.inject({
-      method: 'PUT',
-      url: '/platform/settings',
-      headers: asAdmin(),
-      payload: {
-        defaultMonthlyPrice: 15000,
-        paymentInstructions: 'SINPE 8888-0000',
-        reminderMessage: '',
-      },
+    await admin('PUT', '/platform/settings', {
+      defaultMonthlyPrice: 15000,
+      paymentInstructions: 'SINPE 8888-0000',
+      reminderMessage: '',
     });
 
-    const notes = await app.inject({ method: 'GET', url: '/api/notes', headers: asOwner() });
-    assert.equal(notes.statusCode, 200);
+    expect((await owner('GET', '/api/notes')).status).toBe(200);
 
-    const sub = await app.inject({ method: 'GET', url: '/api/subscription', headers: asOwner() });
-    assert.equal(sub.statusCode, 200, sub.body);
-    const info = sub.json();
-    assert.equal(info.status, 'vencido');
-    assert.equal(info.monthlyPrice, 15000);
-    assert.equal(info.paymentInstructions, 'SINPE 8888-0000');
-    assert.equal(info.payments.length, 0, 'los dos pagos se anularon: no se muestran');
+    const sub = await owner('GET', '/api/subscription');
+    expect(sub.status).toBe(200);
+    const info = await json<{
+      status: string;
+      monthlyPrice: number;
+      paymentInstructions: string;
+      payments: unknown[];
+    }>(sub);
+    expect(info.status).toBe('vencido');
+    expect(info.monthlyPrice).toBe(15000);
+    expect(info.paymentInstructions).toBe('SINPE 8888-0000');
+    expect(info.payments, 'los dos pagos se anularon: no se muestran').toHaveLength(0);
   });
 
   it('el cajero no ve la suscripción', async () => {
-    const created = await app.inject({
-      method: 'POST',
-      url: '/api/users',
-      headers: asOwner(),
-      payload: { username: 'caja1', displayName: 'Caja', role: 'cajero', secret: '123456' },
+    const created = await owner('POST', '/api/users', {
+      username: 'caja1',
+      displayName: 'Caja',
+      role: 'cajero',
+      secret: '123456',
     });
-    assert.equal(created.statusCode, 201, created.body);
-    const login = await app.inject({
-      method: 'POST',
-      url: '/auth/login',
-      headers: { host: host('tienda-nueva') },
-      remoteAddress: nextIp(),
-      payload: { username: 'caja1', password: '123456' },
-    });
-    const token = login.cookies.find((c) => c.name === COOKIE_NAME)!.value;
-    const res = await app.inject({
-      method: 'GET',
-      url: '/api/subscription',
-      headers: { host: host('tienda-nueva'), cookie: `${COOKIE_NAME}=${token}` },
-    });
-    assert.equal(res.statusCode, 403);
+    expect(created.status).toBe(201);
+    const token = sessionToken(await login('tienda-nueva', 'caja1', '123456'))!;
+    expect((await call('tienda-nueva', 'GET', '/api/subscription', { token })).status).toBe(403);
   });
 
   it('el precio especial reemplaza al de la plataforma', async () => {
-    const res = await patchTenant('tienda-nueva', { monthlyPrice: 9000 });
-    assert.equal(res.json().tenant.effectivePrice, 9000);
-    const sub = await app.inject({ method: 'GET', url: '/api/subscription', headers: asOwner() });
-    assert.equal(sub.json().monthlyPrice, 9000);
+    const res = await json<{ tenant: TenantView }>(
+      admin('PATCH', '/platform/tenants/tienda-nueva', { monthlyPrice: 9000 }),
+    );
+    expect(res.tenant.effectivePrice).toBe(9000);
+    expect((await json(owner('GET', '/api/subscription'))).monthlyPrice).toBe(9000);
   });
 
-  it('suspender desde el panel bloquea al negocio; reactivar lo devuelve', async () => {
-    const suspend = await app.inject({
-      method: 'POST',
-      url: '/platform/tenants/tienda-nueva/status',
-      headers: asAdmin(),
-      payload: { status: 'suspended' },
+  it('suspender desde el panel lo marca en la plataforma; reactivar lo devuelve', async () => {
+    const suspend = await admin('POST', '/platform/tenants/tienda-nueva/status', {
+      status: 'suspended',
     });
-    assert.equal(suspend.statusCode, 200);
-    assert.equal(findTenant('tienda-nueva')!.status, 'suspended');
-    assert.equal(
-      (await app.inject({ method: 'GET', url: '/api/notes', headers: asOwner() })).statusCode,
-      403,
-    );
+    expect(suspend.status).toBe(200);
+    expect(await inPlatform(() => findTenant('tienda-nueva')!.status)).toBe('suspended');
+    expect(await platformStub().resolveTenant('tienda-nueva')).toEqual({ status: 'suspended' });
+    expect(await platformStub().listActiveSlugs()).not.toContain('tienda-nueva');
 
-    await app.inject({
-      method: 'POST',
-      url: '/platform/tenants/tienda-nueva/status',
-      headers: asAdmin(),
-      payload: { status: 'active' },
-    });
-    assert.equal(
-      (await app.inject({ method: 'GET', url: '/api/notes', headers: asOwner() })).statusCode,
-      200,
-    );
+    await admin('POST', '/platform/tenants/tienda-nueva/status', { status: 'active' });
+    expect(await platformStub().resolveTenant('tienda-nueva')).toEqual({ status: 'active' });
+    expect(await platformStub().listActiveSlugs()).toContain('tienda-nueva');
+    expect(await platformStub().resolveTenant('no-existe')).toBeNull();
   });
 
   it('la actividad registra quién hizo cada cambio', async () => {
-    const detail = (
-      await app.inject({ method: 'GET', url: '/platform/tenants/tienda-nueva', headers: asAdmin() })
-    ).json();
-    const actions = detail.activity.map((a: { action: string }) => a.action);
+    const detail = await json<{
+      activity: { action: string; superadmin: string }[];
+      usage: { users: number; lastSaleAt: string | null };
+    }>(admin('GET', '/platform/tenants/tienda-nueva'));
+    const actions = detail.activity.map((a) => a.action);
     for (const action of [
       'TENANT_CREATED',
       'PAYMENT_RECORDED',
@@ -454,47 +628,63 @@ describe('panel de superadministrador', () => {
       'TENANT_SUSPENDED',
       'TENANT_ACTIVATED',
     ]) {
-      assert.ok(actions.includes(action), action);
+      expect(actions, action).toContain(action);
     }
-    assert.ok(detail.activity.every((a: { superadmin: string }) => a.superadmin === 'root'));
-    assert.equal(detail.usage.users, 2);
+    expect(detail.activity.every((a) => a.superadmin === 'root')).toBe(true);
+    expect(detail.usage).toEqual({ users: 2, lastSaleAt: null });
   });
 
-  it('Caddy puede emitir el certificado del panel', async () => {
-    const res = await app.inject({
-      method: 'GET',
-      url: `/internal/tls-check?domain=${ADMIN_HOST}`,
-    });
-    assert.equal(res.statusCode, 200);
+  it('el respaldo de la plataforma vuelca sus tablas, sin las sesiones del panel', async () => {
+    const dump = await platformStub().exportControl();
+    expect(Object.keys(dump.tables)).toEqual(
+      expect.arrayContaining(['tenants', 'superadmins', 'subscription_payments']),
+    );
+    expect(Object.keys(dump.tables)).not.toContain('platform_sessions');
+    expect(Object.keys(dump.tables).some((t) => t.startsWith('_cf_'))).toBe(false);
   });
 
   it('cambiar la contraseña cierra las demás sesiones', async () => {
-    const second = await platformLogin(app, 'root', PASSWORD);
-    const secondToken = second.cookies.find((c) => c.name === PLATFORM_COOKIE_NAME)!.value;
+    const secondToken = platformToken(await platformLogin('root', PASSWORD))!;
 
-    const change = await app.inject({
-      method: 'POST',
-      url: '/platform/auth/password',
-      headers: asAdmin(),
-      payload: {
-        currentPassword: PASSWORD,
-        newPassword: 'otra-clave-456',
-        confirmPassword: 'otra-clave-456',
-      },
+    const change = await admin('POST', '/platform/auth/password', {
+      currentPassword: PASSWORD,
+      newPassword: 'otra-clave-456',
+      confirmPassword: 'otra-clave-456',
     });
-    assert.equal(change.statusCode, 200, change.body);
-    platformToken = change.cookies.find((c) => c.name === PLATFORM_COOKIE_NAME)!.value;
+    expect(change.status).toBe(200);
+    adminToken = platformToken(change)!;
 
-    const old = await app.inject({
-      method: 'GET',
-      url: '/platform/auth/me',
-      headers: { host: ADMIN_HOST, cookie: `${PLATFORM_COOKIE_NAME}=${secondToken}` },
-    });
-    assert.equal(old.statusCode, 401);
-    assert.equal(
-      (await app.inject({ method: 'GET', url: '/platform/auth/me', headers: asAdmin() }))
-        .statusCode,
-      200,
+    expect((await platformCall('GET', '/platform/auth/me', { token: secondToken })).status).toBe(
+      401,
     );
+    expect((await admin('GET', '/platform/auth/me')).status).toBe(200);
+  });
+
+  it('cerrar sesión borra la cookie y la sesión deja de servir', async () => {
+    const token = platformToken(await platformLogin('root', 'otra-clave-456'))!;
+    const out = await platformCall('POST', '/platform/auth/logout', { token });
+    expect(out.status).toBe(200);
+    expect(out.headers.getSetCookie()[0]).toMatch(/Max-Age=0/);
+    expect((await platformCall('GET', '/platform/auth/me', { token })).status).toBe(401);
+  });
+});
+
+describe('control.db solo existe dentro de la plataforma', () => {
+  it('fuera del Durable Object de la plataforma lanza', async () => {
+    expect(() => findTenant('x')).toThrow(/fuera de la plataforma/);
+  });
+
+  it('el código de un negocio no puede leer las tablas de la plataforma', async () => {
+    await call('aislado', 'GET', '/auth/status'); // crea el stub
+    await platformStub().listActiveSlugs();
+    const error = await runInDurableObject(tenantStub('aislado'), () => {
+      try {
+        findTenant('tienda-nueva');
+        return null;
+      } catch (e) {
+        return (e as Error).message;
+      }
+    });
+    expect(error).toMatch(/fuera de la plataforma/);
   });
 });

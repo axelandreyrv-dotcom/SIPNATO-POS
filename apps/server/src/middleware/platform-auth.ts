@@ -1,39 +1,24 @@
-import type { FastifyReply, FastifyRequest } from 'fastify';
-import type { Superadmin } from '@sipnato/shared';
+import type { MiddlewareHandler } from 'hono';
+import { getCookie } from 'hono/cookie';
 import { PLATFORM_COOKIE_NAME } from '../lib/constants.js';
+import { clearSessionCookie, type AppEnv } from '../lib/http.js';
 import { verifyPlatformSession } from '../modules/platform/service.js';
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    superadmin: Superadmin;
-    platformSessionId: string;
-  }
-}
-
-export async function requirePlatformAuth(
-  request: FastifyRequest,
-  reply: FastifyReply,
-): Promise<void> {
-  // Defensa en profundidad: el middleware de negocios ya rechaza /platform/* fuera del panel.
-  if (!request.isPlatform) {
-    return reply
-      .status(404)
-      .send({ error: { code: 'NO_ENCONTRADO', message: 'Recurso no encontrado' } });
-  }
-
-  const token = request.cookies[PLATFORM_COOKIE_NAME];
+// Solo existe dentro del Durable Object de la plataforma, que solo recibe las peticiones de
+// admin.<dominio>: la cookie de un negocio (otro nombre) nunca sirve aquí.
+export const requirePlatformAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
+  const token = getCookie(c, PLATFORM_COOKIE_NAME);
   if (!token) {
-    return reply.status(401).send({ error: { code: 'UNAUTHORIZED', message: 'Sesión requerida' } });
+    return c.json({ error: { code: 'UNAUTHORIZED', message: 'Sesión requerida' } }, 401);
   }
 
-  const result = verifyPlatformSession(token);
+  const result = await verifyPlatformSession(token);
   if (!result) {
-    reply.clearCookie(PLATFORM_COOKIE_NAME, { path: '/' });
-    return reply
-      .status(401)
-      .send({ error: { code: 'SESSION_EXPIRED', message: 'Sesión expirada' } });
+    clearSessionCookie(c, PLATFORM_COOKIE_NAME);
+    return c.json({ error: { code: 'SESSION_EXPIRED', message: 'Sesión expirada' } }, 401);
   }
 
-  request.superadmin = result.admin;
-  request.platformSessionId = result.sessionId;
-}
+  c.set('superadmin', result.admin);
+  c.set('sessionId', result.sessionId);
+  await next();
+};

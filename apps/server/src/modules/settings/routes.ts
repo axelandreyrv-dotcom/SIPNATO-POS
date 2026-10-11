@@ -1,66 +1,43 @@
-import { createReadStream, existsSync } from 'fs';
-import type { FastifyInstance } from 'fastify';
+import { Hono } from 'hono';
 import { settingsSchema } from '@sipnato/shared';
-import { AppError } from '../../lib/errors.js';
-import { latestBackupPath } from '../../jobs/backup.js';
+import { currentTenant } from '../../db/client.js';
+import { todayCR } from '../../lib/cr-time.js';
+import { readJson, requestMeta, sameOriginOnly, type AppEnv } from '../../lib/http.js';
+import { rateLimit } from '../../lib/rate-limit.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
-import { getSettings, updateSettings } from './service.js';
+import { downloadBackup, getSettings, updateSettings } from './service.js';
 
-export default async function settingsRoutes(app: FastifyInstance) {
-  // ── GET /api/settings ────────────────────────────────────────────────────
-  // Todos los roles: los tickets impresos usan nombre, teléfono y pies de página del negocio.
-  app.get('/', { preHandler: [requireAuth] }, async () => {
-    return getSettings();
-  });
+const settingsRoutes = new Hono<AppEnv>();
 
-  // ── GET /api/settings/backup/download ───────────────────────────────────
-  // Solo el dueño. Rate limit: 5 descargas por hora (CLAUDE.md §6.3 + §6.4)
-  app.get(
-    '/backup/download',
-    {
-      preHandler: [requireAuth, requireRole('dueno')],
-      config: { rateLimit: { max: 5, timeWindow: '1 hour' } },
-    },
-    async (request, reply) => {
-      // Ruta derivada solo del negocio resuelto por el servidor — nunca de parámetros del cliente.
-      const slug = request.tenantSlug!;
-      const latestPath = latestBackupPath(slug);
-      if (!existsSync(latestPath)) {
-        return reply
-          .status(404)
-          .send({ error: { code: 'BACKUP_NOT_FOUND', message: 'No hay backup disponible aún.' } });
-      }
-      const date = new Date().toISOString().slice(0, 10);
-      return reply
-        .header('Content-Type', 'application/octet-stream')
-        .header('Content-Disposition', `attachment; filename="dosuxsoft-${slug}-${date}.db"`)
-        .header('Cache-Control', 'no-store')
-        .send(createReadStream(latestPath));
-    },
-  );
+// ── GET /api/settings ────────────────────────────────────────────────────
+// Todos los roles: los tickets impresos usan nombre, teléfono y pies de página del negocio.
+settingsRoutes.get('/', requireAuth, (c) => c.json(getSettings()));
 
-  // ── PUT /api/settings ────────────────────────────────────────────────────
-  app.put('/', { preHandler: [requireAuth, requireRole('dueno')] }, async (request, reply) => {
-    const body = settingsSchema.safeParse(request.body);
-    if (!body.success) {
-      return reply
-        .status(400)
-        .send({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } });
-    }
+// ── GET /api/settings/backup/download ───────────────────────────────────
+// Solo el dueño. 5 descargas por hora por sesión (CLAUDE.md §6.4). El nombre del archivo lo arma
+// el servidor con el negocio resuelto por el Host y la fecha de Costa Rica; nada viene del cliente.
+// Es un GET con efectos (bitácora y cupo): otro subdominio no debe poder dispararlo.
+settingsRoutes.get(
+  '/backup/download',
+  sameOriginOnly,
+  requireAuth,
+  requireRole('dueno'),
+  rateLimit('backup', 5, 60 * 60_000, (c) => c.var.sessionId),
+  (c) => {
+    const backup = downloadBackup(c.var.storage, requestMeta(c));
+    const filename = `dosuxsoft-${currentTenant().slug}-${todayCR()}.json`;
+    c.header('Content-Disposition', `attachment; filename="${filename}"`);
+    return c.json(backup);
+  },
+);
 
-    try {
-      const updated = updateSettings(body.data, {
-        ip: request.ip ?? null,
-        userAgent: request.headers['user-agent'] ?? null,
-      });
-      return reply.send(updated);
-    } catch (err) {
-      if (err instanceof AppError) {
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      }
-      throw err;
-    }
-  });
-}
+// ── PUT /api/settings ────────────────────────────────────────────────────
+settingsRoutes.put('/', requireAuth, requireRole('dueno'), async (c) => {
+  const body = settingsSchema.safeParse(await readJson(c));
+  if (!body.success) {
+    return c.json({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } }, 400);
+  }
+  return c.json(await updateSettings(body.data, requestMeta(c), c.var.storage));
+});
+
+export default settingsRoutes;

@@ -1,5 +1,4 @@
-import { randomUUID } from 'crypto';
-import { count, desc, isNull } from 'drizzle-orm';
+import { env } from 'cloudflare:workers';
 import {
   addMonths,
   DEFAULT_REMINDER_MESSAGE,
@@ -16,41 +15,50 @@ import {
   type Superadmin,
   type UpdateTenantInput,
 } from '@sipnato/shared';
-import { db, openTenantDb, runWithTenant } from '../../db/client.js';
 import {
+  consumeSetupCodeHash,
+  controlTransaction,
+  deleteTenantRecord,
   findTenant,
+  getSetupCodeHash,
   insertTenant,
+  latestExchangeRate,
   listTenants,
+  saveExchangeRate,
   setSetupCodeHash,
   setTenantStatus,
   type TenantRecord,
   type TenantStatus,
 } from '../../db/control.js';
-import { sales, users } from '../../db/schema.js';
-import { getProfile } from '../business/repository.js';
-import { assignBusiness } from '../business/service.js';
+import type { TenantPlatformSummary } from '../../do/tenant-do.js';
+import { fetchBccrRates } from '../../lib/bccr.js';
 import { todayCR } from '../../lib/cr-time.js';
 import {
   DUMMY_HASH,
   generateSessionToken,
   generateSetupCode,
+  generateTemporaryPassword,
   hashPassword,
   hashSessionToken,
   hashSetupCode,
   verifyPassword,
+  verifySetupCode,
 } from '../../lib/crypto.js';
 import {
   CredencialesInvalidas,
+  NegocioNoDisponible,
   NegocioNoEncontrado,
+  NegocioNoSuspendido,
   NegocioYaActivado,
   NegocioYaExiste,
   PagoNoEncontrado,
   PagoYaAnulado,
+  SuperadminNoEncontrado,
+  SuperadminYaExiste,
   UsuarioBloqueado,
 } from '../../lib/errors.js';
 import { INACTIVITY_TIMEOUT_MS, SESSION_DURATION_MS } from '../../lib/session.js';
 import {
-  controlTransaction,
   deletePlatformSession,
   deleteSuperadminSessions,
   findPayment,
@@ -60,13 +68,16 @@ import {
   insertPayment,
   insertPlatformAudit,
   insertPlatformSession,
+  insertSuperadmin,
   latestActivePaymentId,
   listPayments,
   listPlatformAudit,
+  listSuperadmins,
   markPaymentVoided,
   readPlatformSettings,
   recordSuperadminFailure,
   resetSuperadminFailures,
+  setSuperadminActive,
   sumPaymentsBetween,
   touchPlatformSession,
   updateSuperadminPassword,
@@ -103,12 +114,12 @@ async function verifySuperadminCredentials(username: string, password: string) {
   return admin;
 }
 
-function openSession(superadminId: number, meta: Meta): string {
+async function openSession(superadminId: number, meta: Meta): Promise<string> {
   const token = generateSessionToken();
   insertPlatformSession({
-    id: randomUUID(),
+    id: crypto.randomUUID(),
     superadminId,
-    tokenHash: hashSessionToken(token),
+    tokenHash: await hashSessionToken(token),
     expiresAt: new Date(Date.now() + SESSION_DURATION_MS).toISOString(),
     meta,
   });
@@ -136,10 +147,10 @@ export async function loginSuperadmin(
   return openSession(admin.id, meta);
 }
 
-export function verifyPlatformSession(
+export async function verifyPlatformSession(
   token: string,
-): { sessionId: string; admin: Superadmin } | null {
-  const session = findPlatformSession(hashSessionToken(token));
+): Promise<{ sessionId: string; admin: Superadmin } | null> {
+  const session = findPlatformSession(await hashSessionToken(token));
   if (!session) return null;
 
   const now = Date.now();
@@ -175,6 +186,67 @@ export async function changeSuperadminPassword(
   return openSession(admin.id, meta);
 }
 
+// ─── Cuentas de superadministrador ────────────────────────────────────────────
+// No hay alta ni recuperación desde el panel: quien controla el panel controla todos los
+// negocios. Solo la consola de operaciones (/internal/ops) llama a estas funciones.
+
+// 18 bytes → 24 caracteres: se copia una vez y se cambia en "Mi cuenta" del panel.
+const SUPERADMIN_TEMP_PASSWORD_BYTES = 18;
+
+function requireSuperadmin(username: string) {
+  const admin = findSuperadminByUsername(username);
+  if (!admin) throw new SuperadminNoEncontrado();
+  return admin;
+}
+
+export async function createSuperadminAccount(username: string): Promise<string> {
+  const tempPassword = generateTemporaryPassword(SUPERADMIN_TEMP_PASSWORD_BYTES);
+  // El hash va primero: entre la verificación y la inserción no hay await (CLAUDE.md §6.13).
+  const hash = await hashPassword(tempPassword);
+  controlTransaction(() => {
+    if (findSuperadminByUsername(username)) throw new SuperadminYaExiste();
+    insertSuperadmin(username, hash);
+  });
+  return tempPassword;
+}
+
+// Contraseña temporal nueva, desbloquea la cuenta y cierra todas sus sesiones.
+export async function resetSuperadminPassword(username: string): Promise<string> {
+  requireSuperadmin(username);
+  const tempPassword = generateTemporaryPassword(SUPERADMIN_TEMP_PASSWORD_BYTES);
+  const hash = await hashPassword(tempPassword);
+  controlTransaction(() => {
+    const admin = requireSuperadmin(username);
+    updateSuperadminPassword(admin.id, hash);
+    deleteSuperadminSessions(admin.id);
+  });
+  return tempPassword;
+}
+
+// Desactivar cierra sus sesiones; la cuenta nunca se borra.
+export function setSuperadminEnabled(username: string, enabled: boolean): void {
+  controlTransaction(() => {
+    const admin = requireSuperadmin(username);
+    setSuperadminActive(admin.id, enabled);
+    if (!enabled) deleteSuperadminSessions(admin.id);
+  });
+}
+
+export function listSuperadminAccounts(): {
+  username: string;
+  active: boolean;
+  locked: boolean;
+  createdAt: string;
+}[] {
+  const now = Date.now();
+  return listSuperadmins().map((a) => ({
+    username: a.username,
+    active: a.active === 1,
+    locked: a.locked_until !== null && new Date(a.locked_until).getTime() > now,
+    createdAt: a.created_at,
+  }));
+}
+
 // ─── Configuración de la plataforma ───────────────────────────────────────────
 
 export function getPlatformSettings(): PlatformSettings {
@@ -205,28 +277,72 @@ export function updatePlatformSettings(
 
 // ─── Negocios ─────────────────────────────────────────────────────────────────
 
-// Se mira la BD del negocio y no el código de activación: una BD migrada de la versión anterior
-// ya trae dueño aunque nunca se haya usado un código.
-function hasOwner(slug: string): boolean {
-  return runWithTenant(
-    slug,
-    () => db.select({ id: users.id }).from(users).limit(1).get() !== undefined,
-  );
+export const tenantDO = (slug: string) => env.TENANT.get(env.TENANT.idFromName(slug));
+
+const DEFAULT_ASSIGNMENT: AssignBusinessInput = {
+  template: 'generico',
+  modules: [...TEMPLATE_INFO.generico.profile.modules],
+};
+
+type TenantInfo = Pick<PlatformTenant, 'activated' | 'template' | 'modules' | 'unavailable'>;
+
+// Lo que el panel muestra de la BD del negocio. Se mira si ya tiene usuarios y no el código de
+// activación: una BD importada ya trae dueño aunque nunca se haya usado un código. Un DO que
+// nunca se inicializó (el alta falló a medias) aparece "Sin activar".
+function infoFrom(summary: TenantPlatformSummary | null): TenantInfo {
+  if (!summary) return { activated: false, template: 'generico', modules: [], unavailable: false };
+  return {
+    activated: summary.activated,
+    template: summary.template,
+    modules: summary.modules,
+    unavailable: false,
+  };
 }
 
-// Lo que el panel muestra de la BD del negocio: si ya tiene dueño, su tipo y sus módulos.
-function tenantInfo(slug: string): Pick<PlatformTenant, 'activated' | 'template' | 'modules'> {
-  return runWithTenant(slug, () => {
-    const { template, modules } = getProfile();
-    const activated = db.select({ id: users.id }).from(users).limit(1).get() !== undefined;
-    return { activated, template, modules };
+const UNAVAILABLE_INFO: TenantInfo = {
+  activated: false,
+  template: 'generico',
+  modules: [],
+  unavailable: true,
+};
+
+// Un DO colgado (no falla, solo no contesta) dejaría esperando a todo el panel, porque la lista
+// pregunta a todos los negocios a la vez.
+const SUMMARY_TIMEOUT_MS = 5_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`sin respuesta en ${ms} ms`)), ms);
   });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+// El resumen que el panel le pide a cada negocio. Un DO que falla o tarda más de 5 s no tumba el
+// panel ni convierte en error una escritura ya guardada en control.db (el operador la repetiría:
+// un pago doble): el negocio se muestra "No disponible". En el log solo el subdominio y el mensaje.
+async function tenantSummary(
+  slug: string,
+): Promise<{ summary: TenantPlatformSummary | null; info: TenantInfo }> {
+  try {
+    const summary = await withTimeout(
+      Promise.resolve(tenantDO(slug).platformSummary()),
+      SUMMARY_TIMEOUT_MS,
+    );
+    return { summary, info: infoFrom(summary) };
+  } catch (err) {
+    console.error(
+      `El negocio "${slug}" no respondió al panel:`,
+      (err as Error)?.message ?? String(err),
+    );
+    return { summary: null, info: UNAVAILABLE_INFO };
+  }
 }
 
 function toPlatformTenant(
   t: TenantRecord,
   defaultPrice: number,
-  info: Pick<PlatformTenant, 'activated' | 'template' | 'modules'>,
+  info: TenantInfo,
   today: string,
 ): PlatformTenant {
   const { status: subscription, daysLeft } = subscriptionStatus(t.paidUntil, today);
@@ -253,21 +369,27 @@ function requireTenant(slug: string): TenantRecord {
   return tenant;
 }
 
-function platformTenant(slug: string): PlatformTenant {
-  const tenant = requireTenant(slug);
+async function platformTenant(slug: string): Promise<PlatformTenant> {
+  const { info } = await tenantSummary(slug);
+  // Se lee después del RPC: así refleja lo último que se escribió en control.db.
   return toPlatformTenant(
-    tenant,
+    requireTenant(slug),
     getPlatformSettings().defaultMonthlyPrice,
-    tenantInfo(slug),
+    info,
     todayCR(),
   );
 }
 
-export function listPlatformTenants(): { tenants: PlatformTenant[]; summary: PlatformSummary } {
+export async function listPlatformTenants(): Promise<{
+  tenants: PlatformTenant[];
+  summary: PlatformSummary;
+}> {
+  const records = listTenants();
+  const infos = await Promise.all(records.map((t) => tenantSummary(t.slug)));
   const today = todayCR();
   const { defaultMonthlyPrice } = getPlatformSettings();
-  const tenants = listTenants().map((t) =>
-    toPlatformTenant(t, defaultMonthlyPrice, tenantInfo(t.slug), today),
+  const tenants = records.map((t, i) =>
+    toPlatformTenant(t, defaultMonthlyPrice, infos[i]!.info, today),
   );
 
   const active = tenants.filter((t) => t.status === 'active');
@@ -286,54 +408,40 @@ export function listPlatformTenants(): { tenants: PlatformTenant[]; summary: Pla
   };
 }
 
-// Métricas mínimas para saber si el negocio usa el sistema. No expone datos de sus clientes.
-function tenantUsage(slug: string): PlatformTenantDetail['usage'] {
-  return runWithTenant(slug, () => {
-    const userCount = db.select({ n: count() }).from(users).get()?.n ?? 0;
-    const lastSale = db
-      .select({ createdAt: sales.createdAt })
-      .from(sales)
-      .where(isNull(sales.deletedAt))
-      .orderBy(desc(sales.id))
-      .limit(1)
-      .get();
-    return { users: userCount, lastSaleAt: lastSale?.createdAt ?? null };
-  });
-}
-
 function stripInternal({ previousPaidUntil: _, ...payment }: PaymentRecord) {
   return payment;
 }
 
-export function getTenantDetail(slug: string): PlatformTenantDetail {
-  const tenant = platformTenant(slug);
+export async function getTenantDetail(slug: string): Promise<PlatformTenantDetail> {
+  requireTenant(slug);
+  // Métricas mínimas para saber si el negocio usa el sistema. No expone datos de sus clientes.
+  const { summary, info } = await tenantSummary(slug);
   return {
-    tenant,
+    tenant: toPlatformTenant(
+      requireTenant(slug),
+      getPlatformSettings().defaultMonthlyPrice,
+      info,
+      todayCR(),
+    ),
     payments: listPayments(slug, { includeVoided: true, limit: 100 }).map(stripInternal),
     activity: listPlatformAudit(slug, 30),
-    usage: tenantUsage(slug),
+    usage: { users: summary?.users ?? 0, lastSaleAt: summary?.lastSaleAt ?? null },
   };
 }
 
-export async function issueSetupCode(slug: string): Promise<string> {
-  const code = generateSetupCode();
-  setSetupCodeHash(slug, await hashSetupCode(code));
-  return code;
-}
-
 export async function createTenant(
-  admin: Superadmin,
+  admin: Superadmin | null,
   input: CreateTenantInput,
   meta: Meta,
 ): Promise<{ tenant: PlatformTenant; setupCode: string }> {
   if (findTenant(input.slug)) throw new NegocioYaExiste();
 
-  // El hash se calcula antes de la transacción: better-sqlite3 no admite await dentro de ella.
+  // El hash va primero: entre la verificación de que el subdominio está libre y la inserción no
+  // puede haber ningún await (CLAUDE.md §6.13).
   const code = generateSetupCode();
   const codeHash = await hashSetupCode(code);
 
   controlTransaction(() => {
-    // Otra vez tras el await: dos altas simultáneas del mismo subdominio.
     if (findTenant(input.slug)) throw new NegocioYaExiste();
     insertTenant(input.slug, input.name);
     updateTenantFields(input.slug, {
@@ -348,42 +456,54 @@ export async function createTenant(
       action: 'TENANT_CREATED',
       tenantSlug: input.slug,
       payload: { ...input },
-      superadminId: admin.id,
+      superadminId: admin?.id ?? null,
       meta,
     });
   });
-  // Crea el archivo de la BD y corre las migraciones ya, no en el primer acceso del dueño,
-  // y deja asignados el tipo de negocio y los módulos (el dueño no los elige).
-  openTenantDb(input.slug);
-  runWithTenant(input.slug, () =>
-    assignBusiness(
-      {
-        template: input.template,
-        modules: input.modules ?? [...TEMPLATE_INFO[input.template].profile.modules],
-      },
-      meta,
-    ),
-  );
+  // Crea la BD del negocio ya (no en el primer acceso del dueño) y deja asignados el tipo de
+  // negocio y los módulos (el dueño no los elige).
+  await tenantDO(input.slug).initialize(input.slug, {
+    template: input.template,
+    modules: input.modules ?? [...TEMPLATE_INFO[input.template].profile.modules],
+  });
 
-  return { tenant: platformTenant(input.slug), setupCode: code };
+  return { tenant: await platformTenant(input.slug), setupCode: code };
 }
 
 // Tipo de negocio y módulos: solo desde aquí. Cambiar el tipo reemplaza nombres y campos de las
 // órdenes por los de la plantilla; las órdenes existentes conservan sus propias etiquetas.
-export function assignTenantBusiness(
+export async function assignTenantBusiness(
   admin: Superadmin,
   slug: string,
   input: AssignBusinessInput,
   meta: Meta,
-): PlatformTenant {
+): Promise<PlatformTenant> {
   requireTenant(slug);
-  const { before, after } = runWithTenant(slug, () => assignBusiness(input, meta));
+  const stub = tenantDO(slug);
+  let before: Pick<TenantPlatformSummary, 'template' | 'modules'> | null = null;
+  let after: Pick<TenantPlatformSummary, 'template' | 'modules'>;
+  // Aquí el RPC es la escritura: si falla no se guardó nada y la actividad no lo registra.
+  try {
+    if ((await stub.platformSummary()) === null) {
+      // El alta falló antes de inicializar el DO: asignar el tipo lo termina de crear.
+      await stub.initialize(slug, input);
+      after = { template: input.template, modules: [...input.modules] };
+    } else {
+      ({ before, after } = await stub.assignBusiness(input, meta));
+    }
+  } catch (err) {
+    console.error(
+      `No se pudo asignar el tipo al negocio "${slug}":`,
+      (err as Error)?.message ?? String(err),
+    );
+    throw new NegocioNoDisponible();
+  }
   insertPlatformAudit({
     action: 'TENANT_BUSINESS_ASSIGNED',
     tenantSlug: slug,
     payload: {
-      template: { from: before.template, to: after.template },
-      modules: { from: before.modules, to: after.modules },
+      template: { from: before?.template ?? null, to: after.template },
+      modules: { from: before?.modules ?? null, to: after.modules },
     },
     superadminId: admin.id,
     meta,
@@ -391,12 +511,12 @@ export function assignTenantBusiness(
   return platformTenant(slug);
 }
 
-export function updateTenant(
+export async function updateTenant(
   admin: Superadmin,
   slug: string,
   input: UpdateTenantInput,
   meta: Meta,
-): PlatformTenant {
+): Promise<PlatformTenant> {
   const before = requireTenant(slug);
   controlTransaction(() => {
     updateTenantFields(slug, input);
@@ -415,40 +535,80 @@ export function updateTenant(
   return platformTenant(slug);
 }
 
-export function changeTenantStatus(
-  admin: Superadmin,
+export async function changeTenantStatus(
+  admin: Superadmin | null,
   slug: string,
   status: TenantStatus,
   meta: Meta,
-): PlatformTenant {
+): Promise<PlatformTenant> {
   requireTenant(slug);
   controlTransaction(() => {
     setTenantStatus(slug, status);
     insertPlatformAudit({
       action: status === 'suspended' ? 'TENANT_SUSPENDED' : 'TENANT_ACTIVATED',
       tenantSlug: slug,
-      superadminId: admin.id,
+      superadminId: admin?.id ?? null,
       meta,
     });
   });
   return platformTenant(slug);
 }
 
+// Irreversible (solo por consola; el panel no lo ofrece). Primero se vacía el DO: si eso falla
+// control.db no cambia y el operador reintenta. Al revés quedaría un DO con datos y sin registro,
+// al que ya no se llega para borrarlo. Las copias en R2 se conservan hasta su rotación.
+export async function deleteSuspendedTenant(slug: string): Promise<{ name: string }> {
+  const tenant = requireTenant(slug);
+  if (tenant.status !== 'suspended') throw new NegocioNoSuspendido();
+  try {
+    await tenantDO(slug).destroy();
+  } catch (err) {
+    console.error(
+      `No se pudo vaciar el negocio "${slug}":`,
+      (err as Error)?.message ?? String(err),
+    );
+    throw new NegocioNoDisponible();
+  }
+  // Sin volver a mirar el estado: el DO ya está vacío y el registro no debe quedar apuntándole.
+  controlTransaction(() => deleteTenantRecord(slug));
+  return { name: tenant.name };
+}
+
+// Sirve también si el código se gastó y el dueño no llegó a crearse: mientras el negocio no
+// tenga usuarios se puede emitir otro.
 export async function regenerateSetupCode(
-  admin: Superadmin,
+  admin: Superadmin | null,
   slug: string,
   meta: Meta,
 ): Promise<string> {
   requireTenant(slug);
-  if (hasOwner(slug)) throw new NegocioYaActivado();
-  const code = await issueSetupCode(slug);
-  insertPlatformAudit({
-    action: 'TENANT_SETUP_CODE_ISSUED',
-    tenantSlug: slug,
-    superadminId: admin.id,
-    meta,
+  const stub = tenantDO(slug);
+  const summary = await stub.platformSummary();
+  if (summary?.activated) throw new NegocioYaActivado();
+  // El alta falló antes de inicializar el DO: sin esto el código nunca serviría (el subdominio
+  // respondería 404). Se inicializa con el tipo por defecto, como el alta por consola.
+  if (summary === null) await stub.initialize(slug, DEFAULT_ASSIGNMENT);
+  const code = generateSetupCode();
+  const codeHash = await hashSetupCode(code);
+  controlTransaction(() => {
+    setSetupCodeHash(slug, codeHash);
+    insertPlatformAudit({
+      action: 'TENANT_SETUP_CODE_ISSUED',
+      tenantSlug: slug,
+      superadminId: admin?.id ?? null,
+      meta,
+    });
   });
   return code;
+}
+
+// El negocio lo pide al activar a su dueño. Verifica y gasta el código antes de que exista el
+// dueño: un código equivocado no cambia nada y uno correcto solo sirve una vez, aunque lleguen
+// dos activaciones a la vez.
+export async function consumeSetupCode(slug: string, code: string): Promise<boolean> {
+  const hash = getSetupCodeHash(slug);
+  if (!hash || !(await verifySetupCode(code, hash))) return false;
+  return consumeSetupCodeHash(slug, hash);
 }
 
 // ─── Pagos ────────────────────────────────────────────────────────────────────
@@ -456,12 +616,12 @@ export async function regenerateSetupCode(
 // El pago extiende desde el vencimiento actual aunque ya haya pasado: el negocio siguió
 // usando el sistema durante el atraso (nunca se bloquea por falta de pago), así que esos
 // días también se cobran. Un negocio sin cobro empieza a contar desde hoy.
-export function recordPayment(
+export async function recordPayment(
   admin: Superadmin,
   slug: string,
   input: RecordPaymentInput,
   meta: Meta,
-): PlatformTenant {
+): Promise<PlatformTenant> {
   const tenant = requireTenant(slug);
   const periodFrom = tenant.paidUntil ?? todayCR();
   const periodTo = addMonths(periodFrom, input.months);
@@ -494,12 +654,12 @@ export function recordPayment(
 
 // Anular devuelve el vencimiento solo si es el último pago y nadie corrigió la fecha después;
 // en otro caso el superadministrador ajusta el vencimiento a mano.
-export function voidPayment(
+export async function voidPayment(
   admin: Superadmin,
   slug: string,
   paymentId: number,
   meta: Meta,
-): { tenant: PlatformTenant; paidUntilReverted: boolean } {
+): Promise<{ tenant: PlatformTenant; paidUntilReverted: boolean }> {
   const tenant = requireTenant(slug);
   const payment = findPayment(slug, paymentId);
   if (!payment) throw new PagoNoEncontrado();
@@ -519,13 +679,14 @@ export function voidPayment(
       meta,
     });
   });
-  return { tenant: platformTenant(slug), paidUntilReverted: revert };
+  return { tenant: await platformTenant(slug), paidUntilReverted: revert };
 }
 
 // ─── Lo que ve el propio negocio ──────────────────────────────────────────────
 
-export function tenantSubscriptionInfo(slug: string): SubscriptionInfo {
-  const tenant = requireTenant(slug);
+export function tenantSubscriptionInfo(slug: string): SubscriptionInfo | null {
+  const tenant = findTenant(slug);
+  if (!tenant) return null;
   const settings = getPlatformSettings();
   const { status, daysLeft } = subscriptionStatus(tenant.paidUntil, todayCR());
   return {
@@ -543,4 +704,31 @@ export function tenantSubscriptionInfo(slug: string): SubscriptionInfo {
       periodTo: p.periodTo,
     })),
   };
+}
+
+// ─── Tipo de cambio del BCCR ──────────────────────────────────────────────────
+
+function daysAgo(isoDay: string, days: number): string {
+  const d = new Date(`${isoDay}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Trae la última semana (cubre fines de semana y feriados sin dato) y guarda cada día. Global:
+// el tipo de cambio del BCCR es el mismo para todos los negocios.
+export async function refreshExchangeRate(token: string | undefined): Promise<void> {
+  if (!token) return;
+  const today = todayCR();
+  if (latestExchangeRate()?.date === today) return;
+
+  try {
+    const rates = await fetchBccrRates(daysAgo(today, 7), today, token);
+    controlTransaction(() => {
+      for (const r of rates) saveExchangeRate(r.date, r.buy, r.sell);
+    });
+  } catch (err) {
+    // No es fatal: se reintenta en la próxima hora y mientras tanto rige el último guardado
+    // o el tipo de respaldo de cada negocio.
+    console.warn('no se pudo consultar el tipo de cambio del BCCR:', (err as Error).message);
+  }
 }

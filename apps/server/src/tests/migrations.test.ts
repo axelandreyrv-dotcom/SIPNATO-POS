@@ -1,83 +1,120 @@
-import { strict as assert } from 'assert';
-import { after, describe, it } from 'node:test';
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'fs';
-import { tmpdir } from 'os';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import { env, evictDurableObject, runInDurableObject } from 'cloudflare:test';
+import { describe, expect, it } from 'vitest';
+import { runMigrations } from '../db/migrator.js';
+import { MIGRATIONS } from '../db/migrations.js';
+import { GENERIC_ASSIGNMENT } from './helpers.js';
 
-// config.ts lee process.env al importarse: el entorno debe fijarse antes de cargar la app.
-const dataDir = mkdtempSync(join(tmpdir(), 'dosuxsoft-migrations-'));
-process.env['DATA_DIR'] = dataDir;
-process.env['NODE_ENV'] = 'development';
+let counter = 0;
+const freshStub = () => {
+  const slug = `migraciones-${++counter}`;
+  return { slug, stub: env.TENANT.get(env.TENANT.idFromName(slug)) };
+};
+// El esquema se crea al inicializar el negocio (lo hace la plataforma), no antes.
+const newTenant = async () => {
+  const { slug, stub } = freshStub();
+  await stub.initialize(slug, GENERIC_ASSIGNMENT);
+  return stub;
+};
 
-const { closeAllTenantDbs, openTenantDb } = await import('../db/client.js');
-const { closeControlDb, insertTenant } = await import('../db/control.js');
+const tableNames = (sql: SqlStorage) =>
+  sql
+    .exec("SELECT name FROM sqlite_master WHERE type = 'table'")
+    .toArray()
+    .map((r) => String(r['name']));
 
-const MIGRATIONS = join(dirname(fileURLToPath(import.meta.url)), '..', 'db', 'migrations');
+describe('migraciones del negocio en el Durable Object', () => {
+  it('un DO nuevo queda con las 11 migraciones y las tablas del schema', async () => {
+    const applied = await runInDurableObject(await newTenant(), (_instance, state) => ({
+      tags: state.storage.sql
+        .exec('SELECT tag FROM __migrations ORDER BY tag')
+        .toArray()
+        .map((r) => String(r['tag'])),
+      tables: tableNames(state.storage.sql),
+    }));
 
-// BD de un negocio migrada solo hasta `maxIdx`, como la de un servidor con una versión anterior.
-function legacyTenantDb(slug: string, maxIdx: number): void {
-  const folder = join(dataDir, `migrations-${maxIdx}`);
-  cpSync(MIGRATIONS, folder, { recursive: true });
-  const journalPath = join(folder, 'meta', '_journal.json');
-  const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as { entries: { idx: number }[] };
-  journal.entries = journal.entries.filter((e) => e.idx <= maxIdx);
-  writeFileSync(journalPath, JSON.stringify(journal));
-
-  mkdirSync(join(dataDir, 'tenants'), { recursive: true });
-  const sqlite = new Database(join(dataDir, 'tenants', `${slug}.db`));
-  migrate(drizzle(sqlite), { migrationsFolder: folder });
-  sqlite.prepare("INSERT INTO customers (name, phone) VALUES ('Luis', '88880000')").run();
-  sqlite.close();
-}
-
-const snapshots = (slug: string) =>
-  existsSync(join(dataDir, 'backups', slug))
-    ? readdirSync(join(dataDir, 'backups', slug)).filter((f) => f.startsWith('pre-migracion-'))
-    : [];
-
-describe('copia antes de migrar', () => {
-  after(() => {
-    closeAllTenantDbs();
-    closeControlDb();
-    rmSync(dataDir, { recursive: true, force: true });
-  });
-
-  it('un negocio con migraciones pendientes deja una copia con sus datos', () => {
-    insertTenant('viejo', 'Negocio viejo');
-    legacyTenantDb('viejo', 6);
-
-    openTenantDb('viejo');
-
-    const [file] = snapshots('viejo');
-    assert.ok(file, 'debe existir backups/viejo/pre-migracion-*.db');
-    const copy = new Database(join(dataDir, 'backups', 'viejo', file), { readonly: true });
-    assert.equal((copy.prepare('SELECT COUNT(*) AS n FROM customers').get() as { n: number }).n, 1);
-    // La copia es la versión anterior: todavía no tiene las tablas de fases posteriores.
-    assert.equal(
-      copy.prepare("SELECT name FROM sqlite_master WHERE name = 'users'").get(),
-      undefined,
+    expect(applied.tags).toHaveLength(11);
+    expect(applied.tags).toEqual(MIGRATIONS.map((m) => m.tag));
+    expect(applied.tables).toEqual(
+      expect.arrayContaining(['users', 'sales', 'business_profile', 'customer_notifications']),
     );
-    copy.close();
   });
 
-  it('un negocio nuevo o ya al día no genera copias', () => {
-    insertTenant('nuevo', 'Negocio nuevo');
-    openTenantDb('nuevo');
-    closeAllTenantDbs();
-    openTenantDb('nuevo');
-    assert.deepEqual(snapshots('nuevo'), []);
+  it('el arranque deja los contadores y ajustes base del negocio', async () => {
+    const boot = await runInDurableObject(await newTenant(), (_instance, state) => ({
+      counters: state.storage.sql.exec('SELECT COUNT(*) AS n FROM counters').one()['n'],
+      settings: state.storage.sql.exec('SELECT COUNT(*) AS n FROM settings').one()['n'],
+    }));
+    expect(boot).toEqual({ counters: 6, settings: 8 });
+  });
+
+  it('dos inicializaciones simultáneas migran una sola vez', async () => {
+    const { slug, stub } = freshStub();
+    await Promise.all([
+      stub.initialize(slug, GENERIC_ASSIGNMENT),
+      stub.initialize(slug, GENERIC_ASSIGNMENT),
+    ]);
+    const count = await runInDurableObject(stub, (_instance, state) =>
+      Number(state.storage.sql.exec('SELECT COUNT(*) AS n FROM __migrations').one()['n']),
+    );
+    expect(count).toBe(11);
+  });
+
+  it('una migración nueva sobre una BD con datos guarda el bookmark pre-migración', async () => {
+    const result = await runInDurableObject(await newTenant(), async (_instance, state) => {
+      const extra = { tag: '0011_prueba', sql: 'CREATE TABLE prueba (id INTEGER PRIMARY KEY)' };
+      const run = await runMigrations(state.storage, [...MIGRATIONS, extra]);
+      return {
+        run,
+        saved: state.storage.kv.get('pre-migracion:0011_prueba'),
+        table: tableNames(state.storage.sql).includes('prueba'),
+      };
+    });
+
+    expect(result.run.applied).toEqual(['0011_prueba']);
+    expect(typeof result.run.bookmark).toBe('string');
+    expect(result.saved).toBe(result.run.bookmark);
+    expect(result.table).toBe(true);
+  });
+
+  it('un DO nuevo no guarda bookmark: no hay nada que proteger', async () => {
+    const saved = await runInDurableObject(await newTenant(), (_instance, state) => [
+      ...state.storage.kv.list({ prefix: 'pre-migracion:' }),
+    ]);
+    expect(saved).toEqual([]);
+  });
+
+  it('una migración que falla no deja nada a medias ni queda registrada', async () => {
+    const result = await runInDurableObject(await newTenant(), async (_instance, state) => {
+      const broken = {
+        tag: '0011_rota',
+        sql: 'CREATE TABLE a_medias (id INTEGER);--> statement-breakpoint\nSELECT * FROM no_existe;',
+      };
+      const error = await runMigrations(state.storage, [...MIGRATIONS, broken]).then(
+        () => null,
+        (e: Error) => e.message,
+      );
+      return {
+        error,
+        half: tableNames(state.storage.sql).includes('a_medias'),
+        registered: state.storage.sql
+          .exec("SELECT COUNT(*) AS n FROM __migrations WHERE tag = '0011_rota'")
+          .one()['n'],
+      };
+    });
+    expect(result.error).toMatch(/no_existe/);
+    expect(result.half).toBe(false);
+    expect(result.registered).toBe(0);
+  });
+
+  it('un negocio ya inicializado migra en el constructor al despertar', async () => {
+    const { slug, stub } = freshStub();
+    // Solo la marca del negocio, sin tablas: como un DO cuyo esquema quedó atrás.
+    await runInDurableObject(stub, (_instance, state) => state.storage.kv.put('slug', slug));
+    await evictDurableObject(stub);
+
+    const tables = await runInDurableObject(stub, (_instance, state) =>
+      tableNames(state.storage.sql),
+    );
+    expect(tables).toEqual(expect.arrayContaining(['__migrations', 'users', 'business_profile']));
   });
 });

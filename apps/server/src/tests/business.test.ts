@@ -1,75 +1,42 @@
-import { strict as assert } from 'assert';
-import { after, before, describe, it } from 'node:test';
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import { runInDurableObject } from 'cloudflare:test';
+import { TEMPLATE_INFO, type ModuleKey } from '@sipnato/shared';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { MIGRATIONS } from '../db/migrations.js';
+import { runMigrations } from '../db/migrator.js';
+import { assignBusiness } from '../modules/business/service.js';
+import {
+  call,
+  createTestTenant,
+  inTenant,
+  loginToken,
+  tenantStub,
+  type Method,
+} from './helpers.js';
 
-// config.ts lee process.env al importarse: el entorno debe fijarse antes de cargar la app.
-const dataDir = mkdtempSync(join(tmpdir(), 'dosuxsoft-business-'));
-process.env['DATA_DIR'] = dataDir;
-process.env['TENANT_BASE_DOMAIN'] = 'dosuxsoft.test';
-process.env['NODE_ENV'] = 'development';
+const SYSTEM = { ip: null, userAgent: null };
 
-const { buildApp } = await import('../app.js');
-const { TEMPLATE_INFO } = await import('@sipnato/shared');
-const { closeAllTenantDbs, runWithTenant } = await import('../db/client.js');
-const { assignBusiness } = await import('../modules/business/service.js');
-const { closeControlDb, insertTenant, setSetupCodeHash } = await import('../db/control.js');
-const { COOKIE_NAME } = await import('../lib/constants.js');
-const { generateSetupCode, hashSetupCode } = await import('../lib/crypto.js');
-
-type App = Awaited<ReturnType<typeof buildApp>>;
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const MIGRATIONS = join(__dirname, '..', 'db', 'migrations');
+interface Profile {
+  template: string;
+  ordersLabel: string;
+  fields: { key: string; label: string; type?: string }[];
+  modules: ModuleKey[];
+}
 
 describe('perfil del negocio y órdenes configurables', () => {
-  let app: App;
   const tokens: Record<string, string> = {};
-  const host = (slug: string) => `${slug}.dosuxsoft.test`;
 
-  const call = (
-    who: string,
-    slug: string,
-    method: 'GET' | 'POST' | 'PUT',
-    url: string,
-    payload?: object,
-  ) =>
-    app.inject({
-      method,
-      url,
-      headers: { host: host(slug), cookie: `${COOKIE_NAME}=${tokens[`${slug}:${who}`]}` },
-      ...(payload ? { payload } : {}),
-    });
-
-  const SYSTEM = { ip: null, userAgent: null };
+  const api = (who: string, slug: string, method: Method, url: string, body?: object) =>
+    call(slug, method, url, { token: tokens[`${slug}:${who}`], body });
+  const json = async <T = Record<string, unknown>>(res: Response | Promise<Response>) =>
+    (await (await res).json()) as T;
 
   // Como lo hace el panel al crear el negocio: el tipo y los módulos llegan asignados.
   async function setupTenant(slug: string, template: 'taller' | 'tienda') {
-    insertTenant(slug, slug);
-    runWithTenant(slug, () =>
-      assignBusiness({ template, modules: [...TEMPLATE_INFO[template].profile.modules] }, SYSTEM),
-    );
-    const code = generateSetupCode();
-    setSetupCodeHash(slug, await hashSetupCode(code));
-    const res = await app.inject({
-      method: 'POST',
-      url: '/auth/setup',
-      headers: { host: host(slug) },
-      payload: {
-        setupCode: code,
-        username: 'dueno',
-        displayName: 'Dueño',
-        password: 'clave-dueno-1',
-        confirmPassword: 'clave-dueno-1',
-      },
+    await createTestTenant(slug, {
+      assignment: { template, modules: [...TEMPLATE_INFO[template].profile.modules] },
+      owner: { username: 'dueno', password: 'clave-dueno-1' },
     });
-    assert.equal(res.statusCode, 201, res.body);
-    tokens[`${slug}:dueno`] = res.cookies.find((c) => c.name === COOKIE_NAME)!.value;
+    tokens[`${slug}:dueno`] = await loginToken(slug, 'dueno', 'clave-dueno-1');
   }
 
   const order = (fields: Record<string, string>, deviceModel = 'Toyota Corolla') => ({
@@ -80,256 +47,237 @@ describe('perfil del negocio y órdenes configurables', () => {
     description: 'Revisión de frenos',
   });
 
-  before(async () => {
-    app = await buildApp({ startJobs: false });
+  beforeAll(async () => {
     await setupTenant('taller', 'taller');
     await setupTenant('boutique', 'tienda');
 
-    await call('dueno', 'taller', 'POST', '/api/users', {
+    await api('dueno', 'taller', 'POST', '/api/users', {
       username: 'caja',
       displayName: 'Caja',
       role: 'cajero',
       secret: '112233',
     });
-    const login = await app.inject({
-      method: 'POST',
-      url: '/auth/login',
-      headers: { host: host('taller') },
-      payload: { username: 'caja', password: '112233' },
-    });
-    tokens['taller:caja'] = login.cookies.find((c) => c.name === COOKIE_NAME)!.value;
-  });
-
-  after(async () => {
-    await app.close();
-    closeAllTenantDbs();
-    closeControlDb();
-    rmSync(dataDir, { recursive: true, force: true });
+    tokens['taller:caja'] = await loginToken('taller', 'caja', '112233');
   });
 
   it('el negocio arranca con el tipo asignado por la plataforma', async () => {
-    const taller = (await call('dueno', 'taller', 'GET', '/api/business')).json();
-    assert.equal(taller.ordersLabel, 'Órdenes de trabajo');
-    assert.deepEqual(
-      taller.fields.map((f: { key: string }) => f.key),
-      ['placa', 'anio', 'kilometraje', 'color'],
-    );
+    const taller = await json<Profile>(api('dueno', 'taller', 'GET', '/api/business'));
+    expect(taller.ordersLabel).toBe('Órdenes de trabajo');
+    expect(taller.fields.map((f) => f.key)).toEqual(['placa', 'anio', 'kilometraje', 'color']);
 
-    const tienda = (await call('dueno', 'boutique', 'GET', '/api/business')).json();
-    assert.equal(
-      tienda.modules.includes('ordenes'),
+    const tienda = await json<Profile>(api('dueno', 'boutique', 'GET', '/api/business'));
+    expect(tienda.modules.includes('ordenes'), 'una tienda no lleva órdenes de servicio').toBe(
       false,
-      'una tienda no lleva órdenes de servicio',
     );
-    assert.equal(tienda.modules.includes('apartados'), true);
+    expect(tienda.modules.includes('apartados')).toBe(true);
   });
 
   it('un módulo desactivado responde 404 en el servidor, no solo se oculta', async () => {
-    const res = await call('dueno', 'boutique', 'GET', '/api/boletas');
-    assert.equal(res.statusCode, 404);
-    assert.equal(res.json().error.code, 'MODULO_DESACTIVADO');
+    const res = await api('dueno', 'boutique', 'GET', '/api/boletas');
+    expect(res.status).toBe(404);
+    expect((await json<{ error: { code: string } }>(res)).error.code).toBe('MODULO_DESACTIVADO');
   });
 
   it('valida los campos de la orden contra el perfil', async () => {
-    const sinPlaca = await call('caja', 'taller', 'POST', '/api/boletas', order({}));
-    assert.equal(sinPlaca.statusCode, 400);
-    assert.match(sinPlaca.json().error.message, /Placa: dato obligatorio/);
+    const sinPlaca = await api('caja', 'taller', 'POST', '/api/boletas', order({}));
+    expect(sinPlaca.status).toBe(400);
+    expect((await json<{ error: { message: string } }>(sinPlaca)).error.message).toMatch(
+      /Placa: dato obligatorio/,
+    );
 
-    const kmTexto = await call(
+    const kmTexto = await api(
       'caja',
       'taller',
       'POST',
       '/api/boletas',
       order({ placa: 'BCD123', kilometraje: 'mucho' }),
     );
-    assert.equal(kmTexto.statusCode, 400);
+    expect(kmTexto.status).toBe(400);
 
-    const ok = await call(
+    const ok = await api(
       'caja',
       'taller',
       'POST',
       '/api/boletas',
       order({ placa: 'BCD123', kilometraje: '85000', inventado: 'x' }),
     );
-    assert.equal(ok.statusCode, 201, ok.body);
-    assert.deepEqual(
-      ok.json().fields,
-      [
-        { key: 'placa', label: 'Placa', value: 'BCD123' },
-        { key: 'kilometraje', label: 'Kilometraje', value: '85000' },
-      ],
+    expect(ok.status).toBe(201);
+    expect(
+      (await json<{ fields: unknown }>(ok)).fields,
       'claves fuera del perfil se ignoran y los vacíos no se guardan',
-    );
+    ).toEqual([
+      { key: 'placa', label: 'Placa', value: 'BCD123' },
+      { key: 'kilometraje', label: 'Kilometraje', value: '85000' },
+    ]);
   });
 
   it('la búsqueda encuentra órdenes por cualquier campo', async () => {
-    const list = (await call('caja', 'taller', 'GET', '/api/boletas?q=BCD123')).json();
-    assert.equal(list.boletas.length, 1);
+    const list = await json<{ boletas: unknown[] }>(
+      api('caja', 'taller', 'GET', '/api/boletas?q=BCD123'),
+    );
+    expect(list.boletas).toHaveLength(1);
   });
 
   it('renombrar o quitar un campo no altera órdenes viejas', async () => {
-    const profile = (await call('dueno', 'taller', 'GET', '/api/business')).json();
+    const profile = await json<Profile & Record<string, unknown>>(
+      api('dueno', 'taller', 'GET', '/api/business'),
+    );
     profile.fields = profile.fields
-      .filter((f: { key: string }) => f.key !== 'kilometraje')
-      .map((f: { key: string; label: string }) =>
-        f.key === 'placa' ? { ...f, label: 'Matrícula' } : f,
-      );
+      .filter((f) => f.key !== 'kilometraje')
+      .map((f) => (f.key === 'placa' ? { ...f, label: 'Matrícula' } : f));
     profile.fields.push({
       key: 'combustible',
       label: 'Combustible',
       type: 'select',
       required: false,
       options: ['Gasolina', 'Diésel'],
-    });
-    assert.equal((await call('dueno', 'taller', 'PUT', '/api/business', profile)).statusCode, 200);
+    } as Profile['fields'][number]);
+    expect((await api('dueno', 'taller', 'PUT', '/api/business', profile)).status).toBe(200);
 
-    const old = (await call('caja', 'taller', 'GET', '/api/boletas?q=BCD123')).json().boletas[0];
-    assert.deepEqual(
-      old.fields.map((f: { label: string }) => f.label),
-      ['Placa', 'Kilometraje'],
-    );
+    const old = (
+      await json<{ boletas: { fields: { label: string }[] }[] }>(
+        api('caja', 'taller', 'GET', '/api/boletas?q=BCD123'),
+      )
+    ).boletas[0]!;
+    expect(old.fields.map((f) => f.label)).toEqual(['Placa', 'Kilometraje']);
 
-    const nueva = await call(
+    const nueva = await api(
       'caja',
       'taller',
       'POST',
       '/api/boletas',
       order({ placa: 'XYZ999', combustible: 'Diésel' }),
     );
-    assert.deepEqual(
-      nueva.json().fields.map((f: { label: string }) => f.label),
+    expect((await json<{ fields: { label: string }[] }>(nueva)).fields.map((f) => f.label)).toEqual(
       ['Matrícula', 'Combustible'],
     );
 
-    const opcionInvalida = await call(
+    const opcionInvalida = await api(
       'caja',
       'taller',
       'POST',
       '/api/boletas',
       order({ placa: 'XYZ998', combustible: 'Eléctrico' }),
     );
-    assert.equal(opcionInvalida.statusCode, 400);
+    expect(opcionInvalida.status).toBe(400);
   });
 
   it('solo el dueño cambia el perfil; un perfil inválido se rechaza', async () => {
-    const profile = (await call('caja', 'taller', 'GET', '/api/business')).json();
-    assert.equal((await call('caja', 'taller', 'PUT', '/api/business', profile)).statusCode, 403);
+    const profile = await json<Profile>(api('caja', 'taller', 'GET', '/api/business'));
+    expect((await api('caja', 'taller', 'PUT', '/api/business', profile)).status).toBe(403);
 
     const repetidos = { ...profile, fields: [profile.fields[0], profile.fields[0]] };
-    assert.equal(
-      (await call('dueno', 'taller', 'PUT', '/api/business', repetidos)).statusCode,
-      400,
-    );
+    expect((await api('dueno', 'taller', 'PUT', '/api/business', repetidos)).status).toBe(400);
 
     const listaCorta = {
       ...profile,
       fields: [{ key: 'x', label: 'X', type: 'select', required: false, options: ['Única'] }],
     };
-    assert.equal(
-      (await call('dueno', 'taller', 'PUT', '/api/business', listaCorta)).statusCode,
-      400,
-    );
+    expect((await api('dueno', 'taller', 'PUT', '/api/business', listaCorta)).status).toBe(400);
   });
 
   it('el dueño no cambia el tipo de negocio ni los módulos aunque los envíe', async () => {
-    const profile = (await call('dueno', 'taller', 'GET', '/api/business')).json();
-    const res = await call('dueno', 'taller', 'PUT', '/api/business', {
+    const profile = await json<Profile>(api('dueno', 'taller', 'GET', '/api/business'));
+    const res = await api('dueno', 'taller', 'PUT', '/api/business', {
       ...profile,
       template: 'tienda',
       modules: [],
       ordersLabel: 'Trabajos',
     });
-    assert.equal(res.statusCode, 200, res.body);
-    const after = res.json();
-    assert.equal(after.ordersLabel, 'Trabajos', 'los nombres sí los edita');
-    assert.equal(after.template, 'taller');
-    assert.deepEqual(after.modules, profile.modules);
-    assert.equal((await call('caja', 'taller', 'GET', '/api/creditos')).statusCode, 200);
+    expect(res.status).toBe(200);
+    const after = await json<Profile>(res);
+    expect(after.ordersLabel, 'los nombres sí los edita').toBe('Trabajos');
+    expect(after.template).toBe('taller');
+    expect(after.modules).toEqual(profile.modules);
+    expect((await api('caja', 'taller', 'GET', '/api/creditos')).status).toBe(200);
   });
 
   it('la plataforma desactiva y reactiva un módulo', async () => {
-    const { modules } = (await call('dueno', 'taller', 'GET', '/api/business')).json();
-    runWithTenant('taller', () =>
+    const { modules } = await json<Profile>(api('dueno', 'taller', 'GET', '/api/business'));
+    await inTenant('taller', () =>
       assignBusiness(
-        { template: 'taller', modules: modules.filter((m: string) => m !== 'creditos') },
+        { template: 'taller', modules: modules.filter((m) => m !== 'creditos') },
         SYSTEM,
       ),
     );
-    assert.equal((await call('caja', 'taller', 'GET', '/api/creditos')).statusCode, 404);
-    runWithTenant('taller', () => assignBusiness({ template: 'taller', modules }, SYSTEM));
-    assert.equal((await call('caja', 'taller', 'GET', '/api/creditos')).statusCode, 200);
+    expect((await api('caja', 'taller', 'GET', '/api/creditos')).status).toBe(404);
+    await inTenant('taller', () =>
+      assignBusiness({ template: 'taller', modules: modules }, SYSTEM),
+    );
+    expect((await api('caja', 'taller', 'GET', '/api/creditos')).status).toBe(200);
   });
 
   it('cambiar el tipo reemplaza nombres y campos; mismo tipo los conserva', async () => {
-    const before = (await call('dueno', 'taller', 'GET', '/api/business')).json();
-    const same = runWithTenant('taller', () =>
+    const before = await json<Profile>(api('dueno', 'taller', 'GET', '/api/business'));
+    const same = await inTenant('taller', () =>
       assignBusiness({ template: 'taller', modules: before.modules }, SYSTEM),
     );
-    assert.equal(same.after.ordersLabel, before.ordersLabel);
+    expect(same.after.ordersLabel).toBe(before.ordersLabel);
 
-    const changed = runWithTenant('taller', () =>
+    const changed = await inTenant('taller', () =>
       assignBusiness({ template: 'electronica', modules: ['ordenes'] }, SYSTEM),
     );
-    assert.equal(changed.after.ordersLabel, 'Órdenes de servicio');
-    assert.deepEqual(
-      changed.after.fields.map((f) => f.key),
-      ['marca', 'serie', 'accesorios', 'clave'],
-    );
-    assert.deepEqual(changed.after.modules, ['ordenes']);
+    expect(changed.after.ordersLabel).toBe('Órdenes de servicio');
+    expect(changed.after.fields.map((f) => f.key)).toEqual([
+      'marca',
+      'serie',
+      'accesorios',
+      'clave',
+    ]);
+    expect(changed.after.modules).toEqual(['ordenes']);
   });
 });
 
 describe('migración 0009 con boletas del formato anterior', () => {
-  it('pasa IMEI y contraseña a campos y deja el perfil de celulares', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'dosuxsoft-mig-'));
-    try {
-      // Carpeta de migraciones sin la 0009 para reproducir una BD de antes de la Fase D.
-      const before = join(dir, 'migrations-0008');
-      cpSync(MIGRATIONS, before, { recursive: true });
-      const journalPath = join(before, 'meta', '_journal.json');
-      const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as {
-        entries: { idx: number }[];
-      };
-      // Hasta la 0008 inclusive: Drizzle salta migraciones más viejas que la última aplicada,
-      // así que dejar alguna posterior impediría que la 0009 corra después.
-      journal.entries = journal.entries.filter((e) => e.idx <= 8);
-      writeFileSync(journalPath, JSON.stringify(journal));
+  it('pasa IMEI y contraseña a campos y deja el perfil de celulares', async () => {
+    const result = await runInDurableObject(
+      tenantStub('perfil-migracion'),
+      async (_instance, state) => {
+        const sql = state.storage.sql;
+        // El DO arranca migrado: se vacía para reproducir una BD de antes de la Fase D (hasta la 0008).
+        const tables = sql
+          .exec(
+            `SELECT name FROM sqlite_master WHERE type = 'table'
+             AND name NOT LIKE 'sqlite\\_%' ESCAPE '\\' AND name NOT LIKE '\\_cf\\_%' ESCAPE '\\'`,
+          )
+          .toArray()
+          .map((r) => String(r['name']));
+        state.storage.transactionSync(() => {
+          sql.exec('PRAGMA defer_foreign_keys = ON');
+          for (const t of tables) sql.exec(`DROP TABLE "${t}"`);
+        });
+        await runMigrations(state.storage, MIGRATIONS.slice(0, 9));
 
-      const sqlite = new Database(join(dir, 'legacy.db'));
-      sqlite.pragma('foreign_keys = ON');
-      const db = drizzle(sqlite);
-      migrate(db, { migrationsFolder: before });
+        sql.exec("INSERT INTO customers (name, phone) VALUES ('Luis', '88880000')");
+        const ins =
+          'INSERT INTO boletas (customer_id, consecutive, device_model, imei, unlock_password, description) VALUES (1, ?, ?, ?, ?, ?)';
+        sql.exec(ins, 1, 'iPhone 12', '490154203237518', '1234', 'Pantalla rota');
+        sql.exec(ins, 2, 'Moto G', null, null, 'No carga');
 
-      sqlite.prepare("INSERT INTO customers (name, phone) VALUES ('Luis', '88880000')").run();
-      const ins = sqlite.prepare(
-        'INSERT INTO boletas (customer_id, consecutive, device_model, imei, unlock_password, description) VALUES (1, ?, ?, ?, ?, ?)',
-      );
-      ins.run(1, 'iPhone 12', '490154203237518', '1234', 'Pantalla rota');
-      ins.run(2, 'Moto G', null, null, 'No carga');
+        await runMigrations(state.storage, MIGRATIONS);
 
-      migrate(db, { migrationsFolder: MIGRATIONS });
+        return {
+          fields: sql
+            .exec('SELECT fields FROM boletas ORDER BY consecutive')
+            .toArray()
+            .map((r) => JSON.parse(String(r['fields'])) as unknown),
+          columns: sql
+            .exec("SELECT name FROM pragma_table_info('boletas')")
+            .toArray()
+            .map((r) => String(r['name'])),
+          profile: sql.exec('SELECT template, orders_label FROM business_profile').one(),
+        };
+      },
+    );
 
-      const rows = sqlite
-        .prepare('SELECT consecutive, fields FROM boletas ORDER BY consecutive')
-        .all() as { consecutive: number; fields: string }[];
-      assert.deepEqual(JSON.parse(rows[0]!.fields), [
+    expect(result.fields).toEqual([
+      [
         { key: 'imei', label: 'IMEI', value: '490154203237518' },
         { key: 'clave', label: 'Contraseña o patrón', value: '1234' },
-      ]);
-      assert.deepEqual(JSON.parse(rows[1]!.fields), []);
-
-      const columns = (
-        sqlite.prepare("SELECT name FROM pragma_table_info('boletas')").all() as { name: string }[]
-      ).map((c) => c.name);
-      assert.equal(columns.includes('imei'), false);
-
-      const profile = sqlite
-        .prepare('SELECT template, orders_label FROM business_profile')
-        .get() as { template: string; orders_label: string };
-      assert.deepEqual(profile, { template: 'celulares', orders_label: 'Boletas' });
-      sqlite.close();
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+      ],
+      [],
+    ]);
+    expect(result.columns.includes('imei')).toBe(false);
+    expect(result.profile).toEqual({ template: 'celulares', orders_label: 'Boletas' });
   });
 });

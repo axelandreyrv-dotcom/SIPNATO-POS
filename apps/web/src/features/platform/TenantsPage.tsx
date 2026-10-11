@@ -15,6 +15,7 @@ import {
   primaryButton,
   SubscriptionBadge,
   SuspendedBadge,
+  UnavailableBadge,
   tenantHost,
 } from './ui';
 
@@ -25,7 +26,11 @@ const FILTERS = [
     label: 'Por cobrar',
     test: (t: PlatformTenant) => t.subscription === 'vencido' || t.subscription === 'por_vencer',
   },
-  { key: 'sin-activar', label: 'Sin activar', test: (t: PlatformTenant) => !t.activated },
+  {
+    key: 'sin-activar',
+    label: 'Sin activar',
+    test: (t: PlatformTenant) => !t.activated && !t.unavailable,
+  },
   {
     key: 'suspendidos',
     label: 'Suspendidos',
@@ -203,7 +208,8 @@ function TenantRow({ tenant: t }: { tenant: PlatformTenant }) {
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-text-primary">{t.name}</p>
           <p className="truncate text-xs text-text-muted">
-            {tenantHost(t.slug)} · {TEMPLATE_INFO[t.template].name}
+            {tenantHost(t.slug)}
+            {!t.unavailable && ` · ${TEMPLATE_INFO[t.template].name}`}
           </p>
         </div>
 
@@ -213,10 +219,14 @@ function TenantRow({ tenant: t }: { tenant: PlatformTenant }) {
           ) : (
             <SubscriptionBadge status={t.subscription} />
           )}
-          {!t.activated && (
-            <span className="inline-flex h-6 items-center rounded-md border border-dashed border-border px-2 text-xs text-text-secondary">
-              Sin activar
-            </span>
+          {t.unavailable ? (
+            <UnavailableBadge />
+          ) : (
+            !t.activated && (
+              <span className="inline-flex h-6 items-center rounded-md border border-dashed border-border px-2 text-xs text-text-secondary">
+                Sin activar
+              </span>
+            )
           )}
           <span
             className={`text-xs ${urgent ? 'font-medium text-brand-error' : 'text-text-secondary'}`}

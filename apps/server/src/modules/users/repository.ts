@@ -1,4 +1,4 @@
-import { asc, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { currentActorId, db, type UserRole } from '../../db/client.js';
 import { auditLog, users } from '../../db/schema.js';
 
@@ -106,6 +106,16 @@ export function recordFailedAttempt(
   lockedUntil: string | null,
 ): void {
   db.update(users).set({ failedAttempts, lockedUntil }).where(eq(users.id, id)).run();
+}
+
+// Cambio transparente de parámetros de argon2id al iniciar sesión: no es una acción del usuario,
+// así que no deja audit_log ni cierra sesiones. Solo escribe si el hash sigue siendo el que se
+// verificó, para no pisar un cambio de contraseña concurrente.
+export function replaceSecretHash(id: number, oldHash: string, newHash: string): void {
+  db.update(users)
+    .set({ secretHash: newHash })
+    .where(and(eq(users.id, id), eq(users.secretHash, oldHash)))
+    .run();
 }
 
 export function resetFailedAttempts(id: number): void {

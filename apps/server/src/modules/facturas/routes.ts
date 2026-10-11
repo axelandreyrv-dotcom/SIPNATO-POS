@@ -1,81 +1,48 @@
-import type { FastifyPluginAsync } from 'fastify';
-import { AppError } from '../../lib/errors.js';
-import { requireAuth, requireRole } from '../../middleware/auth.js';
+import { Hono } from 'hono';
 import { createFacturaSchema } from '@sipnato/shared';
+import { readJson, requestMetaCompact, type AppEnv } from '../../lib/http.js';
+import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { anularFactura, createFactura, getFactura, listFacturas } from './service.js';
 
-const facturasRoutes: FastifyPluginAsync = async (app) => {
-  // GET /api/facturas?page=1&search=...
-  app.get('/', { preHandler: requireAuth }, async (req, reply) => {
-    const { page, search } = req.query as { page?: string; search?: string };
-    const pageNum = Math.max(1, parseInt(page ?? '1', 10) || 1);
-    return reply.send(listFacturas(pageNum, search));
-  });
+const invalidId = { error: { code: 'INVALID_ID', message: 'ID inválido' } };
 
-  // GET /api/facturas/:id
-  app.get('/:id', { preHandler: requireAuth }, async (req, reply) => {
-    const { id } = req.params as { id: string };
-    const parsed = parseInt(id, 10);
-    if (isNaN(parsed))
-      return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });
-    try {
-      return reply.send(getFactura(parsed));
-    } catch (err) {
-      if (err instanceof AppError)
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      throw err;
-    }
-  });
+const facturasRoutes = new Hono<AppEnv>();
 
-  // POST /api/facturas
-  app.post('/', { preHandler: requireAuth }, async (req, reply) => {
-    const parsed = createFacturaSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return reply.status(400).send({
+// GET /api/facturas?page=1&search=...
+facturasRoutes.get('/', requireAuth, (c) => {
+  const page = Math.max(1, parseInt(c.req.query('page') ?? '1', 10) || 1);
+  return c.json(listFacturas(page, c.req.query('search')));
+});
+
+// GET /api/facturas/:id
+facturasRoutes.get('/:id', requireAuth, (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json(invalidId, 400);
+  return c.json(getFactura(id));
+});
+
+// POST /api/facturas
+facturasRoutes.post('/', requireAuth, async (c) => {
+  const parsed = createFacturaSchema.safeParse(await readJson(c));
+  if (!parsed.success) {
+    return c.json(
+      {
         error: {
           code: 'VALIDATION_ERROR',
           message: parsed.error.errors[0]?.message ?? 'Datos inválidos',
         },
-      });
-    }
-    const ua = req.headers['user-agent'];
-    const meta = { ip: req.ip, ...(ua !== undefined && { userAgent: ua }) };
-    try {
-      const factura = createFactura(parsed.data, meta);
-      return reply.status(201).send(factura);
-    } catch (err) {
-      if (err instanceof AppError)
-        return reply
-          .status(err.statusCode)
-          .send({ error: { code: err.code, message: err.message } });
-      throw err;
-    }
-  });
+      },
+      400,
+    );
+  }
+  return c.json(createFactura(parsed.data, requestMetaCompact(c)), 201);
+});
 
-  // POST /api/facturas/:id/anular
-  app.post(
-    '/:id/anular',
-    { preHandler: [requireAuth, requireRole('dueno', 'admin')] },
-    async (req, reply) => {
-      const { id } = req.params as { id: string };
-      const parsed = parseInt(id, 10);
-      if (isNaN(parsed))
-        return reply.status(400).send({ error: { code: 'INVALID_ID', message: 'ID inválido' } });
-      const ua = req.headers['user-agent'];
-      const meta = { ip: req.ip, ...(ua !== undefined && { userAgent: ua }) };
-      try {
-        return reply.send(anularFactura(parsed, meta));
-      } catch (err) {
-        if (err instanceof AppError)
-          return reply
-            .status(err.statusCode)
-            .send({ error: { code: err.code, message: err.message } });
-        throw err;
-      }
-    },
-  );
-};
+// POST /api/facturas/:id/anular
+facturasRoutes.post('/:id/anular', requireAuth, requireRole('dueno', 'admin'), (c) => {
+  const id = parseInt(c.req.param('id'), 10);
+  if (isNaN(id)) return c.json(invalidId, 400);
+  return c.json(anularFactura(id, requestMetaCompact(c)));
+});
 
 export default facturasRoutes;
