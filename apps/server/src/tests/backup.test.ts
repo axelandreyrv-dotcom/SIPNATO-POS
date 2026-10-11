@@ -63,12 +63,14 @@ describe('respaldo en JSON', () => {
     );
   });
 
-  it('excluye las tablas internas', async () => {
+  it('excluye las tablas internas y las sesiones', async () => {
     const body = (await (await owner.api('GET', URL_PATH)).json()) as BackupJson;
     const names = Object.keys(body.tables);
     expect(names).toContain('sales');
     expect(names).toContain('audit_log');
     expect(names.filter((n) => n === '__migrations' || /^(sqlite_|_cf_)/.test(n))).toEqual([]);
+    // hashes de tokens de sesión: no sirven para restaurar y solo exponen
+    expect(names).not.toContain('sessions');
   });
 
   it('queda registrada en el audit_log con quien descargó', async () => {

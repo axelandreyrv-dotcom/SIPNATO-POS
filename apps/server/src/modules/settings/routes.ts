@@ -35,7 +35,7 @@ settingsRoutes.put('/', requireAuth, requireRole('dueno'), async (c) => {
   if (!body.success) {
     return c.json({ error: { code: 'VALIDATION_ERROR', message: 'Datos inválidos' } }, 400);
   }
-  return c.json(updateSettings(body.data, requestMeta(c)));
+  return c.json(await updateSettings(body.data, requestMeta(c), c.var.storage));
 });
 
 export default settingsRoutes;

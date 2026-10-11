@@ -525,11 +525,12 @@ describe('panel de superadministrador', () => {
     expect(detail.usage).toEqual({ users: 2, lastSaleAt: null });
   });
 
-  it('el respaldo de la plataforma vuelca sus tablas', async () => {
+  it('el respaldo de la plataforma vuelca sus tablas, sin las sesiones del panel', async () => {
     const dump = await platformStub().exportControl();
     expect(Object.keys(dump.tables)).toEqual(
       expect.arrayContaining(['tenants', 'superadmins', 'subscription_payments']),
     );
+    expect(Object.keys(dump.tables)).not.toContain('platform_sessions');
     expect(Object.keys(dump.tables).some((t) => t.startsWith('_cf_'))).toBe(false);
   });
 

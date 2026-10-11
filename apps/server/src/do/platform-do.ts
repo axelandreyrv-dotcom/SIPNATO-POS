@@ -11,14 +11,21 @@ import {
   type TenantStatus,
 } from '../db/control.js';
 import type { Env } from '../env.js';
+import { todayCR } from '../lib/cr-time.js';
 import { exportTenant } from '../lib/export.js';
 import type { AppEnv } from '../lib/http.js';
+import { sweepRateLimits } from '../lib/rate-limit.js';
+import { INACTIVITY_TIMEOUT_MS } from '../lib/session.js';
+import { deleteExpiredPlatformSessions } from '../modules/platform/repository.js';
 import {
   consumeSetupCode,
   refreshExchangeRate,
   tenantSubscriptionInfo,
 } from '../modules/platform/service.js';
 import { createPlatformApp } from '../platform-app.js';
+
+// Las sesiones del panel (hashes de tokens) no sirven para restaurar y solo exponen.
+const CONTROL_EXPORT_EXCLUDED = ['platform_sessions'];
 
 // El panel del superadministrador y el registro de negocios (control.db). Los negocios le
 // preguntan por RPC; nunca leen sus tablas.
@@ -67,6 +74,17 @@ export class PlatformDO extends DurableObject<Env> {
   }
 
   exportControl(): ReturnType<typeof exportTenant> {
-    return exportTenant(this.ctx.storage);
+    return exportTenant(this.ctx.storage, CONTROL_EXPORT_EXCLUDED);
+  }
+
+  // Lo llama el cron diario antes que el de los negocios: limpieza y respaldo de control.db en R2.
+  async dailyMaintenance(): Promise<void> {
+    this.run(() =>
+      deleteExpiredPlatformSessions(new Date(Date.now() - INACTIVITY_TIMEOUT_MS).toISOString()),
+    );
+    sweepRateLimits(this.ctx.storage.kv);
+    await this.env.BACKUPS.put(`_control/${todayCR()}.json`, JSON.stringify(this.exportControl()), {
+      httpMetadata: { contentType: 'application/json' },
+    });
   }
 }

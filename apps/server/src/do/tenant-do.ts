@@ -15,9 +15,14 @@ import { MIGRATIONS } from '../db/migrations.js';
 import { runMigrations } from '../db/migrator.js';
 import * as schema from '../db/schema.js';
 import type { Env } from '../env.js';
+import { runAutoClose, scheduleAutoClose } from '../lib/auto-close.js';
 import { TENANT_HEADER } from '../lib/constants.js';
+import { todayCR } from '../lib/cr-time.js';
 import { NegocioNoEncontrado } from '../lib/errors.js';
+import { exportTenant } from '../lib/export.js';
 import { errorResponse, type AppEnv } from '../lib/http.js';
+import { sweepRateLimits } from '../lib/rate-limit.js';
+import { deleteStaleSessions } from '../lib/session.js';
 import { resetOwner } from '../modules/auth/service.js';
 import { getProfile } from '../modules/business/repository.js';
 import { assignBusiness } from '../modules/business/service.js';
@@ -48,8 +53,20 @@ export class TenantDO extends DurableObject<Env> {
     this.db = drizzle(ctx.storage, { schema });
     this.app = createTenantApp(ctx.storage);
     // Solo un negocio ya inicializado tiene esquema. Un DO que nadie inicializó (un subdominio
-    // inventado, o el panel preguntando por él) no crea tablas.
-    if (this.slug() !== undefined) ctx.blockConcurrencyWhile(() => this.ensureSchema());
+    // inventado, o el panel preguntando por él) no crea tablas ni alarmas.
+    if (this.slug() !== undefined) {
+      ctx.blockConcurrencyWhile(async () => {
+        await this.ensureSchema();
+        // Repone la alarma del cierre automático si se perdió, o corre ya una vencida. Un fallo
+        // aquí no debe dejar al negocio sin servicio (un error en blockConcurrencyWhile reinicia
+        // el DO): se registra y la próxima activación vuelve a intentarlo.
+        try {
+          await this.scheduleAutoClose();
+        } catch (err) {
+          console.error('No se pudo programar el cierre automático', err);
+        }
+      });
+    }
   }
 
   private slug(): string | undefined {
@@ -93,6 +110,27 @@ export class TenantDO extends DurableObject<Env> {
       }
     });
     this.ctx.storage.kv.put(SLUG_KEY, slug);
+    await this.scheduleAutoClose();
+  }
+
+  // Programa (o borra) la alarma del cierre automático según la configuración del negocio.
+  async scheduleAutoClose(): Promise<void> {
+    const slug = this.slug();
+    if (slug === undefined) return;
+    await this.inContext(slug, () => scheduleAutoClose(this.ctx.storage));
+  }
+
+  // Lo llama el cron diario (03:00 CR): limpieza y respaldo JSON del negocio en R2.
+  async dailyMaintenance(): Promise<void> {
+    const slug = this.requireSlug();
+    const backup = this.inContext(slug, () => {
+      deleteStaleSessions();
+      return exportTenant(this.ctx.storage);
+    });
+    sweepRateLimits(this.ctx.storage.kv);
+    await this.env.BACKUPS.put(`tenants/${slug}/${todayCR()}.json`, JSON.stringify(backup), {
+      httpMetadata: { contentType: 'application/json' },
+    });
   }
 
   // Lo que el panel muestra del negocio. null si nunca se inicializó (sin tocar el esquema).
@@ -131,6 +169,13 @@ export class TenantDO extends DurableObject<Env> {
   async resetOwner(): Promise<{ username: string; tempPassword: string; recoveryCode: string }> {
     const slug = this.requireSlug();
     return this.inContext(slug, () => resetOwner());
+  }
+
+  // Cierre automático de caja (CLAUDE.md §7: el corte agrupa por caja, no por fecha).
+  override async alarm(): Promise<void> {
+    const slug = this.slug();
+    if (slug === undefined) return;
+    await this.inContext(slug, () => runAutoClose(this.ctx.storage));
   }
 
   override async fetch(request: Request): Promise<Response> {

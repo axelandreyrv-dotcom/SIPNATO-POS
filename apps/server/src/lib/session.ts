@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { eq } from 'drizzle-orm';
+import { eq, lt, or } from 'drizzle-orm';
 import { db, type Actor } from '../db/client.js';
 import { sessions, users } from '../db/schema.js';
 import { generateSessionToken, hashSessionToken } from './crypto.js';
@@ -79,6 +79,19 @@ export async function touchSession(sessionId: string): Promise<void> {
 export async function revokeSession(token: string): Promise<void> {
   const tokenHash = await hashSessionToken(token);
   await db.delete(sessions).where(eq(sessions.tokenHash, tokenHash));
+}
+
+// Mantenimiento diario: sesiones que ya no pasarían verifySession (8 h o 60 min sin uso).
+export function deleteStaleSessions(): void {
+  const now = Date.now();
+  db.delete(sessions)
+    .where(
+      or(
+        lt(sessions.expiresAt, new Date(now).toISOString()),
+        lt(sessions.lastActiveAt, new Date(now - INACTIVITY_TIMEOUT_MS).toISOString()),
+      ),
+    )
+    .run();
 }
 
 // Al cambiar la contraseña/PIN o desactivar a un usuario (CLAUDE.md §6.1).

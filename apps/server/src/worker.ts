@@ -110,6 +110,46 @@ async function routeApi(request: Request, path: string, env: Env): Promise<Respo
   return stub.fetch(new Request(request, { headers }));
 }
 
+// Los mismos de `triggers.crons` en wrangler.jsonc.
+const CRON_EXCHANGE_RATE = '15 * * * *';
+// 09:00 UTC = 03:00 CR.
+const CRON_DAILY = '0 9 * * *';
+
+// Primero la plataforma y después cada negocio activo, todos a la vez: uno que falla queda en el
+// log (solo su slug y el mensaje, ningún dato del negocio) y no frena a los demás.
+async function dailyMaintenance(env: Env): Promise<void> {
+  const control = platform(env);
+  try {
+    await control.dailyMaintenance();
+  } catch (err) {
+    console.error('Mantenimiento diario de la plataforma falló:', (err as Error).message);
+  }
+
+  const slugs = await control.listActiveSlugs();
+  const results = await Promise.allSettled(
+    slugs.map((slug) => env.TENANT.get(env.TENANT.idFromName(slug)).dailyMaintenance()),
+  );
+  results.forEach((result, i) => {
+    if (result.status === 'rejected') {
+      console.error(
+        `Mantenimiento diario del negocio "${slugs[i]}" falló:`,
+        (result.reason as Error)?.message ?? String(result.reason),
+      );
+    }
+  });
+}
+
+async function runCron(cron: string, env: Env): Promise<void> {
+  switch (cron) {
+    case CRON_EXCHANGE_RATE:
+      return platform(env).refreshExchangeRate();
+    case CRON_DAILY:
+      return dailyMaintenance(env);
+    default:
+      console.warn(`Cron desconocido: "${cron}"`);
+  }
+}
+
 export default {
   async fetch(request, env): Promise<Response> {
     const path = new URL(request.url).pathname;
@@ -123,5 +163,7 @@ export default {
       return errorResponse(new AppError('ERROR_INTERNO', 'Error interno del servidor', 500));
     }
   },
-  async scheduled(): Promise<void> {},
+  async scheduled(controller, env, ctx): Promise<void> {
+    ctx.waitUntil(runCron(controller.cron, env));
+  },
 } satisfies ExportedHandler<Env>;

@@ -29,6 +29,20 @@ export function hit(
   };
 }
 
+// La ventana más larga en uso es de 1 h (descarga de respaldo): una entrada que empezó hace más
+// de 25 h terminó hace más de 24 h y ya no cuenta para nada.
+const STALE_AFTER_MS = 25 * 60 * 60 * 1000;
+
+// Mantenimiento diario: borra las entradas de clientes que no han vuelto.
+export function sweepRateLimits(kv: DurableObjectStorage['kv']): void {
+  const cutoff = Date.now() - STALE_AFTER_MS;
+  // Se juntan primero: borrar mientras se recorre el listado podría saltarse claves.
+  const stale = [...kv.list<RateWindow>({ prefix: 'rl:' })]
+    .filter(([, value]) => typeof value?.start !== 'number' || value.start < cutoff)
+    .map(([key]) => key);
+  for (const key of stale) kv.delete(key);
+}
+
 export function rateLimit(
   name: string,
   limit: number,

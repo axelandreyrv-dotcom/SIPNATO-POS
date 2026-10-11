@@ -9,17 +9,24 @@ export interface TenantExport {
 // GLOB y no LIKE: en GLOB el guion bajo no es comodín, así que no hace falta escapar nada.
 const INTERNAL_TABLES = `name NOT GLOB 'sqlite_*' AND name NOT GLOB '_cf_*' AND name <> '__migrations'`;
 
-// Vuelca todas las tablas del negocio (o de la plataforma) tal como están. Lee solo del `storage`
-// del Durable Object que recibe, así que no puede traer filas de otro negocio. Es síncrono: la
-// foto es consistente.
-export function exportTenant(storage: DurableObjectStorage): TenantExport {
+// Las sesiones (hashes de tokens) no sirven para restaurar y solo exponen: no van al respaldo.
+export const TENANT_EXPORT_EXCLUDED = ['sessions'] as const;
+
+// Vuelca todas las tablas del negocio (o de la plataforma) tal como están, menos `excluded`. Lee
+// solo del `storage` del Durable Object que recibe, así que no puede traer filas de otro negocio.
+// Es síncrono: la foto es consistente.
+export function exportTenant(
+  storage: DurableObjectStorage,
+  excluded: readonly string[] = TENANT_EXPORT_EXCLUDED,
+): TenantExport {
   const sql = storage.sql;
   const names = sql
     .exec(
       `SELECT name FROM sqlite_master WHERE type = 'table' AND ${INTERNAL_TABLES} ORDER BY name`,
     )
     .toArray()
-    .map((r) => String(r['name']));
+    .map((r) => String(r['name']))
+    .filter((name) => !excluded.includes(name));
 
   const tables: TenantExport['tables'] = {};
   for (const name of names) {
