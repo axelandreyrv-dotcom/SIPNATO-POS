@@ -12,7 +12,13 @@ function platformColo(environment: string): Promise<string | null> {
   if (environment !== 'production') return Promise.resolve(null);
   colo ??= fetch('https://www.cloudflare.com/cdn-cgi/trace')
     .then((res) => res.text())
-    .then((text) => text.split('\n').find((l) => l.startsWith('colo='))?.slice(5) ?? null)
+    .then(
+      (text) =>
+        text
+          .split('\n')
+          .find((l) => l.startsWith('colo='))
+          ?.slice(5) ?? null,
+    )
     .catch(() => {
       colo = null;
       return null;
