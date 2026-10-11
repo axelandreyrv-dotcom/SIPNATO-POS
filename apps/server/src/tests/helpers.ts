@@ -1,7 +1,13 @@
 import { env, runInDurableObject, SELF } from 'cloudflare:test';
 import { TEMPLATE_INFO, type AssignBusinessInput } from '@sipnato/shared';
 import { runInTenant } from '../db/client.js';
-import { findTenant, insertTenant, runInPlatform } from '../db/control.js';
+import {
+  findTenant,
+  insertTenant,
+  runInPlatform,
+  setTenantStatus,
+  type TenantStatus,
+} from '../db/control.js';
 import { COOKIE_NAME, PLATFORM_COOKIE_NAME } from '../lib/constants.js';
 import { generateRecoveryCode, hashPassword, hashRecoveryCode } from '../lib/crypto.js';
 import { platform, tenantStub as doStub } from '../lib/platform-client.js';
@@ -22,6 +28,13 @@ export const GENERIC_ASSIGNMENT: AssignBusinessInput = {
 };
 
 export const tenantStub = (slug: string) => doStub(env, slug);
+
+// Como lo hace el panel: el estado vive en la plataforma y en el DO del negocio (que es el que
+// responde 403 a un suspendido).
+export async function setTestTenantStatus(slug: string, status: TenantStatus): Promise<void> {
+  await tenantStub(slug).setStatus(status);
+  await inPlatform(() => setTenantStatus(slug, status));
+}
 
 export const tenantUrl = (slug: string, path: string) => `https://${slug}.dosuxsoft.com${path}`;
 

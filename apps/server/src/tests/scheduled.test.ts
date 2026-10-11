@@ -26,6 +26,7 @@ import {
   loginToken,
   platformLogin,
   platformStub,
+  setTestTenantStatus,
   tenantStub,
   type Method,
 } from './helpers.js';
@@ -304,7 +305,7 @@ describe('cron diario: mantenimiento y respaldos en R2', () => {
         ).status,
       ).toBe(201);
     }
-    await inPlatform(() => setTenantStatus('diario-susp', 'suspended'));
+    await setTestTenantStatus('diario-susp', 'suspended');
     await createSuperadmin('raiz', 'clave-raiz-123');
     expect((await platformLogin('raiz', 'clave-raiz-123')).status).toBe(200);
   });
@@ -326,6 +327,20 @@ describe('cron diario: mantenimiento y respaldos en R2', () => {
     const control = await readJson(`_control/${today()}.json`);
     expect(Object.keys(control.tables)).toContain('tenants');
     expect(Object.keys(control.tables)).toContain('superadmins');
+  });
+
+  it('reconcilia el estado de cada negocio con el de la plataforma', async () => {
+    await createTestTenant('diario-desfasado');
+    // Solo control.db: como si el aviso al negocio se hubiera perdido.
+    await inPlatform(() => setTenantStatus('diario-desfasado', 'suspended'));
+    expect((await call('diario-desfasado', 'GET', '/auth/status')).status).toBe(200);
+
+    await runCron(DAILY);
+    expect((await call('diario-desfasado', 'GET', '/auth/status')).status).toBe(403);
+
+    await inPlatform(() => setTenantStatus('diario-desfasado', 'active'));
+    await runCron(DAILY);
+    expect((await call('diario-desfasado', 'GET', '/auth/status')).status).toBe(200);
   });
 
   it('los respaldos no llevan sesiones', async () => {

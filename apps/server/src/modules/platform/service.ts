@@ -479,7 +479,7 @@ export async function assignTenantBusiness(
   input: AssignBusinessInput,
   meta: Meta,
 ): Promise<PlatformTenant> {
-  requireTenant(slug);
+  const { status } = requireTenant(slug);
   const stub = tenantDO(slug);
   let before: Pick<TenantPlatformSummary, 'template' | 'modules'> | null = null;
   let after: Pick<TenantPlatformSummary, 'template' | 'modules'>;
@@ -487,7 +487,7 @@ export async function assignTenantBusiness(
   try {
     if ((await stub.platformSummary()) === null) {
       // El alta falló antes de inicializar el DO: asignar el tipo lo termina de crear.
-      await stub.initialize(slug, input);
+      await stub.initialize(slug, input, status);
       after = { template: input.template, modules: [...input.modules] };
     } else {
       ({ before, after } = await stub.assignBusiness(input, meta));
@@ -543,6 +543,18 @@ export async function changeTenantStatus(
   meta: Meta,
 ): Promise<PlatformTenant> {
   requireTenant(slug);
+  // Primero el negocio, que es quien responde 403: si no recibe el cambio, control.db no cambia y
+  // el operador reintenta (como al eliminar). Al revés, el panel diría "suspendido" y el negocio
+  // seguiría atendiendo.
+  try {
+    await withTimeout(Promise.resolve(tenantDO(slug).setStatus(status)), SUMMARY_TIMEOUT_MS);
+  } catch (err) {
+    console.error(
+      `No se pudo cambiar el estado del negocio "${slug}":`,
+      (err as Error)?.message ?? String(err),
+    );
+    throw new NegocioNoDisponible();
+  }
   controlTransaction(() => {
     setTenantStatus(slug, status);
     insertPlatformAudit({
@@ -582,13 +594,13 @@ export async function regenerateSetupCode(
   slug: string,
   meta: Meta,
 ): Promise<string> {
-  requireTenant(slug);
+  const { status } = requireTenant(slug);
   const stub = tenantDO(slug);
   const summary = await stub.platformSummary();
   if (summary?.activated) throw new NegocioYaActivado();
   // El alta falló antes de inicializar el DO: sin esto el código nunca serviría (el subdominio
   // respondería 404). Se inicializa con el tipo por defecto, como el alta por consola.
-  if (summary === null) await stub.initialize(slug, DEFAULT_ASSIGNMENT);
+  if (summary === null) await stub.initialize(slug, DEFAULT_ASSIGNMENT, status);
   const code = generateSetupCode();
   const codeHash = await hashSetupCode(code);
   controlTransaction(() => {

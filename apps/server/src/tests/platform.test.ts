@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { db } from '../db/client.js';
 import { controlDb, findTenant, getSetupCodeHash, insertTenant } from '../db/control.js';
 import { businessProfile } from '../db/schema.js';
+import { TenantDO } from '../do/tenant-do.js';
 import { todayCR } from '../lib/cr-time.js';
 import { listPayments } from '../modules/platform/repository.js';
 import { insertUserRow } from '../modules/users/repository.js';
@@ -611,13 +612,50 @@ describe('panel de superadministrador', () => {
     });
     expect(suspend.status).toBe(200);
     expect(await inPlatform(() => findTenant('tienda-nueva')!.status)).toBe('suspended');
-    expect(await platformStub().resolveTenant('tienda-nueva')).toEqual({ status: 'suspended' });
     expect(await platformStub().listActiveSlugs()).not.toContain('tienda-nueva');
+    // El negocio lo sabe ya: su DO responde 403 sin esperar a ninguna caché.
+    const blocked = await call('tienda-nueva', 'GET', '/auth/status');
+    expect(blocked.status).toBe(403);
+    expect((await json<{ error: { code: string } }>(blocked)).error.code).toBe(
+      'NEGOCIO_SUSPENDIDO',
+    );
 
     await admin('POST', '/platform/tenants/tienda-nueva/status', { status: 'active' });
-    expect(await platformStub().resolveTenant('tienda-nueva')).toEqual({ status: 'active' });
     expect(await platformStub().listActiveSlugs()).toContain('tienda-nueva');
-    expect(await platformStub().resolveTenant('no-existe')).toBeNull();
+    expect((await call('tienda-nueva', 'GET', '/auth/status')).status).toBe(200);
+  });
+
+  it('si el negocio no recibe el cambio de estado → 503 y la plataforma no cambia', async () => {
+    await createTestTenant('estado-caido');
+    const failing = vi.spyOn(TenantDO.prototype, 'setStatus').mockImplementation(() => {
+      throw new Error('caído');
+    });
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const res = await admin('POST', '/platform/tenants/estado-caido/status', {
+        status: 'suspended',
+      });
+      expect(res.status).toBe(503);
+      expect((await json<{ error: { code: string } }>(res)).error.code).toBe(
+        'NEGOCIO_NO_DISPONIBLE',
+      );
+      expect(failing).toHaveBeenCalled();
+    } finally {
+      failing.mockRestore();
+      logged.mockRestore();
+    }
+    expect(await inPlatform(() => findTenant('estado-caido')!.status)).toBe('active');
+    const audit = await inPlatform(
+      () =>
+        controlDb
+          .prepare<
+            [string],
+            { n: number }
+          >("SELECT COUNT(*) AS n FROM platform_audit_log WHERE tenant_slug = ? AND action = 'TENANT_SUSPENDED'")
+          .get('estado-caido')!.n,
+    );
+    expect(audit).toBe(0);
+    expect((await call('estado-caido', 'GET', '/auth/status')).status).toBe(200);
   });
 
   it('la actividad registra quién hizo cada cambio', async () => {

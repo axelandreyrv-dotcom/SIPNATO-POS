@@ -1,10 +1,16 @@
-import { env } from 'cloudflare:test';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { insertTenant, setTenantStatus } from '../db/control.js';
+import { env, runInDurableObject } from 'cloudflare:test';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Env } from '../env.js';
 import { TENANT_HEADER } from '../lib/constants.js';
-import worker, { clearTenantCache, routeHost } from '../worker.js';
-import { call, createTestTenant, inPlatform, platformCall, tenantStub } from './helpers.js';
+import worker, { routeHost } from '../worker.js';
+import {
+  call,
+  createTestTenant,
+  login,
+  platformCall,
+  setTestTenantStatus,
+  tenantStub,
+} from './helpers.js';
 
 const PWD = 'clave-dueno-1';
 
@@ -102,7 +108,6 @@ beforeAll(async () => {
   await activeTenant('rt-dev');
 });
 
-beforeEach(() => clearTenantCache());
 afterEach(() => vi.restoreAllMocks());
 
 describe('routeHost', () => {
@@ -187,15 +192,29 @@ describe('enrutado por Host sin tocar Durable Objects', () => {
     expect(dev.platform.names).toEqual([]);
   });
 
-  it('un subdominio válido sin negocio → 404: pregunta a la plataforma, nunca crea su DO', async () => {
+  it('un subdominio válido sin negocio → 404 de su DO, sin preguntar a la plataforma y sin datos', async () => {
     const h = harness(PROD);
     const res = await h.fetch('https://rt-nadie.dosuxsoft.com/auth/status');
     expect(res.status).toBe(404);
     expect((await errorOf(res)).code).toBe('NEGOCIO_NO_ENCONTRADO');
     expectApiHeaders(res);
     expect(res.headers.get('Content-Security-Policy')).toBeNull();
-    expect(h.platform.names).toEqual(['platform-enam']);
-    expect(h.tenant.names).toEqual([]);
+    expect(h.platform.names).toEqual([]);
+    expect(h.tenant.names).toEqual(['rt-nadie']);
+    const storage = await runInDurableObject(tenantStub('rt-nadie'), (_i, state) => ({
+      kv: [...state.storage.kv.list()].length,
+      tables: state.storage.sql
+        .exec("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT GLOB '_cf_*'")
+        .toArray().length,
+    }));
+    expect(storage).toEqual({ kv: 0, tables: 0 });
+  });
+
+  it('un negocio activo no le pregunta a la plataforma', async () => {
+    const h = harness(PROD);
+    const res = await h.fetch('https://rt-a.dosuxsoft.com/auth/status');
+    expect(res.status).toBe(200);
+    expect(h.platform.names).toEqual([]);
   });
 
   it('un negocio activo sí llega a su DO (el espía funciona)', async () => {
@@ -216,15 +235,27 @@ describe('enrutado por Host sin tocar Durable Objects', () => {
     expect(p.platform.options).toEqual([{ locationHint: 'enam' }]);
   });
 
-  it('negocio suspendido → 403 sin crear su DO', async () => {
-    await inPlatform(() => insertTenant('rt-susp-x', 'Suspendido'));
-    await inPlatform(() => setTenantStatus('rt-susp-x', 'suspended'));
+  it('negocio suspendido → 403 desde su DO, sin preguntar a la plataforma', async () => {
+    await createTestTenant('rt-susp-x');
+    await setTestTenantStatus('rt-susp-x', 'suspended');
     const h = harness(PROD);
     const res = await h.fetch('https://rt-susp-x.dosuxsoft.com/auth/status');
     expect(res.status).toBe(403);
     expect((await errorOf(res)).code).toBe('NEGOCIO_SUSPENDIDO');
     expectApiHeaders(res);
-    expect(h.tenant.names).toEqual([]);
+    expect(res.headers.get('Content-Security-Policy')).toBeNull();
+    expect(h.platform.names).toEqual([]);
+  });
+
+  it('un negocio inicializado sin estado guardado (creado antes de este cambio) atiende normal', async () => {
+    await createTestTenant('rt-sin-estado', { owner: { username: 'dueno', password: PWD } });
+    await runInDurableObject(tenantStub('rt-sin-estado'), (_i, state) => {
+      state.storage.kv.delete('status');
+    });
+    const res = await call('rt-sin-estado', 'GET', '/auth/status');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ setup: true });
+    expect((await login('rt-sin-estado', 'dueno', PWD)).status).toBe(200);
   });
 });
 
@@ -298,7 +329,7 @@ describe('headers que manda el cliente', () => {
 describe('estado del negocio', () => {
   it('negocio suspendido → 403; inexistente → 404', async () => {
     await createTestTenant('rt-susp');
-    await inPlatform(() => setTenantStatus('rt-susp', 'suspended'));
+    await setTestTenantStatus('rt-susp', 'suspended');
 
     const suspendido = await call('rt-susp', 'GET', '/auth/status');
     expect(suspendido.status).toBe(403);
@@ -311,25 +342,20 @@ describe('estado del negocio', () => {
     expectApiHeaders(inexistente);
   });
 
-  it('suspender rige a más tardar en 30 s (caché por isolate)', async () => {
+  it('suspender y reactivar rigen de inmediato', async () => {
     await createTestTenant('rt-cache');
     const h = harness(PROD);
     const url = 'https://rt-cache.dosuxsoft.com/auth/status';
-    const t0 = Date.now();
     expect((await h.fetch(url)).status).toBe(200);
 
-    await inPlatform(() => setTenantStatus('rt-cache', 'suspended'));
-    vi.spyOn(Date, 'now').mockReturnValue(t0 + 29_000);
-    expect((await h.fetch(url)).status, 'aún en caché').toBe(200);
-    vi.spyOn(Date, 'now').mockReturnValue(t0 + 31_000);
+    await setTestTenantStatus('rt-cache', 'suspended');
     expect((await h.fetch(url)).status).toBe(403);
 
-    await inPlatform(() => setTenantStatus('rt-cache', 'active'));
-    vi.spyOn(Date, 'now').mockReturnValue(t0 + 62_000);
+    await setTestTenantStatus('rt-cache', 'active');
     expect((await h.fetch(url)).status).toBe(200);
   });
 
-  it('un negocio recién creado responde de inmediato (lo inexistente no se guarda en caché)', async () => {
+  it('un negocio recién creado responde de inmediato', async () => {
     const h = harness(PROD);
     const url = 'https://rt-nuevo.dosuxsoft.com/auth/status';
     expect((await h.fetch(url)).status).toBe(404);
@@ -398,12 +424,12 @@ describe('rutas de API, plataforma y SPA', () => {
     expect((await errorOf(sinNegocio)).code).toBe('NEGOCIO_NO_ENCONTRADO');
   });
 
-  it('un error al consultar la plataforma → 500 genérico, sin detalles', async () => {
+  it('un error al llegar al Durable Object → 500 genérico, sin detalles', async () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
     const testEnv = {
       ...env,
       ...PROD,
-      PLATFORM: {
+      TENANT: {
         idFromName: () => {
           throw new Error('detalle interno');
         },

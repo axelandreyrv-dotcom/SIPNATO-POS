@@ -13,7 +13,6 @@ import {
   nextIp,
   platformCall,
   platformLogin,
-  platformStub,
   platformToken,
   sessionToken,
   tenantStub,
@@ -282,9 +281,11 @@ describe('/internal/ops: negocios', () => {
     });
 
     await opsOk('tenant-suspend', { slug: 'ops-tienda' });
-    expect(await platformStub().resolveTenant('ops-tienda')).toEqual({ status: 'suspended' });
+    expect(await inPlatform(() => findTenant('ops-tienda')!.status)).toBe('suspended');
+    expect((await call('ops-tienda', 'GET', '/auth/status')).status).toBe(403);
     await opsOk('tenant-activate', { slug: 'ops-tienda' });
-    expect(await platformStub().resolveTenant('ops-tienda')).toEqual({ status: 'active' });
+    expect(await inPlatform(() => findTenant('ops-tienda')!.status)).toBe('active');
+    expect((await call('ops-tienda', 'GET', '/auth/status')).status).toBe(200);
 
     const dup = await ops({ command: 'tenant-create', args: { slug: 'ops-tienda', name: 'X' } });
     expect(dup.status).toBe(409);

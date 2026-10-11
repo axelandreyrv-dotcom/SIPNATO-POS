@@ -2,7 +2,6 @@ import { DurableObject } from 'cloudflare:workers';
 import type { SubscriptionInfo } from '@sipnato/shared';
 import type { Hono } from 'hono';
 import {
-  findTenant,
   initControlSchema,
   latestExchangeRate,
   listActiveTenants,
@@ -20,7 +19,7 @@ import type { Env } from '../env.js';
 import { todayCR } from '../lib/cr-time.js';
 import { exportTenant } from '../lib/export.js';
 import type { AppEnv } from '../lib/http.js';
-import { LEGACY_PLATFORM_OBJECT_NAME, legacyPlatform } from '../lib/platform-client.js';
+import { LEGACY_PLATFORM_OBJECT_NAME, legacyPlatform, tenantStub } from '../lib/platform-client.js';
 import { sweepRateLimits } from '../lib/rate-limit.js';
 import { INACTIVITY_TIMEOUT_MS } from '../lib/session.js';
 import { deleteExpiredPlatformSessions } from '../modules/platform/repository.js';
@@ -45,9 +44,13 @@ export class PlatformDO extends DurableObject<Env> {
     this.app = createPlatformApp();
     // El objeto original (Singapur) solo responde a exportLegacyControl: nunca se migra a sí mismo.
     if (!ctx.id.equals(env.PLATFORM.idFromName(LEGACY_PLATFORM_OBJECT_NAME))) {
-      ctx.blockConcurrencyWhile(() =>
-        importLegacyControl(ctx.storage, () => legacyPlatform(env).exportLegacyControl()),
-      );
+      ctx.blockConcurrencyWhile(async () => {
+        const result = await importLegacyControl(ctx.storage, () =>
+          legacyPlatform(env).exportLegacyControl(),
+        );
+        // Sin esperar: la plataforma atiende ya, y un negocio sin estado guardado está activo.
+        if (result === 'imported') void this.pushTenantStatuses();
+      });
     }
   }
 
@@ -55,15 +58,25 @@ export class PlatformDO extends DurableObject<Env> {
     return runInPlatform(this.ctx.storage, fn);
   }
 
-  override async fetch(request: Request): Promise<Response> {
-    return this.run(() => this.app.fetch(request, this.env));
+  // Tras copiar los negocios de la plataforma anterior: sus DO no tienen el estado guardado (un
+  // suspendido atendería como activo). Lo que falle lo corrige la reconciliación diaria.
+  private async pushTenantStatuses(): Promise<void> {
+    const tenants = this.listMaintainedTenants();
+    const results = await Promise.allSettled(
+      tenants.map(({ slug, status }) => tenantStub(this.env, slug).setStatus(status)),
+    );
+    results.forEach((result, i) => {
+      if (result.status === 'rejected') {
+        console.error(
+          `No se pudo avisar su estado al negocio "${tenants[i]!.slug}":`,
+          (result.reason as Error)?.message ?? String(result.reason),
+        );
+      }
+    });
   }
 
-  resolveTenant(slug: string): { status: TenantStatus } | null {
-    return this.run(() => {
-      const tenant = findTenant(slug);
-      return tenant && { status: tenant.status };
-    });
+  override async fetch(request: Request): Promise<Response> {
+    return this.run(() => this.app.fetch(request, this.env));
   }
 
   consumeSetupCode(slug: string, code: string): Promise<boolean> {
@@ -88,12 +101,12 @@ export class PlatformDO extends DurableObject<Env> {
 
   // Los que reciben el mantenimiento diario. Un suspendido también: conserva sus datos (puede
   // reactivarse) y sin esto se quedaría sin respaldos nuevos y con sesiones viejas.
-  listMaintainedSlugs(): string[] {
+  listMaintainedTenants(): { slug: string; status: TenantStatus }[] {
     const maintained: TenantStatus[] = ['active', 'suspended'];
     return this.run(() =>
       listTenants()
         .filter((t) => maintained.includes(t.status))
-        .map((t) => t.slug),
+        .map(({ slug, status }) => ({ slug, status })),
     );
   }
 

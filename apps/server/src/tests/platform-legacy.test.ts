@@ -1,11 +1,26 @@
 import { env, evictDurableObject, runInDurableObject } from 'cloudflare:test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { controlDb, insertTenant, runInPlatform, saveExchangeRate } from '../db/control.js';
+import {
+  controlDb,
+  insertTenant,
+  runInPlatform,
+  saveExchangeRate,
+  setTenantStatus,
+} from '../db/control.js';
 import { importLegacyControl, LEGACY_IMPORT_FLAG } from '../db/legacy-platform.js';
 import { hashPassword } from '../lib/crypto.js';
 import { legacyPlatform } from '../lib/platform-client.js';
 import { insertPlatformAudit, insertSuperadmin } from '../modules/platform/repository.js';
-import { inPlatform, platformCall, platformLogin, platformStub, platformToken } from './helpers.js';
+import {
+  call,
+  GENERIC_ASSIGNMENT,
+  inPlatform,
+  platformCall,
+  platformLogin,
+  platformStub,
+  platformToken,
+  tenantStub,
+} from './helpers.js';
 
 const PWD = 'clave-antigua-123';
 
@@ -22,6 +37,12 @@ afterEach(() => vi.restoreAllMocks());
 describe('migración de la plataforma al objeto nuevo', () => {
   it('copia una sola vez superadministradores, negocios, ajustes, bitácora y tipo de cambio; nunca sesiones', async () => {
     const hash = await hashPassword(PWD);
+    // Un negocio suspendido creado por la plataforma anterior: su DO no tiene el estado guardado.
+    await tenantStub('leg-suspendida').initialize('leg-suspendida', GENERIC_ASSIGNMENT);
+    await runInDurableObject(tenantStub('leg-suspendida'), (_i, state) => {
+      state.storage.kv.delete('status');
+    });
+    expect((await call('leg-suspendida', 'GET', '/auth/status')).status).toBe(200);
     const legacyId = await inLegacy(() => {
       insertSuperadmin('antiguo', hash);
       controlDb
@@ -33,6 +54,8 @@ describe('migración de la plataforma al objeto nuevo', () => {
         meta: { ip: '1.2.3.4', userAgent: 'antes' },
       });
       insertTenant('leg-tienda', 'Tienda antigua');
+      insertTenant('leg-suspendida', 'Suspendida');
+      setTenantStatus('leg-suspendida', 'suspended');
       controlDb
         .prepare(
           "UPDATE tenants SET setup_code_hash = 'hash-del-codigo', paid_until = '2026-11-10' WHERE slug = 'leg-tienda'",
@@ -82,7 +105,7 @@ describe('migración de la plataforma al objeto nuevo', () => {
         .prepare<
           [],
           { slug: string; setup_code_hash: string; paid_until: string }
-        >('SELECT slug, setup_code_hash, paid_until FROM tenants')
+        >("SELECT slug, setup_code_hash, paid_until FROM tenants WHERE slug = 'leg-tienda'")
         .all(),
       payments: controlDb
         .prepare<
@@ -102,7 +125,15 @@ describe('migración de la plataforma al objeto nuevo', () => {
     const list = (await (await platformCall('GET', '/platform/tenants', { token })).json()) as {
       tenants: { slug: string; paidUntil: string }[];
     };
-    expect(list.tenants).toMatchObject([{ slug: 'leg-tienda', paidUntil: '2026-11-10' }]);
+    expect(list.tenants.find((t) => t.slug === 'leg-tienda')).toMatchObject({
+      paidUntil: '2026-11-10',
+    });
+    expect(list.tenants.map((t) => t.slug).sort()).toEqual(['leg-suspendida', 'leg-tienda']);
+
+    // Después de copiar, la plataforma le avisa a cada negocio su estado.
+    await vi.waitFor(async () =>
+      expect((await call('leg-suspendida', 'GET', '/auth/status')).status).toBe(403),
+    );
     expect(copied.rates).toEqual([{ date: '2026-10-10' }]);
     expect(copied.sessions.map((s) => s.id)).not.toContain('p-legacy');
 
