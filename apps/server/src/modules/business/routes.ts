@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { ownerProfileSchema } from '@sipnato/shared';
+import { ownerProfileSchema } from '@dosuxsoft/shared';
 import { readJson, requestMeta, type AppEnv } from '../../lib/http.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { getProfile } from './repository.js';

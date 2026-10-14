@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createRoute, isRedirect, redirect, useNavigate } from '@tanstack/react-router';
 import { CheckCircle, Copy, Eye, EyeOff, Loader2, ShieldAlert } from 'lucide-react';
-import { setupSchema } from '@sipnato/shared';
+import { setupSchema } from '@dosuxsoft/shared';
 import { ApiError } from '@/lib/api-client';
 import { authApi } from '@/features/auth/api';
 import { redirectIfTenantUnavailable } from '@/features/auth/tenant-guard';

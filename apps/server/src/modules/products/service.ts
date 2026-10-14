@@ -4,7 +4,7 @@ import type {
   StockMovement,
   StockMovementInput,
   UpdateProductInput,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import {
   CodigoProductoDuplicado,
   ProductoNoEncontrado,

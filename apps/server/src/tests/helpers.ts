@@ -1,5 +1,5 @@
 import { env, runInDurableObject, SELF } from 'cloudflare:test';
-import { TEMPLATE_INFO, type AssignBusinessInput } from '@sipnato/shared';
+import { TEMPLATE_INFO, type AssignBusinessInput } from '@dosuxsoft/shared';
 import { runInTenant } from '../db/client.js';
 import {
   findTenant,

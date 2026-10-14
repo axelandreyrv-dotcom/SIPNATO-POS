@@ -3,7 +3,7 @@ import {
   reportExportFilterSchema,
   reportSalesFilterSchema,
   reportSummaryFilterSchema,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import type { AppEnv } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { getDaily, getSalesExport, getSalesList, getSummary } from './service.js';

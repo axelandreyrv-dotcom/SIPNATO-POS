@@ -14,7 +14,7 @@ import {
   type SubscriptionInfo,
   type Superadmin,
   type UpdateTenantInput,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import {
   consumeSetupCodeHash,
   controlTransaction,

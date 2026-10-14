@@ -1,12 +1,13 @@
 {
-  "name": "sipnato-pos",
+  "name": "dosuxsoft",
   "private": true,
   "version": "0.0.1",
+  "packageManager": "pnpm@12.11.2",
   "scripts": {
-    "prepare": "pnpm --filter @sipnato/shared build",
+    "prepare": "pnpm --filter @dosuxsoft/shared build",
     "dev": "concurrently --kill-others -n server,web -c bgBlue.bold,bgGreen.bold \"pnpm run dev:server\" \"pnpm run dev:web\"",
-    "dev:server": "pnpm --filter @sipnato/server run dev",
-    "dev:web": "wait-on tcp:localhost:8787 && pnpm --filter @sipnato/web run dev",
+    "dev:server": "pnpm --filter @dosuxsoft/server run dev",
+    "dev:web": "wait-on tcp:localhost:8787 && pnpm --filter @dosuxsoft/web run dev",
     "build": "pnpm -r run build",
     "lint": "eslint .",
     "format": "prettier --write .",

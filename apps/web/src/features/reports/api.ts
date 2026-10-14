@@ -1,5 +1,5 @@
 import { apiFetch } from '../../lib/api-client';
-import type { DailyEntry, ReportSaleList, ReportSaleRow, ReportSummary } from '@sipnato/shared';
+import type { DailyEntry, ReportSaleList, ReportSaleRow, ReportSummary } from '@dosuxsoft/shared';
 
 export const reportsApi = {
   getSummary(from: string, to: string): Promise<ReportSummary> {

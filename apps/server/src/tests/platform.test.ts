@@ -1,4 +1,4 @@
-import { addMonths, subscriptionStatus } from '@sipnato/shared';
+import { addMonths, subscriptionStatus } from '@dosuxsoft/shared';
 import { runInDurableObject } from 'cloudflare:test';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { db } from '../db/client.js';

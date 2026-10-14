@@ -1,4 +1,4 @@
-import type { CreateFacturaInput, Factura, FacturaList, FacturaWithItems } from '@sipnato/shared';
+import type { CreateFacturaInput, Factura, FacturaList, FacturaWithItems } from '@dosuxsoft/shared';
 
 const BASE = '/api/facturas';
 

@@ -10,7 +10,7 @@ import {
   slugSchema,
   tenantStatusSchema,
   updateTenantSchema,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { PLATFORM_COOKIE_NAME } from '../../lib/constants.js';
 import { AppError } from '../../lib/errors.js';
 import {

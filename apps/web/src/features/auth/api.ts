@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/api-client';
-import type { CurrentUser, LoginInput, RecoverInput, SetupInput } from '@sipnato/shared';
+import type { CurrentUser, LoginInput, RecoverInput, SetupInput } from '@dosuxsoft/shared';
 
 export const authApi = {
   getStatus: () => apiFetch<{ setup: boolean }>('/auth/status'),

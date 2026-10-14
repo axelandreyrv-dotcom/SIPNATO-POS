@@ -1,4 +1,4 @@
-import type { Settings } from '@sipnato/shared';
+import type { Settings } from '@dosuxsoft/shared';
 import { scheduleAutoClose } from '../../lib/auto-close.js';
 import { exportTenant, type TenantExport } from '../../lib/export.js';
 import {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { platformLoginSchema } from '@sipnato/shared';
+import { platformLoginSchema } from '@dosuxsoft/shared';
 import { platformApi } from './api';
 import { errorText, FieldLabel, inputClass, primaryButton } from './ui';
 

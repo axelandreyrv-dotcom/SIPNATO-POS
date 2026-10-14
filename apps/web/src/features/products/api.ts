@@ -4,7 +4,7 @@ import type {
   StockMovement,
   StockMovementInput,
   UpdateProductInput,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { apiFetch } from '../../lib/api-client';
 
 export type ProductFilter = 'activos' | 'stock-bajo' | 'inactivos';

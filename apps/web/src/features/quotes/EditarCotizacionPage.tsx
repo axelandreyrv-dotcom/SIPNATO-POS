@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Loader2, Minus, Plus } from 'lucide-react';
-import { formatColones } from '@sipnato/shared';
-import type { CreateQuoteItemInput } from '@sipnato/shared';
+import { formatColones } from '@dosuxsoft/shared';
+import type { CreateQuoteItemInput } from '@dosuxsoft/shared';
 import { quotesApi } from './api';
 
 type ItemRow = { id: string; description: string; amountStr: string };

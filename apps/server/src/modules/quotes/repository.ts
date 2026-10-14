@@ -1,7 +1,7 @@
 import { count, desc, eq, sql } from 'drizzle-orm';
 import { currentActorId, db } from '../../db/client.js';
 import { auditLog, counters, quoteItems, quotes } from '../../db/schema.js';
-import type { CreateQuoteInput, Quote, QuoteItem, QuoteWithItems } from '@sipnato/shared';
+import type { CreateQuoteInput, Quote, QuoteItem, QuoteWithItems } from '@dosuxsoft/shared';
 
 interface AuditMeta {
   ip: string | null;

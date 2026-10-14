@@ -10,7 +10,7 @@ ni Docker, ni SSH.
 ```
 
 Los comandos de `wrangler` y de `pnpm ops` se ejecutan desde `apps/server` (o con
-`pnpm --filter @sipnato/server …` desde la raíz). Antes de cada comando que cambie algo, confirmar la cuenta con
+`pnpm --filter @dosuxsoft/server …` desde la raíz). Antes de cada comando que cambie algo, confirmar la cuenta con
 `npx wrangler whoami`.
 
 ---
@@ -20,7 +20,7 @@ Los comandos de `wrangler` y de `pnpm ops` se ejecutan desde `apps/server` (o co
 - Cuenta de Cloudflare con el plan **Workers Paid** ($5/mes): Durable Objects con SQLite lo exigen.
 - La zona `dosuxsoft.com` en esa misma cuenta.
 - Node y pnpm; `pnpm install` en la raíz del repositorio (también compila `packages/shared`).
-- `openssl` para generar el token de operaciones (Git Bash en Windows lo trae).
+- `openssl` para generar el token de operaciones (macOS ya lo trae).
 - `seitcr.com` y su Worker `seitcr` viven en la misma cuenta: **no se tocan**. Este Worker se llama `dosuxsoft`
   y su ruta es solo `*.dosuxsoft.com/*`.
 
@@ -90,7 +90,7 @@ pnpm run deploy
 
 Importante: **`pnpm run deploy`, con `run`**. Sin `run`, pnpm trata `deploy` como su propio comando. El script
 `predeploy` compila `packages/shared` y el frontend (`apps/web/dist`) antes de `wrangler deploy`; si se llama a
-`wrangler deploy` directamente, hay que compilar antes con `pnpm --filter @sipnato/shared build && pnpm --filter @sipnato/web build`.
+`wrangler deploy` directamente, hay que compilar antes con `pnpm --filter @dosuxsoft/shared build && pnpm --filter @dosuxsoft/web build`.
 
 El mismo comando se usa para la primera vez y para toda actualización. Después de desplegar, comprobar en el
 panel de Cloudflare (Workers) que `seitcr` no cambió.
@@ -111,13 +111,7 @@ curl -i https://noexiste.dosuxsoft.com/api/auth/me   # 404 NEGOCIO_NO_ENCONTRADO
 Las cuentas del panel se crean solo con la consola de operaciones (no hay alta por la web). Desde `apps/server`:
 
 ```bash
-# bash
 export OPS_TOKEN=<el token del paso 2.3>
-pnpm ops superadmin-create username=admin
-```
-```powershell
-# PowerShell
-$env:OPS_TOKEN = '<el token del paso 2.3>'
 pnpm ops superadmin-create username=admin
 ```
 
@@ -236,14 +230,14 @@ pnpm dev                                                  # Worker en :8787 (wra
   guarda su estado en `apps/server/.wrangler/state`. Para empezar de cero, detener `pnpm dev` y borrar esa carpeta.
 - El primer superadministrador local (Node no resuelve `*.localhost`, por eso la IP):
   ```bash
-  OPS_TOKEN=<el de .dev.vars> pnpm --filter @sipnato/server ops superadmin-create username=admin --url http://127.0.0.1:8787
+  OPS_TOKEN=<el de .dev.vars> pnpm --filter @dosuxsoft/server ops superadmin-create username=admin --url http://127.0.0.1:8787
   ```
 - Panel: `http://admin.localhost:5174`. Negocio: `http://<slug>.localhost:5174` → `/setup` con el código de
   activación que muestra el panel. `http://localhost:5174` usa el negocio `DEV_TENANT` (`taller`).
 - El Worker de desarrollo toma el negocio de `X-Forwarded-Host` (lo manda el proxy de Vite). Con `curl`
   directo a :8787 hay que mandar ese header a mano.
 - Verificaciones: `pnpm lint`, `pnpm format:check`, `pnpm -r exec tsc --noEmit` y
-  `pnpm --filter @sipnato/server test` (corre dentro de `workerd`).
+  `pnpm --filter @dosuxsoft/server test` (corre dentro de `workerd`).
 - Nunca usar `--env dev` para desplegar: el entorno `dev` no tiene rutas y existe solo para el desarrollo local.
 
 ---

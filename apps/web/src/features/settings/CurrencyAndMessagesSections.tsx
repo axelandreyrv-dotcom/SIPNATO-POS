@@ -7,7 +7,7 @@ import {
   NOTIFICATION_EVENTS,
   NOTIFICATION_LABELS,
   type Settings,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { exchangeRateApi } from '../pos/exchange-rate-api';
 import { FieldLabel, Section, inputClass, textareaClass } from './ui';
 

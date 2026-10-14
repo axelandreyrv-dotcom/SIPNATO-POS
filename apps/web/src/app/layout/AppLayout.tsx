@@ -22,7 +22,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { can, ROLE_LABELS, type ModuleKey, type Permission } from '@sipnato/shared';
+import { can, ROLE_LABELS, type ModuleKey, type Permission } from '@dosuxsoft/shared';
 import { Logo } from '../../components/branding/Logo';
 import { useDarkMode } from '../../lib/hooks/useDarkMode';
 import { authApi } from '../../features/auth/api';

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronUp, Loader2, Search } from 'lucide-react';
-import type { BoletaSummary, Customer } from '@sipnato/shared';
+import type { BoletaSummary, Customer } from '@dosuxsoft/shared';
 import { fmtDate, fmtDateShort } from '../../lib/format';
 import { customersApi } from './api';
 

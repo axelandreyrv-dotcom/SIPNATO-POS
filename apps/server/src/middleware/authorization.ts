@@ -1,4 +1,4 @@
-import { can, supervisorAuthSchema, type Permission } from '@sipnato/shared';
+import { can, supervisorAuthSchema, type Permission } from '@dosuxsoft/shared';
 import type { Actor } from '../db/client.js';
 import { AutorizacionRequerida } from '../lib/errors.js';
 import { readJson, type AppContext } from '../lib/http.js';

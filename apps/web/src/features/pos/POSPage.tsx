@@ -10,8 +10,8 @@ import type {
   Sale,
   Settings,
   SupervisorAuth,
-} from '@sipnato/shared';
-import { formatColones, PAYMENT_METHOD_LABELS } from '@sipnato/shared';
+} from '@dosuxsoft/shared';
+import { formatColones, PAYMENT_METHOD_LABELS } from '@dosuxsoft/shared';
 import { fmtTime } from '../../lib/format';
 import { cashRegisterApi } from '../cash-register/api';
 import { salesApi } from './api';

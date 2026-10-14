@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { changeOwnSecretSchema, createUserSchema, updateUserSchema } from '@sipnato/shared';
+import { changeOwnSecretSchema, createUserSchema, updateUserSchema } from '@dosuxsoft/shared';
 import { readJson, requestMeta, type AppEnv } from '../../lib/http.js';
 import { rateLimit } from '../../lib/rate-limit.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';

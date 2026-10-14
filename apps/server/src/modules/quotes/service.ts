@@ -1,5 +1,5 @@
 import { CotizacionNoEncontrada } from '../../lib/errors.js';
-import type { CreateQuoteInput, QuoteList, QuoteWithItems } from '@sipnato/shared';
+import type { CreateQuoteInput, QuoteList, QuoteWithItems } from '@dosuxsoft/shared';
 
 import {
   createQuoteRow,

@@ -1,7 +1,7 @@
 import type { Actor } from '../../db/client.js';
 import { CajaNoAbierta, GastoNoEnCajaActiva, GastoNoEncontrado } from '../../lib/errors.js';
 import { findOpenRegister } from '../cash-registers/repository.js';
-import type { CreateExpenseInput, Expense, ExpenseList } from '@sipnato/shared';
+import type { CreateExpenseInput, Expense, ExpenseList } from '@dosuxsoft/shared';
 import {
   createExpenseRow,
   findExpenseById,

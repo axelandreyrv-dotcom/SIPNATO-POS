@@ -1,7 +1,7 @@
 import { createRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Plus, Trash2, Printer } from 'lucide-react';
-import { formatColones } from '@sipnato/shared';
+import { formatColones } from '@dosuxsoft/shared';
 import { createFactura } from '../../features/facturas/api';
 import { useFacturaPrint } from '../../features/facturas/FacturaPrintView';
 import { Route as authRoute } from '../_auth';

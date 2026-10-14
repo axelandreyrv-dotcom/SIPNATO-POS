@@ -1,4 +1,4 @@
-import type { ExchangeRateInfo } from '@sipnato/shared';
+import type { ExchangeRateInfo } from '@dosuxsoft/shared';
 import { currentEnv } from '../db/client.js';
 import { getSetting } from '../modules/settings/repository.js';
 import { todayCR } from './cr-time.js';

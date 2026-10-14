@@ -11,8 +11,8 @@ import {
   Search,
   X,
 } from 'lucide-react';
-import { formatColones } from '@sipnato/shared';
-import type { Apartado, ApartadoPaymentMethod, ApartadoWithPayments } from '@sipnato/shared';
+import { formatColones } from '@dosuxsoft/shared';
+import type { Apartado, ApartadoPaymentMethod, ApartadoWithPayments } from '@dosuxsoft/shared';
 import { apartadosApi } from './api';
 import { useCan } from '../auth/useCurrentUser';
 import { WhatsAppNotify } from '../../components/WhatsAppNotify';

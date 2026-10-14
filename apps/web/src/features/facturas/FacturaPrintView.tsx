@@ -1,8 +1,8 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { formatColones } from '@sipnato/shared';
-import type { FacturaWithItems, Settings } from '@sipnato/shared';
+import { formatColones } from '@dosuxsoft/shared';
+import type { FacturaWithItems, Settings } from '@dosuxsoft/shared';
 import { settingsApi } from '../settings/api';
 
 // ── Print overlay — 80mm thermal, reuses .sale-print-overlay infrastructure ────

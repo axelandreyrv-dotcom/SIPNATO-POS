@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { settingsSchema } from '@sipnato/shared';
+import { settingsSchema } from '@dosuxsoft/shared';
 import { currentTenant } from '../../db/client.js';
 import { todayCR } from '../../lib/cr-time.js';
 import { readJson, requestMeta, sameOriginOnly, type AppEnv } from '../../lib/http.js';

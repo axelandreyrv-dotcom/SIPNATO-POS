@@ -1,4 +1,4 @@
-# ROADMAP — SIPNATO POS
+# ROADMAP — Dosuxsoft POS
 
 > Desarrollo por fases pequeñas y lógicas. Cada fase es atómica: una sola responsabilidad, verificable antes de avanzar.
 > Al completar cada fase: marcar `[x]`, anotar la fecha y actualizar `CLAUDE.md`.
@@ -99,7 +99,7 @@
 - [x] 10. Despliegue, DNS (`*` → Proxied) y documentación — 2026-10-11 · `/grill-me` ✅
   - [x] Documentación (`CLAUDE.md`, `deploy/DEPLOY.md`, `README.md`, este archivo) — 2026-10-10
   - [x] Revisión final del código: protección CSRF (`sameOriginWrites`) y panel tolerante a negocios caídos — 2026-10-10
-  - [x] Despliegue (activar R2, bucket, secretos `OPS_TOKEN` y `BCCR_API_TOKEN`, `pnpm --filter @sipnato/server run deploy`) — 2026-10-11
+  - [x] Despliegue (activar R2, bucket, secretos `OPS_TOKEN` y `BCCR_API_TOKEN`, `pnpm --filter @dosuxsoft/server run deploy`) — 2026-10-11
   - [x] DNS (`*` → `AAAA 100::` Proxied) — 2026-10-11
   - [x] Superadmin en producción (`superadmin-create username=admin`) — 2026-10-11
   - [ ] Cambiar la contraseña temporal del panel (la hace el usuario)

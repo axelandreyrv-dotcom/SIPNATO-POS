@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { createNoteSchema, updateNoteSchema } from '@sipnato/shared';
+import { createNoteSchema, updateNoteSchema } from '@dosuxsoft/shared';
 import { readJson, requestMeta, type AppEnv } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { createNote, deleteNote, listNotes, updateNote } from './service.js';

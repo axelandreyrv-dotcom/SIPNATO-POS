@@ -5,7 +5,7 @@ import {
   TOGGLEABLE_MODULES,
   type BusinessTemplate,
   type ModuleKey,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { FieldLabel, inputClass } from './ui';
 
 export interface BusinessTypeValue {

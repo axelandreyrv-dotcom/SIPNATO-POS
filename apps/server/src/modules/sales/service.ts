@@ -17,7 +17,7 @@ import {
   type CreateSaleResult,
   type SaleItemInput,
   type SaleList,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import {
   createSaleRow,
   findSaleById,

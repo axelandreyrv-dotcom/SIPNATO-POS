@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, ShieldCheck, X } from 'lucide-react';
-import type { SupervisorAuth } from '@sipnato/shared';
+import type { SupervisorAuth } from '@dosuxsoft/shared';
 import { ApiError } from '@/lib/api-client';
 
 // Mensaje para los errores que devuelve el servidor al validar una autorización.

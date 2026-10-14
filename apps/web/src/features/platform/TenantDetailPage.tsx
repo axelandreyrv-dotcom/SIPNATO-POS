@@ -17,7 +17,7 @@ import {
   type PlatformTenantDetail,
   type SubscriptionPayment,
   type SubscriptionPaymentMethod,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { fmtDate, fmtDateTime } from '@/lib/format';
 import { platformApi } from './api';
 import { Link } from './router';

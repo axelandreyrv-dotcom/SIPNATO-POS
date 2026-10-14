@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { businessProfileSchema, type BusinessProfile } from '@sipnato/shared';
+import { businessProfileSchema, type BusinessProfile } from '@dosuxsoft/shared';
 import { currentActorId, db } from '../../db/client.js';
 import { auditLog, businessProfile } from '../../db/schema.js';
 

@@ -6,7 +6,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { Loader2, LogOut, Moon, Sun } from 'lucide-react';
-import type { Superadmin } from '@sipnato/shared';
+import type { Superadmin } from '@dosuxsoft/shared';
 import { ApiError } from '@/lib/api-client';
 import { useDarkMode } from '@/lib/hooks/useDarkMode';
 import { platformApi } from './api';

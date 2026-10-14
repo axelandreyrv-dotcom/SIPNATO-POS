@@ -1,4 +1,4 @@
-import type { SubscriptionInfo } from '@sipnato/shared';
+import type { SubscriptionInfo } from '@dosuxsoft/shared';
 import type { PlatformDO } from '../do/platform-do.js';
 import type { TenantDO } from '../do/tenant-do.js';
 import type { Env } from '../env.js';

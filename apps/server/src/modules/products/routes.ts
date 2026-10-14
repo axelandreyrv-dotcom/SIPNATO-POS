@@ -4,7 +4,7 @@ import {
   createProductSchema,
   stockMovementSchema,
   updateProductSchema,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { readJson, requestMeta, type AppContext, type AppEnv } from '../../lib/http.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import type { ProductFilter } from './repository.js';

@@ -2,8 +2,8 @@ import { useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, Loader2, Trash2, TrendingDown, TrendingUp, X } from 'lucide-react';
-import { formatColones } from '@sipnato/shared';
-import type { Expense, SupervisorAuth } from '@sipnato/shared';
+import { formatColones } from '@dosuxsoft/shared';
+import type { Expense, SupervisorAuth } from '@dosuxsoft/shared';
 import { fmtTime } from '../../lib/format';
 import {
   SupervisorAuthDialog,

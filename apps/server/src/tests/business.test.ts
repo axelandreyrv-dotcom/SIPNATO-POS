@@ -1,5 +1,5 @@
 import { runInDurableObject } from 'cloudflare:test';
-import { TEMPLATE_INFO, type ModuleKey } from '@sipnato/shared';
+import { TEMPLATE_INFO, type ModuleKey } from '@dosuxsoft/shared';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { MIGRATIONS } from '../db/migrations.js';
 import { runMigrations } from '../db/migrator.js';

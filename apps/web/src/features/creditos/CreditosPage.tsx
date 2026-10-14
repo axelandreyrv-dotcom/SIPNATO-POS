@@ -10,8 +10,8 @@ import {
   Search,
   X,
 } from 'lucide-react';
-import { formatColones } from '@sipnato/shared';
-import type { Credito, CreditoWithPayments } from '@sipnato/shared';
+import { formatColones } from '@dosuxsoft/shared';
+import type { Credito, CreditoWithPayments } from '@dosuxsoft/shared';
 import { creditosApi } from './api';
 import { useCan } from '../auth/useCurrentUser';
 import { NotificationHistory, WhatsAppNotify } from '../../components/WhatsAppNotify';

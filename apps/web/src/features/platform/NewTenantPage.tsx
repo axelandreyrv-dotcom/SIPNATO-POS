@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { addMonths, createTenantSchema, formatColones, type PlatformTenant } from '@sipnato/shared';
+import {
+  addMonths,
+  createTenantSchema,
+  formatColones,
+  type PlatformTenant,
+} from '@dosuxsoft/shared';
 import { platformApi } from './api';
 import { Link } from './router';
 import { BusinessTypeFields, templateDefaults } from './BusinessTypeFields';

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
-import type { Note } from '@sipnato/shared';
+import type { Note } from '@dosuxsoft/shared';
 import { fmtDateTime } from '../../lib/format';
 import { notesApi } from './api';
 

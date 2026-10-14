@@ -1,7 +1,7 @@
 import { count, desc, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import { cashRegisters, sales, expenses } from '../../db/schema.js';
-import type { CashRegisterTotals, CashRegisterSummary } from '@sipnato/shared';
+import type { CashRegisterTotals, CashRegisterSummary } from '@dosuxsoft/shared';
 
 export function findOpenRegister() {
   const rows = db.select().from(cashRegisters).where(isNull(cashRegisters.closedAt)).limit(1).all();

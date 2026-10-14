@@ -2,7 +2,7 @@ import { and, count, desc, eq, gte, isNull, lte, sql } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import { apartados, boletas, cashRegisters, expenses, sales } from '../../db/schema.js';
 import { crDayRangeToUtc, todayCR } from '../../lib/cr-time.js';
-import type { DashboardData, DashboardMovement } from '@sipnato/shared';
+import type { DashboardData, DashboardMovement } from '@dosuxsoft/shared';
 
 // Pure calendar arithmetic on a YYYY-MM-DD string. No timezone involved:
 // parsing/formatting through UTC midnight keeps the date stable.

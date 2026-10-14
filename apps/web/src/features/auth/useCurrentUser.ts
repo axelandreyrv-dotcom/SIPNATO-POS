@@ -5,7 +5,7 @@ import {
   type CurrentUser,
   type ModuleKey,
   type Permission,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 
 const authRouteApi = getRouteApi('/_auth');
 

@@ -1,5 +1,10 @@
 import { apiFetch } from '../../lib/api-client';
-import type { CreateSaleInput, CreateSaleResult, SaleList, SupervisorAuth } from '@sipnato/shared';
+import type {
+  CreateSaleInput,
+  CreateSaleResult,
+  SaleList,
+  SupervisorAuth,
+} from '@dosuxsoft/shared';
 
 export const salesApi = {
   create(data: CreateSaleInput): Promise<CreateSaleResult> {

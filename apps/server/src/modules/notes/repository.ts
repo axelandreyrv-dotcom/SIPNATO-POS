@@ -1,7 +1,7 @@
 import { desc, eq } from 'drizzle-orm';
 import { currentActorId, db } from '../../db/client.js';
 import { auditLog, notes } from '../../db/schema.js';
-import type { CreateNoteInput, Note, UpdateNoteInput } from '@sipnato/shared';
+import type { CreateNoteInput, Note, UpdateNoteInput } from '@dosuxsoft/shared';
 
 interface AuditMeta {
   ip: string | null;

@@ -8,7 +8,7 @@ import {
   stockMovementSchema,
   type Product,
   type StockMovementType,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { ApiError } from '@/lib/api-client';
 import { fmtDateTime } from '@/lib/format';
 import { useCan } from '../auth/useCurrentUser';

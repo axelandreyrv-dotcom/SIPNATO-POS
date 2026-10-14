@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { ROLE_LABELS, secretSchemaFor } from '@sipnato/shared';
+import { ROLE_LABELS, secretSchemaFor } from '@dosuxsoft/shared';
 import { ApiError } from '@/lib/api-client';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import { usersApi } from './api';

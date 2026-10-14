@@ -3,7 +3,7 @@ import type {
   AddCreditoPayment,
   Credito,
   CreditoWithPayments,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { CreditoNoEncontrado, CreditoNoActivo, AbonoPagoExcede } from '../../lib/errors.js';
 import {
   insertCreditoRow,

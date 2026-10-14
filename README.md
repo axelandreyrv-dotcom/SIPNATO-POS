@@ -55,6 +55,10 @@ plataforma · R2 para los respaldos · Static Assets para el frontend · Univers
 
 ## Desarrollo
 
+Se desarrolla en macOS (Apple Silicon). Requisitos: [Homebrew](https://brew.sh), Node (`brew install node`) y pnpm
+(`brew install pnpm`; la versión del proyecto está en `packageManager` del `package.json` raíz). `git` y `openssl`
+ya vienen con macOS; `wrangler` se instala con las dependencias.
+
 ```bash
 git clone https://github.com/axelandreyrv-dotcom/SIPNATO-POS.git
 cd SIPNATO-POS
@@ -68,7 +72,7 @@ carpeta). Para crear la cuenta del panel y un negocio:
 
 ```bash
 # Node no resuelve *.localhost: la consola se apunta a la IP
-OPS_TOKEN=<el de .dev.vars> pnpm --filter @sipnato/server ops superadmin-create username=admin --url http://127.0.0.1:8787
+OPS_TOKEN=<el de .dev.vars> pnpm --filter @dosuxsoft/server ops superadmin-create username=admin --url http://127.0.0.1:8787
 ```
 
 - Panel: `http://admin.localhost:5174` → crear un negocio, copiar su código de activación.
@@ -82,7 +86,7 @@ Verificaciones:
 pnpm lint
 pnpm format:check
 pnpm -r exec tsc --noEmit
-pnpm --filter @sipnato/server test    # corre dentro de workerd, con Durable Objects reales
+pnpm --filter @dosuxsoft/server test    # corre dentro de workerd, con Durable Objects reales
 ```
 
 ---

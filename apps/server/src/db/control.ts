@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { isValidSlug } from '@sipnato/shared';
+import { isValidSlug } from '@dosuxsoft/shared';
 
 // control.db es el registro de negocios y de la plataforma (suscripciones, superadministradores,
 // tipo de cambio). Vive en el SQLite del Durable Object de la plataforma. NUNCA guarda datos

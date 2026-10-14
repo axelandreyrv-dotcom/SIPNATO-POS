@@ -1,5 +1,5 @@
 import { NotaNoEncontrada } from '../../lib/errors.js';
-import type { CreateNoteInput, Note, UpdateNoteInput } from '@sipnato/shared';
+import type { CreateNoteInput, Note, UpdateNoteInput } from '@dosuxsoft/shared';
 import {
   createNoteRow,
   findNoteById,

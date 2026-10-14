@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { createCreditoSchema, addCreditoPaymentSchema } from '@sipnato/shared';
+import { createCreditoSchema, addCreditoPaymentSchema } from '@dosuxsoft/shared';
 import { readJson, requestMetaCompact, type AppEnv } from '../../lib/http.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { createCredito, listCreditos, getCredito, addPayment, cancelCredito } from './service.js';

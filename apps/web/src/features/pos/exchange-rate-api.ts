@@ -1,4 +1,4 @@
-import type { ExchangeRateInfo } from '@sipnato/shared';
+import type { ExchangeRateInfo } from '@dosuxsoft/shared';
 import { apiFetch } from '../../lib/api-client';
 
 export const exchangeRateApi = {

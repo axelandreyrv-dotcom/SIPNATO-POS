@@ -2,12 +2,12 @@ import { createRoute, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Plus, Printer, XCircle, ChevronDown, ChevronUp, Search } from 'lucide-react';
-import { formatColones } from '@sipnato/shared';
+import { formatColones } from '@dosuxsoft/shared';
 import { fetchFactura, fetchFacturas, anularFactura } from '../../features/facturas/api';
 import { useFacturaPrint } from '../../features/facturas/FacturaPrintView';
 import { Route as authRoute } from '../_auth';
 import { useCan, requireModule } from '../../features/auth/useCurrentUser';
-import type { Factura, FacturaWithItems } from '@sipnato/shared';
+import type { Factura, FacturaWithItems } from '@dosuxsoft/shared';
 
 export const Route = createRoute({
   getParentRoute: () => authRoute,

@@ -6,7 +6,7 @@ import {
   addPaymentRow,
   cancelApartadoRow,
 } from './repository.js';
-import type { CreateApartadoInput, AddApartadoPaymentInput } from '@sipnato/shared';
+import type { CreateApartadoInput, AddApartadoPaymentInput } from '@dosuxsoft/shared';
 
 export function createApartado(
   data: CreateApartadoInput,

@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { currentActorId, db } from '../../db/client.js';
 import { auditLog, cashRegisters } from '../../db/schema.js';
 import { CajaNoAbierta, CajaYaAbierta } from '../../lib/errors.js';
-import type { CashRegisterCurrent, CashRegisterList, CashRegisterTotals } from '@sipnato/shared';
+import type { CashRegisterCurrent, CashRegisterList, CashRegisterTotals } from '@dosuxsoft/shared';
 import {
   computeRunningTotals,
   findCashRegisterById,
