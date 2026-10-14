@@ -12,8 +12,8 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { formatColones } from '@sipnato/shared';
-import type { Quote, QuoteWithItems, Settings } from '@sipnato/shared';
+import { formatColones } from '@dosuxsoft/shared';
+import type { Quote, QuoteWithItems, Settings } from '@dosuxsoft/shared';
 import { fmtDate } from '../../lib/format';
 import { settingsApi } from '../settings/api';
 import { quotesApi } from './api';

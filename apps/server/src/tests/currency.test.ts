@@ -4,7 +4,7 @@ import {
   renderMessage,
   usdCentsToColones,
   whatsappLink,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { controlDb, saveExchangeRate } from '../db/control.js';
 import { fetchBccrRates } from '../lib/bccr.js';

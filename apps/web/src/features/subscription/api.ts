@@ -1,4 +1,4 @@
-import type { SubscriptionInfo } from '@sipnato/shared';
+import type { SubscriptionInfo } from '@dosuxsoft/shared';
 import { apiFetch } from '@/lib/api-client';
 
 export const subscriptionApi = {

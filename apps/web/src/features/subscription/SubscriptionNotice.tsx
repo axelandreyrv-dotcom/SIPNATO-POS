@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, X } from 'lucide-react';
-import { formatColones, type SubscriptionInfo } from '@sipnato/shared';
+import { formatColones, type SubscriptionInfo } from '@dosuxsoft/shared';
 import { fmtDate } from '@/lib/format';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import { subscriptionApi } from './api';

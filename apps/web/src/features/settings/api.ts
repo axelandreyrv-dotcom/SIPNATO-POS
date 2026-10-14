@@ -1,4 +1,4 @@
-import type { Settings } from '@sipnato/shared';
+import type { Settings } from '@dosuxsoft/shared';
 import { ApiError, apiFetch } from '../../lib/api-client';
 
 export const settingsApi = {

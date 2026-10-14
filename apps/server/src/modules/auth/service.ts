@@ -1,4 +1,4 @@
-import type { SetupInput } from '@sipnato/shared';
+import type { SetupInput } from '@dosuxsoft/shared';
 import {
   DUMMY_HASH,
   generateRecoveryCode,

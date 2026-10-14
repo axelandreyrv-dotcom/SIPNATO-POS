@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import type { SubscriptionInfo } from '@sipnato/shared';
+import type { SubscriptionInfo } from '@dosuxsoft/shared';
 import type { Hono } from 'hono';
 import {
   initControlSchema,

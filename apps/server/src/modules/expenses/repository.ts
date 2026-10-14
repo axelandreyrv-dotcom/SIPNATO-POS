@@ -1,7 +1,7 @@
 import { and, eq, isNull, sum } from 'drizzle-orm';
 import { currentActorId, db } from '../../db/client.js';
 import { auditLog, expenses } from '../../db/schema.js';
-import type { CreateExpenseInput, Expense } from '@sipnato/shared';
+import type { CreateExpenseInput, Expense } from '@dosuxsoft/shared';
 
 interface AuditMeta {
   ip: string | null;

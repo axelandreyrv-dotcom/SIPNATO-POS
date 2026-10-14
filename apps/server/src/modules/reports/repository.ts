@@ -9,7 +9,7 @@ import type {
   ReportSaleList,
   ReportSaleRow,
   ReportSummary,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 
 function mapSaleRow(r: typeof sales.$inferSelect): ReportSaleRow {
   return {

@@ -1,7 +1,7 @@
 import type { Context, ErrorHandler, MiddlewareHandler } from 'hono';
 import { deleteCookie, setCookie } from 'hono/cookie';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
-import type { Superadmin } from '@sipnato/shared';
+import type { Superadmin } from '@dosuxsoft/shared';
 import type { Actor } from '../db/client.js';
 import type { Env } from '../env.js';
 import { HOST_HEADER } from './constants.js';

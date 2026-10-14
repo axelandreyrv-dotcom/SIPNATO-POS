@@ -7,7 +7,7 @@ import {
   platformSettingsSchema,
   REMINDER_VARIABLES,
   type PlatformSettings,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { Section } from '../settings/ui';
 import { platformApi } from './api';
 import { errorText, FieldLabel, inputClass, primaryButton, textareaClass } from './ui';

@@ -3,7 +3,7 @@ import {
   SUBSCRIPTION_PAYMENT_METHOD_LABELS,
   SUBSCRIPTION_STATUS_LABELS,
   type SubscriptionStatus,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { fmtDate } from '@/lib/format';
 import { Section } from '../settings/ui';
 import { useSubscription } from './SubscriptionNotice';

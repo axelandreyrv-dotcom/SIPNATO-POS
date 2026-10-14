@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { createSaleSchema } from '@sipnato/shared';
+import { createSaleSchema } from '@dosuxsoft/shared';
 import { readJson, requestMeta, type AppEnv } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { authorizeOrEscalate } from '../../middleware/authorization.js';

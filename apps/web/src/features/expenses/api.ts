@@ -1,5 +1,5 @@
 import { apiFetch } from '../../lib/api-client';
-import type { CreateExpenseInput, Expense, ExpenseList, SupervisorAuth } from '@sipnato/shared';
+import type { CreateExpenseInput, Expense, ExpenseList, SupervisorAuth } from '@dosuxsoft/shared';
 
 export const expensesApi = {
   create(data: CreateExpenseInput): Promise<Expense> {

@@ -7,7 +7,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@sipnato/shared": ["../../packages/shared/src/index.ts"]
+      "@dosuxsoft/shared": ["../../packages/shared/src/index.ts"]
     }
   },
   "include": ["src"],

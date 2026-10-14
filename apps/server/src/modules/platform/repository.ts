@@ -3,7 +3,7 @@ import type {
   PlatformSettings,
   SubscriptionPayment,
   SubscriptionPaymentMethod,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { controlDb } from '../../db/control.js';
 
 // Todo lo de este módulo vive en control.db (el SQLite del Durable Object de la plataforma):

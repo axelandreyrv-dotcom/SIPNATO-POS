@@ -1,5 +1,5 @@
 import { apiFetch } from '../../lib/api-client';
-import type { BoletaSummary, Customer, CustomerList } from '@sipnato/shared';
+import type { BoletaSummary, Customer, CustomerList } from '@dosuxsoft/shared';
 
 export const customersApi = {
   list(q = '', page = 1): Promise<CustomerList> {

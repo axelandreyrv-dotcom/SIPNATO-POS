@@ -1,4 +1,4 @@
-import type { CreateFacturaInput } from '@sipnato/shared';
+import type { CreateFacturaInput } from '@dosuxsoft/shared';
 import { FacturaNoEncontrada, FacturaYaAnulada } from '../../lib/errors.js';
 import {
   anularFacturaRow,

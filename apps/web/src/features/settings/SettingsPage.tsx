@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Loader2, Printer } from 'lucide-react';
-import type { Settings } from '@sipnato/shared';
+import type { Settings } from '@dosuxsoft/shared';
 import { settingsApi } from './api';
 import { FieldLabel, Section, inputClass, textareaClass } from './ui';
 import { ExchangeRateSection, MessagesSection } from './CurrencyAndMessagesSections';

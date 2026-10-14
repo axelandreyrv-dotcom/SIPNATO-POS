@@ -3,7 +3,7 @@ import type {
   CreateUserInput,
   UpdateUserInput,
   UserRecord,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { apiFetch } from '../../lib/api-client';
 
 export const usersApi = {

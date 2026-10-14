@@ -4,7 +4,7 @@
 /* Dark mode via clase .dark — togglable desde localStorage */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Paleta SIPNATO — disponible como bg-brand-navy, text-brand-blue, etc. */
+/* Paleta Dosuxsoft — disponible como bg-brand-navy, text-brand-blue, etc. */
 @theme {
   --color-brand-navy: oklch(24% 0.055 248);
   --color-brand-blue: oklch(54% 0.22 260);

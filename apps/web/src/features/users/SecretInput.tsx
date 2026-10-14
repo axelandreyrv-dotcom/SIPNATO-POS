@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import type { UserRole } from '@sipnato/shared';
+import type { UserRole } from '@dosuxsoft/shared';
 
 // Contraseña para dueño/admin, PIN numérico de 6 dígitos para cajeros.
 export function SecretInput({

@@ -1,4 +1,4 @@
-import { isValidSlug, PLATFORM_SUBDOMAIN } from '@sipnato/shared';
+import { isValidSlug, PLATFORM_SUBDOMAIN } from '@dosuxsoft/shared';
 import type { Env } from './env.js';
 import { HOST_HEADER, TENANT_HEADER } from './lib/constants.js';
 import { AppError, NegocioNoEncontrado } from './lib/errors.js';

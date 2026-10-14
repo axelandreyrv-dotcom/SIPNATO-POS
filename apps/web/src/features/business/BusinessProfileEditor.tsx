@@ -13,7 +13,7 @@ import {
   type OrderField,
   type OrderFieldType,
   type OwnerProfileInput,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { ApiError } from '@/lib/api-client';
 import { useBusiness } from '../auth/useCurrentUser';
 import { businessApi } from './api';

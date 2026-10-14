@@ -3,7 +3,7 @@ import {
   type AssignBusinessInput,
   type BusinessProfile,
   type OwnerProfileInput,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { getProfile, saveProfile } from './repository.js';
 
 interface AuditMeta {

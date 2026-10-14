@@ -8,7 +8,7 @@ import {
   type BusinessProfile,
   type BusinessTemplate,
   type ModuleKey,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { bootstrapTenant } from '../db/bootstrap.js';
 import { runInTenant, type TenantDb } from '../db/client.js';
 import type { TenantStatus } from '../db/control.js';

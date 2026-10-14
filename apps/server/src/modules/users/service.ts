@@ -5,7 +5,7 @@ import {
   type SupervisorAuth,
   type UpdateUserInput,
   type UserRecord,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import type { Actor } from '../../db/client.js';
 import { needsRehash } from '../../lib/argon.js';
 import { DUMMY_HASH, hashPassword, verifyPassword } from '../../lib/crypto.js';

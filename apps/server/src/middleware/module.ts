@@ -1,5 +1,5 @@
 import type { Hono, MiddlewareHandler } from 'hono';
-import type { ModuleKey } from '@sipnato/shared';
+import type { ModuleKey } from '@dosuxsoft/shared';
 import type { AppEnv } from '../lib/http.js';
 import { getProfile } from '../modules/business/repository.js';
 

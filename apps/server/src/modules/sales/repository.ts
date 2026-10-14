@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, inArray, isNull, isNotNull, sql } from 'drizzle-orm';
 import { currentActorId, db } from '../../db/client.js';
 import { auditLog, counters, products, saleItems, sales } from '../../db/schema.js';
-import type { CreateSaleResult, PaymentMethod, Sale, SaleItem } from '@sipnato/shared';
+import type { CreateSaleResult, PaymentMethod, Sale, SaleItem } from '@dosuxsoft/shared';
 import { applyStockChange } from '../products/repository.js';
 
 interface AuditMeta {

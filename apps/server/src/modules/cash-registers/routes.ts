@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { openCashRegisterSchema } from '@sipnato/shared';
+import { openCashRegisterSchema } from '@dosuxsoft/shared';
 import { readJson, requestMeta, type AppEnv } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
 import {

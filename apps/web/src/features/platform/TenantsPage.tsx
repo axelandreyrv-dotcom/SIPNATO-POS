@@ -6,7 +6,7 @@ import {
   TEMPLATE_INFO,
   type PlatformSummary,
   type PlatformTenant,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { platformApi } from './api';
 import { Link } from './router';
 import {

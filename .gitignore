@@ -23,3 +23,10 @@ apps/server/data/*
 # Cloudflare Workers (Fase G)
 .dev.vars
 .wrangler/
+
+# Estado local de plugins de Claude Code (no es código del proyecto)
+.claude-flow/
+.omc/
+.superpowers/
+.claude/proven-config.json
+.claude/.proven-config-version

@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { BoletaWithCustomer, Settings } from '@sipnato/shared';
+import type { BoletaWithCustomer, Settings } from '@dosuxsoft/shared';
 import { settingsApi } from '../settings/api';
 import { fmtDateTime } from '../../lib/format';
 import { useBusiness } from '../auth/useCurrentUser';

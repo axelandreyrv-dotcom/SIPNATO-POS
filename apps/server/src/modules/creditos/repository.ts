@@ -7,7 +7,7 @@ import type {
   Credito,
   CreditoPayment,
   CreditoWithPayments,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 
 type CreditoDbRow = typeof creditos.$inferSelect;
 type PaymentDbRow = typeof creditoPayments.$inferSelect;

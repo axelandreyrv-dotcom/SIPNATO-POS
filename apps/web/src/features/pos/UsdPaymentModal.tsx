@@ -7,7 +7,7 @@ import {
   parseUsdToCents,
   usdCentsToColones,
   type ExchangeRateInfo,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 
 // Cobro con dólares en efectivo. La cuenta es en colones: se muestra el equivalente de
 // lo recibido y el vuelto en colones. El servidor recalcula con su tipo de cambio.

@@ -1,4 +1,4 @@
-import type { BusinessProfile, OwnerProfileInput } from '@sipnato/shared';
+import type { BusinessProfile, OwnerProfileInput } from '@dosuxsoft/shared';
 import { apiFetch } from '../../lib/api-client';
 
 export const businessApi = {

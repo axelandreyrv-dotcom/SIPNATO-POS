@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Check, Copy, MessageCircle } from 'lucide-react';
-import { whatsappLink, type PlatformTenant } from '@sipnato/shared';
+import { whatsappLink, type PlatformTenant } from '@dosuxsoft/shared';
 import { secondaryButton, tenantUrl } from './ui';
 
 // El código se muestra una sola vez: el servidor solo guarda su hash.

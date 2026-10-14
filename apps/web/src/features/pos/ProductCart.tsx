@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, Minus, Plus, ScanBarcode, X } from 'lucide-react';
-import { formatColones, type Product } from '@sipnato/shared';
+import { formatColones, type Product } from '@dosuxsoft/shared';
 import { ApiError } from '@/lib/api-client';
 import { productsApi } from '../products/api';
 

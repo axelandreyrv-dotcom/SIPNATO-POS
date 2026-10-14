@@ -1,5 +1,5 @@
 import { apiFetch } from '../../lib/api-client';
-import type { CreateNoteInput, Note, UpdateNoteInput } from '@sipnato/shared';
+import type { CreateNoteInput, Note, UpdateNoteInput } from '@dosuxsoft/shared';
 
 export const notesApi = {
   list(): Promise<Note[]> {

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { getCookie } from 'hono/cookie';
-import { loginSchema, recoverSchema, setupSchema, type CurrentUser } from '@sipnato/shared';
+import { loginSchema, recoverSchema, setupSchema, type CurrentUser } from '@dosuxsoft/shared';
 import { COOKIE_NAME } from '../../lib/constants.js';
 import {
   clearSessionCookie,

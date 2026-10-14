@@ -4,7 +4,7 @@ import type {
   CashRegisterList,
   CashRegisterTotals,
   OpenCashRegisterInput,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 
 export const cashRegisterApi = {
   getCurrent(): Promise<CashRegisterCurrent | null> {

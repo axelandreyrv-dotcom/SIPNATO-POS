@@ -7,7 +7,7 @@ import {
   ROLE_LABELS,
   type UserRecord,
   type UserRole,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { ApiError } from '@/lib/api-client';
 import { useCurrentUser } from '../auth/useCurrentUser';
 import { usersApi } from './api';

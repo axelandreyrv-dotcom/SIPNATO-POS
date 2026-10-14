@@ -1,7 +1,7 @@
 import { count, eq, like, or } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import { boletas, customers } from '../../db/schema.js';
-import type { BoletaSummary, Customer, CustomerList } from '@sipnato/shared';
+import type { BoletaSummary, Customer, CustomerList } from '@dosuxsoft/shared';
 
 function mapCustomer(r: typeof customers.$inferSelect): Customer {
   return {

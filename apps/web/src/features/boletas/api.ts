@@ -1,5 +1,5 @@
 import { apiFetch } from '../../lib/api-client';
-import type { BoletaList, BoletaWithCustomer, CreateBoletaInput } from '@sipnato/shared';
+import type { BoletaList, BoletaWithCustomer, CreateBoletaInput } from '@dosuxsoft/shared';
 
 export const boletasApi = {
   create(data: CreateBoletaInput): Promise<BoletaWithCustomer> {

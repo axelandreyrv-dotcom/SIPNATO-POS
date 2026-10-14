@@ -1,5 +1,5 @@
 import { ClienteNoEncontrado } from '../../lib/errors.js';
-import type { BoletaSummary, Customer, CustomerList } from '@sipnato/shared';
+import type { BoletaSummary, Customer, CustomerList } from '@dosuxsoft/shared';
 import { findCustomerById, getCustomerBoletasRows, listCustomersRows } from './repository.js';
 
 const PAGE_SIZE = 50;

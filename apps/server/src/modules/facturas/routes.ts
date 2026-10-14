@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { createFacturaSchema } from '@sipnato/shared';
+import { createFacturaSchema } from '@dosuxsoft/shared';
 import { readJson, requestMetaCompact, type AppEnv } from '../../lib/http.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { anularFactura, createFactura, getFactura, listFacturas } from './service.js';

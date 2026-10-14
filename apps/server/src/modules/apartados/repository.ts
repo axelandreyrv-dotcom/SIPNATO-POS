@@ -7,7 +7,7 @@ import type {
   Apartado,
   ApartadoPayment,
   ApartadoWithPayments,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 
 type PaymentDbRow = typeof apartadoPayments.$inferSelect;
 type ApartadoDbRow = typeof apartados.$inferSelect;

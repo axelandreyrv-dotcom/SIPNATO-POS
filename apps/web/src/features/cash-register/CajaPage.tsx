@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, ChevronDown, ChevronUp, Landmark, Loader2, X } from 'lucide-react';
-import type { CashRegisterCurrent, CashRegisterSummary } from '@sipnato/shared';
-import { formatColones, formatUsd } from '@sipnato/shared';
+import type { CashRegisterCurrent, CashRegisterSummary } from '@dosuxsoft/shared';
+import { formatColones, formatUsd } from '@dosuxsoft/shared';
 import { fmtDate, fmtTime } from '../../lib/format';
 import { cashRegisterApi } from './api';
 

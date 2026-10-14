@@ -6,7 +6,7 @@ import type {
   ReportSummary,
   ReportSalesFilter,
   ReportSummaryFilter,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import type { SalesQueryParams } from './repository.js';
 import {
   exportReportSales,

@@ -4,7 +4,7 @@ import {
   type BoletaList,
   type BoletaWithCustomer,
   type CreateBoletaInput,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { getProfile } from '../business/repository.js';
 import { createBoletaRow, findBoletaById, listBoletasRows } from './repository.js';
 

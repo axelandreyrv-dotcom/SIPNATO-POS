@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createRoute, useNavigate } from '@tanstack/react-router';
 import { CheckCircle, Copy, Eye, EyeOff, Loader2, ShieldAlert } from 'lucide-react';
-import { recoverSchema } from '@sipnato/shared';
+import { recoverSchema } from '@dosuxsoft/shared';
 import { ApiError } from '@/lib/api-client';
 import { authApi } from '@/features/auth/api';
 import { AuthShell } from '@/features/auth/AuthShell';

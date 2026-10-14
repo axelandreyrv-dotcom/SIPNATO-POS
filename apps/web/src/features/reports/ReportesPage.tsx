@@ -9,8 +9,8 @@ import {
   Search,
   SlidersHorizontal,
 } from 'lucide-react';
-import { formatColones } from '@sipnato/shared';
-import type { ReportSaleRow, ReportSummary } from '@sipnato/shared';
+import { formatColones } from '@dosuxsoft/shared';
+import type { ReportSaleRow, ReportSummary } from '@dosuxsoft/shared';
 import { fmtDate, fmtDateTime } from '../../lib/format';
 import { reportsApi } from './api';
 

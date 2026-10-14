@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { createQuoteSchema, updateQuoteSchema } from '@sipnato/shared';
+import { createQuoteSchema, updateQuoteSchema } from '@dosuxsoft/shared';
 import { readJson, requestMeta, type AppEnv } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { createQuote, deleteQuote, getQuote, listQuotes, updateQuote } from './service.js';

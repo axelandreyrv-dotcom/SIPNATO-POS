@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { and, desc, eq } from 'drizzle-orm';
-import { recordNotificationSchema, type CustomerNotification } from '@sipnato/shared';
+import { recordNotificationSchema, type CustomerNotification } from '@dosuxsoft/shared';
 import { currentActorId, db } from '../../db/client.js';
 import { customerNotifications, users } from '../../db/schema.js';
 import { getExchangeRateInfo } from '../../lib/exchange-rate.js';

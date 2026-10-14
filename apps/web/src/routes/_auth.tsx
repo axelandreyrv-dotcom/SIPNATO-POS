@@ -1,5 +1,5 @@
 import { createRoute, redirect } from '@tanstack/react-router';
-import type { BusinessProfile, CurrentUser } from '@sipnato/shared';
+import type { BusinessProfile, CurrentUser } from '@dosuxsoft/shared';
 import { AppLayout } from '@/app/layout/AppLayout';
 import { authApi } from '@/features/auth/api';
 import { businessApi } from '@/features/business/api';

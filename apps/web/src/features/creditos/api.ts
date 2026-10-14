@@ -4,7 +4,7 @@ import type {
   Credito,
   CreditoWithPayments,
   CreditoList,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 
 const BASE = '/api/creditos';
 

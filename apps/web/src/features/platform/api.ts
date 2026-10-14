@@ -8,7 +8,7 @@ import type {
   RecordPaymentInput,
   Superadmin,
   UpdateTenantInput,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { apiFetch } from '@/lib/api-client';
 
 const json = (body: unknown) => JSON.stringify(body);

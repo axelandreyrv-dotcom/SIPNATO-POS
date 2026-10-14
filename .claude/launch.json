@@ -4,14 +4,14 @@
     {
       "name": "server",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@sipnato/server", "dev"],
+      "runtimeArgs": ["--filter", "@dosuxsoft/server", "dev"],
       "port": 8787,
       "url": "http://localhost:8787"
     },
     {
       "name": "web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@sipnato/web", "dev"],
+      "runtimeArgs": ["--filter", "@dosuxsoft/web", "dev"],
       "port": 5174,
       "autoPort": false,
       "url": "http://taller.localhost:5174"

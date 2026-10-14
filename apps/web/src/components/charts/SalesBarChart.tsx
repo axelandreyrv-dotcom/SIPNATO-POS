@@ -8,7 +8,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { formatColones } from '@sipnato/shared';
+import { formatColones } from '@dosuxsoft/shared';
 
 // Ventas por día (dashboard y reportes). Se importa con lazy(): Recharts es pesado y solo
 // lo necesitan estas dos pantallas.

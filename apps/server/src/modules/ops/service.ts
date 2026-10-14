@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createTenantSchema, slugSchema, superadminUsernameSchema } from '@sipnato/shared';
+import { createTenantSchema, slugSchema, superadminUsernameSchema } from '@dosuxsoft/shared';
 import { findTenant, listTenants } from '../../db/control.js';
 import { RESTORE_ABORT_REASON } from '../../do/tenant-do.js';
 import { AppError, NegocioNoActivado, NegocioNoEncontrado } from '../../lib/errors.js';

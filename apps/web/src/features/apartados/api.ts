@@ -4,7 +4,7 @@ import type {
   ApartadoList,
   CreateApartadoInput,
   AddApartadoPaymentInput,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 
 const BASE = '/api/apartados';
 

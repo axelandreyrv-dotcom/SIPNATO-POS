@@ -2,7 +2,7 @@ import {
   SUBSCRIPTION_STATUS_LABELS,
   type PlatformTenant,
   type SubscriptionStatus,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { ApiError } from '@/lib/api-client';
 
 export { FieldLabel, inputClass, textareaClass } from '../settings/ui';

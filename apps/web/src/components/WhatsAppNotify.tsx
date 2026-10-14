@@ -9,7 +9,7 @@ import {
   type CustomerNotification,
   type NotificationEvent,
   type RecordNotificationInput,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { apiFetch } from '@/lib/api-client';
 import { fmtDateTime } from '@/lib/format';
 import { settingsApi } from '@/features/settings/api';

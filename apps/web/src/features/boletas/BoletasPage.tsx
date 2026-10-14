@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronUp, Plus, Printer, Search } from 'lucide-react';
-import type { BoletaWithCustomer } from '@sipnato/shared';
+import type { BoletaWithCustomer } from '@dosuxsoft/shared';
 import { fmtDateTime } from '../../lib/format';
 import { boletasApi } from './api';
 import { useBoletaPrint } from './BoletaPrintView';

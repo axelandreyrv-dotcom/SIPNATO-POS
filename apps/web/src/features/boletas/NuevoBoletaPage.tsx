@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { AlertCircle, CheckCircle, ChevronLeft, Loader2, Printer } from 'lucide-react';
-import { validateOrderFields, type BoletaWithCustomer, type OrderField } from '@sipnato/shared';
+import { validateOrderFields, type BoletaWithCustomer, type OrderField } from '@dosuxsoft/shared';
 import { WhatsAppNotify } from '../../components/WhatsAppNotify';
 import { customersApi } from '../customers/api';
 import { useBusiness } from '../auth/useCurrentUser';

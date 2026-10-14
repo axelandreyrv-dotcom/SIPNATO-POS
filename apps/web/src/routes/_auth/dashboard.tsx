@@ -10,14 +10,14 @@ import {
   ShoppingCart,
   TrendingDown,
 } from 'lucide-react';
-import { formatColones, formatExchangeRate, PAYMENT_METHOD_LABELS } from '@sipnato/shared';
+import { formatColones, formatExchangeRate, PAYMENT_METHOD_LABELS } from '@dosuxsoft/shared';
 import type {
   DashboardData,
   DashboardMovement,
   DashboardWeeklyEntry,
   ExchangeRateInfo,
   PaymentMethod,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 import { fmtDateShort, fmtTime } from '../../lib/format';
 import { dashboardApi } from '../../features/dashboard/api';
 import { exchangeRateApi } from '../../features/pos/exchange-rate-api';

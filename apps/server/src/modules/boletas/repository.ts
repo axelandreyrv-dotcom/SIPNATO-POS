@@ -6,7 +6,7 @@ import type {
   BoletaWithCustomer,
   CreateBoletaInput,
   OrderFieldValue,
-} from '@sipnato/shared';
+} from '@dosuxsoft/shared';
 
 interface AuditMeta {
   ip: string | null;

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { createBoletaSchema } from '@sipnato/shared';
+import { createBoletaSchema } from '@dosuxsoft/shared';
 import { readJson, requestMeta, type AppEnv } from '../../lib/http.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { createBoleta, getBoleta, listBoletas } from './service.js';
