@@ -24,6 +24,7 @@ import {
   SupervisorAuthDialog,
   supervisorAuthErrorMessage,
 } from '../../components/SupervisorAuthDialog';
+import { printDocument } from '../../lib/print';
 
 const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'efectivo', label: 'Efectivo' },
@@ -318,7 +319,7 @@ function SalePrintView({ sale, settings }: { sale: Sale; settings: Settings | un
     timeZone: 'America/Costa_Rica',
   });
 
-  const shopName = settings?.shop_name?.trim() || 'Dosuxsoft';
+  const shopName = settings?.shop_name?.trim() ?? '';
   const shopPhone = settings?.shop_phone?.trim();
   const shopId = settings?.shop_id_number?.trim();
   const footer = settings?.receipt_footer?.trim();
@@ -546,16 +547,10 @@ export function POSPage() {
   useEffect(() => {
     if (!salePrintData) return;
     const timer = setTimeout(() => {
-      // Inject 80mm @page override; removed after print() returns
-      const pageStyle = document.createElement('style');
-      pageStyle.textContent = '@media print { @page { size: 80mm auto; margin: 4mm 5mm; } }';
-      document.head.appendChild(pageStyle);
-      document.body.classList.add('print-sale');
-
-      window.print();
-
-      document.body.classList.remove('print-sale');
-      pageStyle.remove();
+      printDocument({
+        title: `Venta ${String(salePrintData.consecutive).padStart(4, '0')}`,
+        ticketPadding: '4mm 5mm',
+      });
       setSalePrintData(null);
     }, 150);
     return () => clearTimeout(timer);

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { formatColones } from '@dosuxsoft/shared';
 import type { FacturaWithItems, Settings } from '@dosuxsoft/shared';
 import { settingsApi } from '../settings/api';
+import { printDocument } from '../../lib/print';
 
 // ── Print overlay — 80mm thermal, reuses .sale-print-overlay infrastructure ────
 function FacturaPrintView({
@@ -13,7 +14,7 @@ function FacturaPrintView({
   factura: FacturaWithItems;
   settings: Settings | undefined;
 }) {
-  const shopName = settings?.shop_name?.trim() || 'Dosuxsoft';
+  const shopName = settings?.shop_name?.trim() ?? '';
   const shopAddress = settings?.shop_address?.trim();
   const shopPhone = settings?.shop_phone?.trim();
   const shopMobile = settings?.shop_mobile?.trim();
@@ -170,15 +171,10 @@ export function useFacturaPrint() {
   useEffect(() => {
     if (!printData) return;
     const timer = setTimeout(() => {
-      const pageStyle = document.createElement('style');
-      pageStyle.textContent = '@media print { @page { size: 80mm auto; margin: 2mm 3mm; } }';
-      document.head.appendChild(pageStyle);
-      document.body.classList.add('print-sale');
-
-      window.print();
-
-      document.body.classList.remove('print-sale');
-      pageStyle.remove();
+      printDocument({
+        title: `Factura ${String(printData.consecutive).padStart(4, '0')}`,
+        ticketPadding: '2mm 3mm',
+      });
       setPrintData(null);
     }, 150);
     return () => clearTimeout(timer);
