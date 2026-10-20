@@ -105,7 +105,7 @@ function Shell({ admin }: { admin: Superadmin }) {
           >
             <img src="/logo.png" alt="" width={24} height={24} aria-hidden />
             <span className="hidden text-sm font-semibold tracking-tight text-white sm:inline">
-              Dosuxsoft <span className="font-normal text-white/50">· Plataforma</span>
+              Dosuxsoft <span className="font-normal text-white/75">· Plataforma</span>
             </span>
           </Link>
 
@@ -121,7 +121,7 @@ function Shell({ admin }: { admin: Superadmin }) {
                     'flex items-center border-b-2 px-2 text-sm transition-colors duration-150',
                     active
                       ? 'border-white font-medium text-white'
-                      : 'border-transparent text-white/60 hover:text-white',
+                      : 'border-transparent text-white/80 hover:text-white',
                   ].join(' ')}
                 >
                   {item.label}
@@ -131,11 +131,11 @@ function Shell({ admin }: { admin: Superadmin }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-1">
-            <span className="mr-2 hidden text-sm text-white/60 sm:inline">@{admin.username}</span>
+            <span className="mr-2 hidden text-sm text-white/80 sm:inline">@{admin.username}</span>
             <button
               type="button"
               onClick={toggle}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-white/85 transition-colors hover:bg-white/15 hover:text-white"
               aria-label={isDark ? 'Modo claro' : 'Modo oscuro'}
             >
               {isDark ? (
@@ -148,7 +148,7 @@ function Shell({ admin }: { admin: Superadmin }) {
               type="button"
               onClick={() => logout.mutate()}
               disabled={logout.isPending}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-white/85 transition-colors hover:bg-white/15 hover:text-white"
               aria-label="Cerrar sesión"
             >
               <LogOut size={18} strokeWidth={1.5} aria-hidden />

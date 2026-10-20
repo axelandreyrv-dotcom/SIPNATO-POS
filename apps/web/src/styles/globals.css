@@ -6,7 +6,7 @@
 
 /* Paleta Dosuxsoft — disponible como bg-brand-navy, text-brand-blue, etc. */
 @theme {
-  --color-brand-navy: oklch(24% 0.055 248);
+  --color-brand-navy: #0758d6;
   --color-brand-blue: oklch(54% 0.22 260);
   --color-brand-blue-light: oklch(94% 0.06 250);
   --color-brand-success: oklch(47% 0.15 145);
