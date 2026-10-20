@@ -34,10 +34,10 @@
    desplegables, barras de desplazamiento, autocompletado) aunque la app esté en modo oscuro. */
 .dark {
   color-scheme: dark;
-  --color-surface-bg: #222831;
-  --color-surface-card: #2a313b;
-  --color-surface-input: #1e242c;
-  --color-border: #3a424e;
+  --color-surface-bg: #171717;
+  --color-surface-card: #212121;
+  --color-surface-input: #1b1b1b;
+  --color-border: #333333;
   --color-text-primary: oklch(96% 0.006 250);
   --color-text-secondary: oklch(70% 0.01 250);
   --color-text-muted: oklch(60% 0.01 250);
