@@ -19,7 +19,12 @@ const btnDanger = btnBase + ' bg-brand-error';
 const btnSecondary =
   'flex flex-1 h-9 items-center justify-center rounded-lg border border-border text-sm text-text-secondary transition-colors hover:bg-surface-bg';
 
-type TotalsRow = { label: string; value: number; accent?: boolean; negative?: boolean };
+type TotalsRow = { label: string; value: number; negative?: boolean };
+
+// Todos los montos de la caja van en un solo color: el signo es lo que marca un negativo.
+function signedColones(amount: number): string {
+  return (amount < 0 ? '−' : '') + formatColones(Math.abs(amount));
+}
 
 function TotalsGrid({ totals }: { totals: CashRegisterCurrent['totals'] }) {
   const rows: TotalsRow[] = [
@@ -28,21 +33,17 @@ function TotalsGrid({ totals }: { totals: CashRegisterCurrent['totals'] }) {
     { label: 'Transferencia', value: totals.salesTransferencia },
     { label: 'SINPE', value: totals.salesSinpe },
     ...(totals.salesDolares > 0 ? [{ label: 'Dólares (en ₡)', value: totals.salesDolares }] : []),
-    { label: 'Total ventas', value: totals.totalSales, accent: true },
+    { label: 'Total ventas', value: totals.totalSales },
     { label: 'Gastos', value: totals.totalExpenses, negative: true },
   ];
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-      {rows.map(({ label, value, accent, negative }) => (
+      {rows.map(({ label, value, negative }) => (
         <div key={label} className="rounded-lg border border-border bg-surface-card p-3">
           <p className="text-xs text-text-muted">{label}</p>
-          <p
-            className={[
-              'mt-1 text-[15px] font-semibold tabular-nums',
-              accent ? 'text-brand-blue' : negative ? 'text-brand-error' : 'text-text-primary',
-            ].join(' ')}
-          >
+          <p className="mt-1 text-[15px] font-semibold tabular-nums text-text-primary">
+            {negative ? '−' : ''}
             {formatColones(value)}
           </p>
         </div>
@@ -56,10 +57,10 @@ function TotalsGrid({ totals }: { totals: CashRegisterCurrent['totals'] }) {
 function UsdCashRow({ totals }: { totals: CashRegisterCurrent['totals'] }) {
   if (totals.usdReceivedCents === 0) return null;
   return (
-    <div className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-brand-success/30 bg-brand-success/30">
+    <div className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border">
       <div className="bg-surface-card px-4 py-3">
         <p className="text-xs text-text-muted">Dólares en caja</p>
-        <p className="mt-1 text-base font-semibold tabular-nums text-brand-success">
+        <p className="mt-1 text-base font-semibold tabular-nums text-text-primary">
           {formatUsd(totals.usdReceivedCents)}
         </p>
       </div>
@@ -77,13 +78,8 @@ function NetRow({ amount }: { amount: number }) {
   return (
     <div className="mt-3 flex items-center justify-between rounded-lg border border-border bg-surface-bg px-4 py-3">
       <span className="text-sm font-medium text-text-secondary">Balance neto</span>
-      <span
-        className={[
-          'text-base font-semibold tabular-nums',
-          amount >= 0 ? 'text-brand-success' : 'text-brand-error',
-        ].join(' ')}
-      >
-        {formatColones(amount)}
+      <span className="text-base font-semibold tabular-nums text-text-primary">
+        {signedColones(amount)}
       </span>
     </div>
   );
@@ -269,20 +265,16 @@ function HistoryRow({ register }: { register: CashRegisterSummary }) {
                 Cerrada{register.closeType === 'auto' ? ' (auto)' : ''}
               </span>
             ) : (
-              <span className="inline-flex items-center rounded-full bg-brand-success/10 px-2 py-0.5 text-xs font-medium text-brand-success">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-bg px-2 py-0.5 text-xs font-medium text-text-primary">
+                <span className="h-1.5 w-1.5 rounded-full bg-brand-success" aria-hidden />
                 Abierta
               </span>
             )}
           </div>
         </div>
         {register.netBalance !== null && (
-          <span
-            className={[
-              'shrink-0 text-sm font-semibold tabular-nums',
-              register.netBalance >= 0 ? 'text-brand-success' : 'text-brand-error',
-            ].join(' ')}
-          >
-            {formatColones(register.netBalance)}
+          <span className="shrink-0 text-sm font-semibold tabular-nums text-text-primary">
+            {signedColones(register.netBalance)}
           </span>
         )}
         {expanded ? (
@@ -349,7 +341,7 @@ function OpenRegisterCard({
     <div className="rounded-xl border border-border bg-surface-card p-5">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-brand-success/10 px-2.5 py-1 text-xs font-medium text-brand-success">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-bg px-2.5 py-1 text-xs font-medium text-text-primary">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-success" aria-hidden />
             Caja abierta
           </div>
