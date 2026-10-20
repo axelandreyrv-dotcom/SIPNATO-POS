@@ -33,18 +33,18 @@ export function tenantUrl(slug: string): string {
   return `${window.location.protocol}//${tenantHost(slug)}`;
 }
 
-const STATUS_STYLE: Record<SubscriptionStatus, string> = {
-  al_dia: 'bg-brand-success/10 text-brand-success',
-  por_vencer: 'bg-brand-warning/12 text-brand-warning',
-  vencido: 'bg-brand-error/10 text-brand-error',
-  sin_cobro: 'bg-border text-text-secondary',
+// Etiqueta neutra; solo el punto lleva el color del estado (mismo criterio que la caja).
+const STATUS_DOT: Record<SubscriptionStatus, string> = {
+  al_dia: 'bg-brand-success',
+  por_vencer: 'bg-brand-warning',
+  vencido: 'bg-brand-error',
+  sin_cobro: 'bg-text-muted',
 };
 
 export function SubscriptionBadge({ status }: { status: SubscriptionStatus }) {
   return (
-    <span
-      className={`inline-flex h-6 items-center rounded-md px-2 text-xs font-medium ${STATUS_STYLE[status]}`}
-    >
+    <span className="inline-flex h-6 items-center gap-1.5 rounded-md border border-border bg-surface-bg px-2 text-xs font-medium text-text-primary">
+      <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[status]}`} aria-hidden />
       {SUBSCRIPTION_STATUS_LABELS[status]}
     </span>
   );
@@ -61,7 +61,8 @@ export function SuspendedBadge() {
 // Su Durable Object no respondió: lo que dice de activación, tipo y módulos no es real.
 export function UnavailableBadge() {
   return (
-    <span className="inline-flex h-6 items-center rounded-md bg-brand-warning/12 px-2 text-xs font-medium text-brand-warning">
+    <span className="inline-flex h-6 items-center gap-1.5 rounded-md border border-border bg-surface-bg px-2 text-xs font-medium text-text-primary">
+      <span className="h-1.5 w-1.5 rounded-full bg-brand-warning" aria-hidden />
       No disponible
     </span>
   );
