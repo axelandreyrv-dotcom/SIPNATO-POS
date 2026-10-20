@@ -196,7 +196,7 @@ export function AppLayout() {
     // (p. ej. los `sr-only`) no puede alargar la página ni hacer que el navegador la desplace entera.
     <div className="flex h-[100dvh] w-full overflow-hidden">
       {/* ── Desktop sidebar ──────────────────────────────────────────────── */}
-      <aside className="hidden sm:flex sm:w-60 sm:shrink-0 flex-col bg-brand-navy">
+      <aside className="hidden sm:flex sm:w-60 sm:shrink-0 flex-col border-r border-white/10 bg-brand-navy">
         <div className="px-4 py-5">
           <Logo />
         </div>
