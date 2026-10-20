@@ -18,6 +18,7 @@ import { fmtDate } from '../../lib/format';
 import { settingsApi } from '../settings/api';
 import { quotesApi } from './api';
 import { WhatsAppNotify } from '../../components/WhatsAppNotify';
+import { printDocument } from '../../lib/print';
 
 // ── Print view (portal, only visible on print) ───────────────────────────────
 function QuotePrintView({
@@ -34,7 +35,7 @@ function QuotePrintView({
     timeZone: 'America/Costa_Rica',
   });
 
-  const shopName = settings?.shop_name?.trim() || 'Dosuxsoft';
+  const shopName = settings?.shop_name?.trim() ?? '';
   const shopPhone = settings?.shop_phone?.trim();
   const shopId = settings?.shop_id_number?.trim();
   const quoteFooter = settings?.quote_footer?.trim();
@@ -399,7 +400,7 @@ export function QuotesPage() {
   useEffect(() => {
     if (!printData) return;
     const timer = setTimeout(() => {
-      window.print();
+      printDocument({ title: `Cotización ${String(printData.consecutive).padStart(3, '0')}` });
       setPrintData(null);
     }, 150);
     return () => clearTimeout(timer);

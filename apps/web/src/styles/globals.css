@@ -89,12 +89,13 @@ html {
 }
 
 @media print {
-  /* — Cotizaciones (A4 / carta) — */
-  body:not(.print-sale) {
-    @page {
-      margin: 0;
-    }
+  /* Sin margen, Chrome no imprime título, fecha ni URL (ver lib/print.ts). @page no puede ir
+     dentro de otra regla: anidado se ignora. Los tickets lo reemplazan con su tamaño de 80mm. */
+  @page {
+    margin: 0;
   }
+
+  /* — Cotizaciones (A4 / carta) — */
   body:not(.print-sale) > *:not(.quote-print-overlay) {
     display: none !important;
   }

@@ -10,6 +10,7 @@ import { BackupSection } from './BackupSection';
 import { SubscriptionSection } from '../subscription/SubscriptionSection';
 import { ApiError } from '@/lib/api-client';
 import { BusinessProfileEditor } from '../business/BusinessProfileEditor';
+import { printDocument } from '../../lib/print';
 
 function PrintSection({ settings }: { settings: Settings | null }) {
   const [testPrint, setTestPrint] = useState(false);
@@ -17,19 +18,13 @@ function PrintSection({ settings }: { settings: Settings | null }) {
   useEffect(() => {
     if (!testPrint) return;
     const timer = setTimeout(() => {
-      const pageStyle = document.createElement('style');
-      pageStyle.textContent = '@media print { @page { size: 80mm auto; margin: 4mm 5mm; } }';
-      document.head.appendChild(pageStyle);
-      document.body.classList.add('print-sale');
-      window.print();
-      document.body.classList.remove('print-sale');
-      pageStyle.remove();
+      printDocument({ title: 'Ticket de prueba', ticketPadding: '4mm 5mm' });
       setTestPrint(false);
     }, 150);
     return () => clearTimeout(timer);
   }, [testPrint]);
 
-  const shopName = settings?.shop_name?.trim() || 'Dosuxsoft';
+  const shopName = settings?.shop_name?.trim() ?? '';
   const shopAddress = settings?.shop_address?.trim();
   const shopPhone = settings?.shop_phone?.trim();
   const shopMobile = settings?.shop_mobile?.trim();
