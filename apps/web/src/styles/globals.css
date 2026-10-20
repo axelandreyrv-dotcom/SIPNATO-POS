@@ -7,6 +7,8 @@
 /* Paleta Dosuxsoft — disponible como bg-brand-navy, text-brand-blue, etc. */
 @theme {
   --color-brand-navy: #0a2947;
+  /* Menú lateral: igual a la marca en claro; en oscuro tiene su propio tono (.dark) */
+  --color-brand-menu: #0a2947;
   --color-brand-blue: oklch(54% 0.22 260);
   --color-brand-blue-light: oklch(94% 0.06 250);
   --color-brand-success: oklch(47% 0.15 145);
@@ -34,6 +36,7 @@
    desplegables, barras de desplazamiento, autocompletado) aunque la app esté en modo oscuro. */
 .dark {
   color-scheme: dark;
+  --color-brand-menu: #1d1616;
   --color-surface-bg: oklch(10% 0.015 250);
   --color-surface-card: oklch(16% 0.02 250);
   --color-surface-input: oklch(13% 0.018 250);
