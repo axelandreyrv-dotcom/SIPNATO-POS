@@ -65,14 +65,6 @@ function downloadCsv(rows: ReportSaleRow[], filename: string): void {
 
 // ── Method display maps ────────────────────────────────────────────────────
 
-const METHOD_BADGE: Record<string, string> = {
-  efectivo: 'bg-brand-success/10 text-brand-success',
-  tarjeta: 'bg-brand-warning/10 text-brand-warning',
-  transferencia: 'bg-text-muted/10 text-text-secondary',
-  sinpe: 'bg-brand-blue/10 text-brand-blue',
-  dolares: 'bg-brand-success/10 text-brand-success',
-};
-
 // Cortas a propósito: la columna de método de la tabla mide ~55 px.
 const METHOD_LABEL: Record<string, string> = {
   efectivo: 'Efectivo',
@@ -566,9 +558,7 @@ export function ReportesPage() {
                         )}
                       </td>
                       <td className="px-4 py-2.5">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${METHOD_BADGE[sale.paymentMethod] ?? 'bg-border text-text-secondary'}`}
-                        >
+                        <span className="inline-flex items-center rounded-full border border-border bg-surface-bg px-2 py-0.5 text-xs font-medium text-text-secondary">
                           {METHOD_LABEL[sale.paymentMethod] ?? sale.paymentMethod}
                         </span>
                       </td>

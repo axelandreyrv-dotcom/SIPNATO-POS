@@ -120,7 +120,7 @@ function Detail({ detail }: { detail: PlatformTenantDetail }) {
         <Fact label="Pagado hasta">
           {t.paidUntil ? fmtDate(t.paidUntil) : '—'}
           <span
-            className={`block text-xs font-normal ${t.subscription === 'vencido' ? 'text-brand-error' : 'text-text-muted'}`}
+            className={`block text-xs ${t.subscription === 'vencido' ? 'font-medium text-text-primary' : 'font-normal text-text-muted'}`}
           >
             {dueText(t)}
           </span>

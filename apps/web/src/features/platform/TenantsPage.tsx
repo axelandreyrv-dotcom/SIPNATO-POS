@@ -163,18 +163,10 @@ export function TenantsPage() {
 }
 
 function SummaryStrip({ summary }: { summary: PlatformSummary }) {
-  const cells: { label: string; value: string; tone?: string | undefined }[] = [
+  const cells: { label: string; value: string }[] = [
     { label: 'Activos', value: String(summary.active) },
-    {
-      label: 'Vencidos',
-      value: String(summary.overdue),
-      tone: summary.overdue > 0 ? 'text-brand-error' : undefined,
-    },
-    {
-      label: 'Por vencer',
-      value: String(summary.dueSoon),
-      tone: summary.dueSoon > 0 ? 'text-brand-warning' : undefined,
-    },
+    { label: 'Vencidos', value: String(summary.overdue) },
+    { label: 'Por vencer', value: String(summary.dueSoon) },
     { label: 'Mensualidades', value: formatColones(summary.monthlyRevenue) },
     { label: 'Cobrado este mes', value: formatColones(summary.collectedThisMonth) },
   ];
@@ -186,11 +178,7 @@ function SummaryStrip({ summary }: { summary: PlatformSummary }) {
           className={`bg-surface-card px-4 py-3 ${i === cells.length - 1 ? 'col-span-2 sm:col-span-1' : ''}`}
         >
           <dt className="text-xs text-text-muted">{c.label}</dt>
-          <dd
-            className={`mt-0.5 text-lg font-semibold tabular-nums ${c.tone ?? 'text-text-primary'}`}
-          >
-            {c.value}
-          </dd>
+          <dd className="mt-0.5 text-lg font-semibold tabular-nums text-text-primary">{c.value}</dd>
         </div>
       ))}
     </dl>
@@ -229,7 +217,7 @@ function TenantRow({ tenant: t }: { tenant: PlatformTenant }) {
             )
           )}
           <span
-            className={`text-xs ${urgent ? 'font-medium text-brand-error' : 'text-text-secondary'}`}
+            className={`text-xs ${urgent ? 'font-medium text-text-primary' : 'text-text-secondary'}`}
           >
             {dueText(t)}
           </span>

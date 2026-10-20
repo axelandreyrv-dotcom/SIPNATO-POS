@@ -135,9 +135,7 @@ function DeltaBadge({ pct }: { pct: number | null }) {
   }
   const up = rounded > 0;
   return (
-    <span
-      className={`flex items-center gap-0.5 text-xs font-medium ${up ? 'text-brand-success' : 'text-brand-error'}`}
-    >
+    <span className="flex items-center gap-0.5 text-xs font-medium text-text-secondary">
       {up ? (
         <ArrowUpRight size={13} strokeWidth={1.5} aria-hidden />
       ) : (
@@ -150,12 +148,6 @@ function DeltaBadge({ pct }: { pct: number | null }) {
 
 function KpiStrip({ data }: { data: DashboardData }) {
   const { totalSales, totalExpenses, netBalance, boletasCount, salesDeltaPct } = data.today;
-  const balanceColor =
-    netBalance > 0
-      ? 'text-brand-success'
-      : netBalance < 0
-        ? 'text-brand-error'
-        : 'text-text-primary';
   const { ordersLabel, modules } = useBusiness();
   const showOrders = modules.includes('ordenes');
 
@@ -186,7 +178,7 @@ function KpiStrip({ data }: { data: DashboardData }) {
 
       <div className="bg-surface-card px-4 py-4">
         <p className="text-xs text-text-muted">Balance del día</p>
-        <p className={`mt-1 text-2xl font-semibold tabular-nums ${balanceColor}`}>
+        <p className="mt-1 text-2xl font-semibold tabular-nums text-text-primary">
           {netBalance < 0 ? '−' : ''}
           {formatColones(Math.abs(netBalance))}
         </p>
@@ -301,11 +293,7 @@ function MovementRow({ mv }: { mv: DashboardMovement }) {
 
   return (
     <li className="flex items-center gap-3 py-2.5">
-      <span
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-          isSale ? 'bg-brand-success/10 text-brand-success' : 'bg-brand-error/10 text-brand-error'
-        }`}
-      >
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-bg text-text-secondary">
         <Icon size={16} strokeWidth={1.5} aria-hidden />
       </span>
       <div className="min-w-0 flex-1">
@@ -316,11 +304,7 @@ function MovementRow({ mv }: { mv: DashboardMovement }) {
           {fmtTime(mv.createdAt)} · {sub}
         </p>
       </div>
-      <span
-        className={`shrink-0 text-sm font-medium tabular-nums ${
-          isSale ? 'text-brand-success' : 'text-brand-error'
-        }`}
-      >
+      <span className="shrink-0 text-sm font-medium tabular-nums text-text-primary">
         {isSale ? '+' : '−'}
         {formatColones(mv.amount)}
       </span>
@@ -425,7 +409,7 @@ function ApartadosCard({ data }: { data: DashboardData }) {
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-surface-bg">
                     <div
-                      className="h-full rounded-full bg-brand-success transition-[width] duration-500"
+                      className="h-full rounded-full bg-brand-blue transition-[width] duration-500"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
