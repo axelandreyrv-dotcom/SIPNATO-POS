@@ -50,14 +50,14 @@ export function AuthShell({ children }: AuthShellProps) {
               <br />
               tu sistema.
             </p>
-            <p className="text-sm text-white/50">
+            <p className="text-sm text-white/75">
               Gestión de ventas, caja y clientes en un solo lugar.
             </p>
           </div>
         </div>
 
         {/* Footer detail */}
-        <p className="relative z-10 text-xs text-white/25">Costa Rica · Dosuxsoft</p>
+        <p className="relative z-10 text-xs text-white/50">Costa Rica · Dosuxsoft</p>
       </aside>
 
       {/* ── Form panel ────────────────────────────────────────────── */}

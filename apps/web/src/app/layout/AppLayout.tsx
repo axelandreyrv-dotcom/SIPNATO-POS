@@ -89,8 +89,8 @@ function NavItem({ to, label, icon: Icon, exact, onClick }: NavItemProps) {
       className={[
         'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150',
         isActive
-          ? 'bg-white/[0.12] text-white font-medium'
-          : 'text-white/60 hover:bg-white/[0.06] hover:text-white/90',
+          ? 'bg-white/[0.18] text-white font-medium'
+          : 'text-white/80 hover:bg-white/[0.1] hover:text-white',
       ].join(' ')}
     >
       <Icon size={18} strokeWidth={1.5} aria-hidden />
@@ -140,7 +140,7 @@ function SidebarNav({ onNav }: { onNav?: () => void }) {
           {...(onNav ? { onClick: onNav } : {})}
           className={[
             'flex items-center gap-3 rounded-lg px-3 py-2 transition-colors duration-150',
-            onAccount ? 'bg-white/[0.12]' : 'hover:bg-white/[0.06]',
+            onAccount ? 'bg-white/[0.18]' : 'hover:bg-white/[0.1]',
           ].join(' ')}
         >
           <span
@@ -153,14 +153,14 @@ function SidebarNav({ onNav }: { onNav?: () => void }) {
             <span className="block truncate text-sm font-medium text-white">
               {user.displayName}
             </span>
-            <span className="block text-xs text-white/50">{ROLE_LABELS[user.role]}</span>
+            <span className="block text-xs text-white/75">{ROLE_LABELS[user.role]}</span>
           </span>
         </Link>
 
         <button
           type="button"
           onClick={toggle}
-          className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/60 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white/90"
+          className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/80 transition-colors duration-150 hover:bg-white/[0.1] hover:text-white"
           aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
         >
           {isDark ? (
@@ -174,7 +174,7 @@ function SidebarNav({ onNav }: { onNav?: () => void }) {
         <button
           type="button"
           onClick={() => void handleLogout()}
-          className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/60 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white/90"
+          className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/80 transition-colors duration-150 hover:bg-white/[0.1] hover:text-white"
         >
           <LogOut size={18} strokeWidth={1.5} aria-hidden />
           <span>Cerrar sesión</span>
@@ -211,7 +211,7 @@ export function AppLayout() {
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-white/85 transition-colors hover:bg-white/15 hover:text-white"
           aria-label="Abrir menú"
           aria-expanded={drawerOpen}
         >
@@ -237,7 +237,7 @@ export function AppLayout() {
               <button
                 type="button"
                 onClick={closeDrawer}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/85 transition-colors hover:bg-white/15 hover:text-white"
                 aria-label="Cerrar menú"
               >
                 <X size={18} strokeWidth={1.5} aria-hidden />
