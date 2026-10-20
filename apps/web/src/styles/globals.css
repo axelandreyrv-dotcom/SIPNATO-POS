@@ -30,7 +30,10 @@
 }
 
 /* Dark-mode semantic overrides */
+/* color-scheme: sin él, el navegador pinta claros los controles nativos (calendario, listas
+   desplegables, barras de desplazamiento, autocompletado) aunque la app esté en modo oscuro. */
 .dark {
+  color-scheme: dark;
   --color-surface-bg: oklch(10% 0.015 250);
   --color-surface-card: oklch(16% 0.02 250);
   --color-surface-input: oklch(13% 0.018 250);
@@ -42,6 +45,7 @@
 
 /* Base */
 html {
+  color-scheme: light;
   background-color: var(--color-surface-bg);
   font-feature-settings: 'cv01', 'cv02', 'cv03', 'cv04';
   -webkit-font-smoothing: antialiased;

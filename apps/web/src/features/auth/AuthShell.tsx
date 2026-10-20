@@ -70,8 +70,7 @@ export function AuthShell({ children }: AuthShellProps) {
             width={28}
             height={28}
             aria-hidden
-            className="shrink-0"
-            style={{ filter: 'invert(1)' }}
+            className="shrink-0 invert dark:invert-0"
           />
           <span className="text-base font-semibold tracking-tight text-text-primary">
             Dosuxsoft
