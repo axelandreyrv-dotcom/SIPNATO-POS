@@ -89,40 +89,25 @@ const SalesBarChart = lazy(() => import('../../components/charts/SalesBarChart')
 interface SummaryCell {
   label: string;
   value: number | undefined;
-  color: string;
   prefix?: string;
 }
 
 function SummaryGrid({ data, loading }: { data: ReportSummary | undefined; loading: boolean }) {
   const cells: SummaryCell[] = [
-    { label: 'Efectivo', value: data?.byPaymentMethod.efectivo, color: 'text-brand-success' },
-    { label: 'Tarjeta', value: data?.byPaymentMethod.tarjeta, color: 'text-brand-warning' },
-    { label: 'SINPE', value: data?.byPaymentMethod.sinpe, color: 'text-brand-blue' },
-    {
-      label: 'Transferencia',
-      value: data?.byPaymentMethod.transferencia,
-      color: 'text-text-secondary',
-    },
+    { label: 'Efectivo', value: data?.byPaymentMethod.efectivo },
+    { label: 'Tarjeta', value: data?.byPaymentMethod.tarjeta },
+    { label: 'SINPE', value: data?.byPaymentMethod.sinpe },
+    { label: 'Transferencia', value: data?.byPaymentMethod.transferencia },
     // Solo si hubo cobros en dólares en el periodo (valorados en colones).
     ...(data && data.byPaymentMethod.dolares > 0
-      ? [
-          {
-            label: 'Dólares (en ₡)',
-            value: data.byPaymentMethod.dolares,
-            color: 'text-brand-success',
-          },
-        ]
+      ? [{ label: 'Dólares (en ₡)', value: data.byPaymentMethod.dolares }]
       : []),
-    { label: 'Gastos', value: data?.totalExpenses, color: 'text-brand-error', prefix: '−' },
+    { label: 'Gastos', value: data?.totalExpenses, prefix: '−' },
+    // Todos los montos van en un solo color: el signo es lo que marca un balance negativo.
     {
       label: 'Balance neto',
       value: data?.netBalance,
-      color:
-        data === undefined
-          ? 'text-text-primary'
-          : data.netBalance >= 0
-            ? 'text-brand-success'
-            : 'text-brand-error',
+      ...(data && data.netBalance < 0 ? { prefix: '−' } : {}),
     },
   ];
 
@@ -136,7 +121,7 @@ function SummaryGrid({ data, loading }: { data: ReportSummary | undefined; loadi
         wide ? 'sm:grid-cols-4' : 'sm:grid-cols-3',
       ].join(' ')}
     >
-      {cells.map(({ label, value, color, prefix }, i) => (
+      {cells.map(({ label, value, prefix }, i) => (
         <div
           key={label}
           className={[
@@ -148,7 +133,7 @@ function SummaryGrid({ data, loading }: { data: ReportSummary | undefined; loadi
           {loading || value === undefined ? (
             <div className="h-5 w-24 animate-pulse rounded bg-border" />
           ) : (
-            <p className={`text-lg font-semibold tabular-nums ${color}`}>
+            <p className="text-lg font-semibold tabular-nums text-text-primary">
               {prefix ?? ''}
               {formatColones(Math.abs(value))}
             </p>
