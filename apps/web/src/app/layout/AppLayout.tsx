@@ -196,7 +196,7 @@ export function AppLayout() {
     // (p. ej. los `sr-only`) no puede alargar la página ni hacer que el navegador la desplace entera.
     <div className="flex h-[100dvh] w-full overflow-hidden">
       {/* ── Desktop sidebar ──────────────────────────────────────────────── */}
-      <aside className="hidden sm:flex sm:w-60 sm:shrink-0 flex-col bg-brand-menu">
+      <aside className="hidden sm:flex sm:w-60 sm:shrink-0 flex-col bg-brand-navy">
         <div className="px-4 py-5">
           <Logo />
         </div>
@@ -231,7 +231,7 @@ export function AppLayout() {
           {/* Scrim */}
           <div className="absolute inset-0 bg-black/50" onClick={closeDrawer} aria-hidden />
           {/* Panel */}
-          <aside className="absolute left-0 top-0 flex h-full w-72 flex-col bg-brand-menu shadow-[0_8px_32px_-4px_oklch(0%_0_0/0.22)]">
+          <aside className="absolute left-0 top-0 flex h-full w-72 flex-col bg-brand-navy shadow-[0_8px_32px_-4px_oklch(0%_0_0/0.22)]">
             <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
               <Logo />
               <button
