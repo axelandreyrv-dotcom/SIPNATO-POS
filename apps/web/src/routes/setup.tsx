@@ -108,7 +108,7 @@ function SetupPage() {
               className="mt-0.5 shrink-0 text-brand-success"
             />
             <div>
-              <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+              <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
                 Cuenta creada
               </h1>
               <p className="mt-1 text-sm text-text-muted">Dosuxsoft está listo para usar.</p>
@@ -116,7 +116,7 @@ function SetupPage() {
           </div>
 
           {/* Warning box */}
-          <div className="rounded-xl border border-brand-warning/30 bg-brand-warning/8 p-4">
+          <div className="rounded-2xl border border-brand-warning/30 bg-brand-warning/8 p-4">
             <div className="mb-2 flex items-center gap-2">
               <ShieldAlert size={15} strokeWidth={1.5} className="text-brand-warning" />
               <p className="text-xs font-semibold uppercase tracking-wide text-brand-warning">
@@ -132,7 +132,7 @@ function SetupPage() {
           {/* Recovery code */}
           <div className="space-y-2">
             <p className="text-sm font-medium text-text-secondary">Código de recuperación</p>
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-input p-3">
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-input p-3">
               <code className="flex-1 break-all font-mono text-sm tracking-wider text-text-primary">
                 {recoveryCode}
               </code>
@@ -161,7 +161,7 @@ function SetupPage() {
             type="button"
             onClick={() => void navigate({ to: '/' })}
             className={[
-              'flex h-10 w-full items-center justify-center rounded-lg',
+              'flex h-10 w-full items-center justify-center rounded-full',
               'bg-brand-blue text-sm font-medium text-white',
               'transition-all duration-150 hover:brightness-110 active:scale-[0.98]',
             ].join(' ')}
@@ -178,7 +178,7 @@ function SetupPage() {
       <div className="space-y-8">
         {/* Heading */}
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
             Configurar sistema
           </h1>
           <p className="mt-1 text-sm text-text-muted">Primera configuración de Dosuxsoft</p>
@@ -204,7 +204,7 @@ function SetupPage() {
                 if (errors.setupCode) setErrors(({ setupCode: _s, ...rest }) => rest);
               }}
               className={[
-                'h-10 w-full rounded-lg border px-3 font-mono text-sm tracking-wider text-text-primary',
+                'h-10 w-full rounded-full border px-3 font-mono text-sm tracking-wider text-text-primary',
                 'bg-surface-input outline-none transition-all duration-150 placeholder:text-text-muted',
                 errors.setupCode
                   ? 'border-brand-error ring-1 ring-brand-error/20'
@@ -262,7 +262,7 @@ function SetupPage() {
                   }}
                   placeholder={placeholder}
                   className={[
-                    'h-10 w-full rounded-lg border px-3 text-sm text-text-primary',
+                    'h-10 w-full rounded-full border px-3 text-sm text-text-primary',
                     'bg-surface-input outline-none transition-all duration-150 placeholder:text-text-muted',
                     errors[field]
                       ? 'border-brand-error ring-1 ring-brand-error/20'
@@ -294,7 +294,7 @@ function SetupPage() {
                   if (errors.password) setErrors(({ password: _p, ...rest }) => rest);
                 }}
                 className={[
-                  'h-10 w-full rounded-lg border px-3 pr-10 text-sm text-text-primary',
+                  'h-10 w-full rounded-full border px-3 pr-10 text-sm text-text-primary',
                   'bg-surface-input outline-none transition-all duration-150 placeholder:text-text-muted',
                   errors.password
                     ? 'border-brand-error ring-1 ring-brand-error/20'
@@ -342,7 +342,7 @@ function SetupPage() {
                   if (errors.confirmPassword) setErrors(({ confirmPassword: _c, ...rest }) => rest);
                 }}
                 className={[
-                  'h-10 w-full rounded-lg border px-3 pr-10 text-sm text-text-primary',
+                  'h-10 w-full rounded-full border px-3 pr-10 text-sm text-text-primary',
                   'bg-surface-input outline-none transition-all duration-150 placeholder:text-text-muted',
                   errors.confirmPassword
                     ? 'border-brand-error ring-1 ring-brand-error/20'
@@ -379,7 +379,7 @@ function SetupPage() {
             type="submit"
             disabled={loading}
             className={[
-              'flex h-10 w-full items-center justify-center gap-2 rounded-lg',
+              'flex h-10 w-full items-center justify-center gap-2 rounded-full',
               'bg-brand-blue text-sm font-medium text-white',
               'transition-all duration-150 hover:brightness-110 active:scale-[0.98] active:brightness-95',
               'disabled:cursor-not-allowed disabled:opacity-60',

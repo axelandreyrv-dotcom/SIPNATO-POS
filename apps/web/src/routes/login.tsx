@@ -72,7 +72,9 @@ function LoginPage() {
       <div className="space-y-8">
         {/* Heading */}
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-text-primary">Iniciar sesión</h1>
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+            Iniciar sesión
+          </h1>
           <p className="mt-1 text-sm text-text-muted">Acceso al sistema Dosuxsoft</p>
         </div>
 
@@ -96,7 +98,7 @@ function LoginPage() {
                 if (error) setError(null);
               }}
               className={[
-                'h-10 w-full rounded-lg border px-3 text-sm text-text-primary',
+                'h-10 w-full rounded-full border px-3 text-sm text-text-primary',
                 'bg-surface-input outline-none transition-all duration-150',
                 error
                   ? 'border-brand-error ring-1 ring-brand-error/20'
@@ -121,7 +123,7 @@ function LoginPage() {
                   if (error) setError(null);
                 }}
                 className={[
-                  'h-10 w-full rounded-lg border px-3 pr-10 text-sm text-text-primary',
+                  'h-10 w-full rounded-full border px-3 pr-10 text-sm text-text-primary',
                   'bg-surface-input outline-none transition-all duration-150',
                   'placeholder:text-text-muted',
                   error
@@ -160,7 +162,7 @@ function LoginPage() {
             disabled={loading}
             className={[
               'login-submit',
-              'relative flex h-10 w-full items-center justify-center gap-2 rounded-lg overflow-hidden',
+              'relative flex h-10 w-full items-center justify-center gap-2 rounded-full overflow-hidden',
               'bg-brand-blue text-sm font-medium text-white',
               'active:scale-[0.98] active:brightness-95',
               'disabled:cursor-not-allowed disabled:opacity-60',

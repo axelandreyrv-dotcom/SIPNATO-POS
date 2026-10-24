@@ -23,7 +23,6 @@ import {
   X,
 } from 'lucide-react';
 import { can, ROLE_LABELS, type ModuleKey, type Permission } from '@dosuxsoft/shared';
-import { Logo } from '../../components/branding/Logo';
 import { useDarkMode } from '../../lib/hooks/useDarkMode';
 import { authApi } from '../../features/auth/api';
 import { useBusiness, useCurrentUser } from '../../features/auth/useCurrentUser';
@@ -67,117 +66,226 @@ const NAV_ITEMS: ReadonlyArray<{
   },
 ];
 
-interface NavItemProps {
-  to: string;
-  label: string;
-  icon: React.ElementType;
-  exact: boolean;
-  onClick?: () => void;
+function useNavItems() {
+  const user = useCurrentUser();
+  const business = useBusiness();
+  return NAV_ITEMS.filter((item) => !item.permission || can(user.role, item.permission))
+    .filter((item) => !item.module || business.modules.includes(item.module))
+    .map((item) => (item.module === 'ordenes' ? { ...item, label: business.ordersLabel } : item));
 }
 
-function NavItem({ to, label, icon: Icon, exact, onClick }: NavItemProps) {
+function useIsActive() {
   const { location } = useRouterState();
-  const isActive = exact
-    ? location.pathname === to
-    : location.pathname === to || location.pathname.startsWith(to + '/');
+  return (to: string, exact: boolean) =>
+    exact
+      ? location.pathname === to
+      : location.pathname === to || location.pathname.startsWith(to + '/');
+}
+
+async function logout() {
+  try {
+    await authApi.logout();
+  } catch {
+    // ignore network errors on logout
+  }
+  window.location.href = '/login';
+}
+
+const railButton =
+  'flex h-11 w-11 items-center justify-center rounded-full transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue';
+const railIdle = 'text-text-muted hover:bg-surface-bg hover:text-text-primary';
+const railActive = 'bg-brand-navy text-white dark:bg-brand-blue';
+
+// El nombre del módulo aparece al pasar el mouse o con el teclado. Se dibuja con posición fija
+// (no dentro de la barra) para que no lo recorte la barra cuando se desplaza.
+type Tip = { label: string; top: number; left: number } | null;
+
+function tipHandlers(label: string, setTip: (t: Tip) => void) {
+  const show = (el: HTMLElement) => {
+    const r = el.getBoundingClientRect();
+    setTip({ label, top: r.top + r.height / 2, left: r.right + 12 });
+  };
+  return {
+    onMouseEnter: (e: React.MouseEvent<HTMLElement>) => show(e.currentTarget),
+    onFocus: (e: React.FocusEvent<HTMLElement>) => show(e.currentTarget),
+    onMouseLeave: () => setTip(null),
+    onBlur: () => setTip(null),
+  };
+}
+
+function IconRail() {
+  const items = useNavItems();
+  const isActive = useIsActive();
+  const { isDark, toggle } = useDarkMode();
+  const [tip, setTip] = useState<Tip>(null);
 
   return (
+    <>
+      <aside
+        className="hidden min-h-0 shrink-0 flex-col items-center gap-1 self-start overflow-y-auto rounded-full border border-border bg-surface-card px-2 py-3 [scrollbar-width:none] sm:flex"
+        style={{ maxHeight: 'calc(100dvh - 5.5rem)' }}
+        aria-label="Navegación principal"
+        onScroll={() => setTip(null)}
+      >
+        <button
+          type="button"
+          onClick={toggle}
+          className={`${railButton} ${railIdle} shrink-0`}
+          aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          {...tipHandlers(isDark ? 'Modo claro' : 'Modo oscuro', setTip)}
+        >
+          {isDark ? (
+            <Sun size={19} strokeWidth={1.6} aria-hidden />
+          ) : (
+            <Moon size={19} strokeWidth={1.6} aria-hidden />
+          )}
+        </button>
+        <span className="my-1 h-px w-7 shrink-0 bg-border" aria-hidden />
+
+        <nav className="flex flex-col items-center gap-1">
+          {items.map(({ to, label, icon: Icon, exact }) => {
+            const active = isActive(to, exact);
+            return (
+              <Link
+                key={to}
+                to={to as never}
+                viewTransition
+                aria-label={label}
+                aria-current={active ? 'page' : undefined}
+                className={`${railButton} ${active ? railActive : railIdle} shrink-0`}
+                {...tipHandlers(label, setTip)}
+              >
+                <Icon size={19} strokeWidth={1.6} aria-hidden />
+              </Link>
+            );
+          })}
+        </nav>
+
+        <span className="my-1 h-px w-7 shrink-0 bg-border" aria-hidden />
+        <button
+          type="button"
+          onClick={() => void logout()}
+          className={`${railButton} ${railIdle} shrink-0`}
+          aria-label="Cerrar sesión"
+          {...tipHandlers('Cerrar sesión', setTip)}
+        >
+          <LogOut size={19} strokeWidth={1.6} aria-hidden />
+        </button>
+      </aside>
+
+      {tip && (
+        <div
+          role="tooltip"
+          className="pointer-events-none fixed z-50 -translate-y-1/2 rounded-full bg-text-primary px-3 py-1.5 text-xs font-medium whitespace-nowrap text-surface-card shadow-[0_4px_14px_-2px_oklch(0%_0_0/0.25)]"
+          style={{ top: tip.top, left: tip.left }}
+        >
+          {tip.label}
+        </div>
+      )}
+    </>
+  );
+}
+
+function UserPill({ onNav }: { onNav?: () => void }) {
+  const user = useCurrentUser();
+  const { location } = useRouterState();
+  const onAccount = location.pathname === '/mi-cuenta';
+
+  // Quién tiene la sesión abierta: en un mostrador compartido debe verse siempre.
+  return (
     <Link
-      to={to as never}
+      to="/mi-cuenta"
       viewTransition
-      onClick={onClick}
+      {...(onNav ? { onClick: onNav } : {})}
+      aria-current={onAccount ? 'page' : undefined}
       className={[
-        'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150',
-        isActive
-          ? 'bg-white/[0.18] text-white font-medium'
-          : 'text-white/80 hover:bg-white/[0.1] hover:text-white',
+        'flex min-w-0 items-center gap-2.5 rounded-full border py-1 pr-4 pl-1 transition-colors duration-150',
+        onAccount
+          ? 'border-brand-blue/40 bg-surface-card'
+          : 'border-border bg-surface-card hover:bg-surface-bg',
       ].join(' ')}
     >
-      <Icon size={18} strokeWidth={1.5} aria-hidden />
-      <span>{label}</span>
+      <span
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-navy text-xs font-semibold text-white dark:bg-brand-blue"
+        aria-hidden
+      >
+        {user.displayName.trim().charAt(0).toUpperCase()}
+      </span>
+      <span className="min-w-0 leading-tight">
+        <span className="block truncate text-[13px] font-semibold text-text-primary">
+          {user.displayName}
+        </span>
+        <span className="block truncate text-[11px] text-text-muted">{ROLE_LABELS[user.role]}</span>
+      </span>
     </Link>
   );
 }
 
-function SidebarNav({ onNav }: { onNav?: () => void }) {
-  const { isDark, toggle } = useDarkMode();
-  const user = useCurrentUser();
-  const { location } = useRouterState();
-  const business = useBusiness();
-  const items = NAV_ITEMS.filter((item) => !item.permission || can(user.role, item.permission))
-    .filter((item) => !item.module || business.modules.includes(item.module))
-    .map((item) => (item.module === 'ordenes' ? { ...item, label: business.ordersLabel } : item));
-  const onAccount = location.pathname === '/mi-cuenta';
+function Brand() {
+  return (
+    <Link to="/" viewTransition className="flex shrink-0 items-center gap-2.5" aria-label="Inicio">
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-navy dark:bg-brand-blue">
+        <img src="/logo.png" alt="" width={20} height={20} aria-hidden />
+      </span>
+      <span className="text-base font-semibold tracking-tight text-text-primary">Dosuxsoft</span>
+    </Link>
+  );
+}
 
-  async function handleLogout() {
-    try {
-      await authApi.logout();
-    } catch {
-      // ignore network errors on logout
-    }
-    window.location.href = '/login';
-  }
+function DrawerNav({ onNav }: { onNav: () => void }) {
+  const items = useNavItems();
+  const isActive = useIsActive();
+  const { isDark, toggle } = useDarkMode();
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Nav items */}
       <nav className="flex-1 overflow-y-auto px-3 py-2" aria-label="Navegación principal">
-        <ul className="space-y-0.5 list-none p-0 m-0">
-          {items.map((item) => (
-            <li key={item.to}>
-              <NavItem {...item} {...(onNav ? { onClick: onNav } : {})} />
-            </li>
-          ))}
+        <ul className="m-0 list-none space-y-0.5 p-0">
+          {items.map(({ to, label, icon: Icon, exact }) => {
+            const active = isActive(to, exact);
+            return (
+              <li key={to}>
+                <Link
+                  to={to as never}
+                  viewTransition
+                  onClick={onNav}
+                  aria-current={active ? 'page' : undefined}
+                  className={[
+                    'flex h-11 items-center gap-3 rounded-full px-4 text-sm transition-colors duration-150',
+                    active
+                      ? 'bg-brand-navy font-medium text-white dark:bg-brand-blue'
+                      : 'text-text-secondary hover:bg-surface-bg hover:text-text-primary',
+                  ].join(' ')}
+                >
+                  <Icon size={18} strokeWidth={1.6} aria-hidden />
+                  {label}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 
-      {/* Bottom actions */}
-      <div className="border-t border-white/10 px-3 py-3 space-y-0.5">
-        {/* Quién tiene la sesión abierta: en un mostrador compartido debe verse siempre */}
-        <Link
-          to="/mi-cuenta"
-          viewTransition
-          {...(onNav ? { onClick: onNav } : {})}
-          className={[
-            'flex items-center gap-3 rounded-lg px-3 py-2 transition-colors duration-150',
-            onAccount ? 'bg-white/[0.18]' : 'hover:bg-white/[0.1]',
-          ].join(' ')}
-        >
-          <span
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/[0.14] text-xs font-semibold text-white"
-            aria-hidden
-          >
-            {user.displayName.trim().charAt(0).toUpperCase()}
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-medium text-white">
-              {user.displayName}
-            </span>
-            <span className="block text-xs text-white/75">{ROLE_LABELS[user.role]}</span>
-          </span>
-        </Link>
-
+      <div className="space-y-0.5 border-t border-border px-3 py-3">
         <button
           type="button"
           onClick={toggle}
-          className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/80 transition-colors duration-150 hover:bg-white/[0.1] hover:text-white"
-          aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          className="flex h-11 w-full items-center gap-3 rounded-full px-4 text-sm text-text-secondary transition-colors duration-150 hover:bg-surface-bg hover:text-text-primary"
         >
           {isDark ? (
-            <Sun size={18} strokeWidth={1.5} aria-hidden />
+            <Sun size={18} strokeWidth={1.6} aria-hidden />
           ) : (
-            <Moon size={18} strokeWidth={1.5} aria-hidden />
+            <Moon size={18} strokeWidth={1.6} aria-hidden />
           )}
-          <span>{isDark ? 'Modo claro' : 'Modo oscuro'}</span>
+          {isDark ? 'Modo claro' : 'Modo oscuro'}
         </button>
-
         <button
           type="button"
-          onClick={() => void handleLogout()}
-          className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/80 transition-colors duration-150 hover:bg-white/[0.1] hover:text-white"
+          onClick={() => void logout()}
+          className="flex h-11 w-full items-center gap-3 rounded-full px-4 text-sm text-text-secondary transition-colors duration-150 hover:bg-surface-bg hover:text-text-primary"
         >
-          <LogOut size={18} strokeWidth={1.5} aria-hidden />
-          <span>Cerrar sesión</span>
+          <LogOut size={18} strokeWidth={1.6} aria-hidden />
+          Cerrar sesión
         </button>
       </div>
     </div>
@@ -194,33 +302,28 @@ export function AppLayout() {
   return (
     // overflow-hidden + main relativo: un elemento con posición absoluta dentro del contenido
     // (p. ej. los `sr-only`) no puede alargar la página ni hacer que el navegador la desplace entera.
-    <div className="flex h-[100dvh] w-full overflow-hidden">
-      {/* ── Desktop sidebar ──────────────────────────────────────────────── */}
-      <aside className="hidden sm:flex sm:w-60 sm:shrink-0 flex-col border-r border-white/10 bg-brand-navy">
-        <div className="px-4 py-5">
-          <Logo />
-        </div>
-        <SidebarNav />
-      </aside>
-
-      {/* ── Mobile: top bar ──────────────────────────────────────────────── */}
-      <div
-        className="sm:hidden fixed top-0 inset-x-0 z-40 flex h-14 items-center gap-3 bg-brand-navy px-4"
+    <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-surface-bg">
+      {/* ── Barra superior ───────────────────────────────────────────────── */}
+      <header
+        className="flex h-16 shrink-0 items-center gap-3 border-b border-border bg-surface-card px-4 sm:h-[4.5rem] sm:border-b-0 sm:bg-transparent sm:px-5"
         inert={drawerOpen || undefined}
       >
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-white/85 transition-colors hover:bg-white/15 hover:text-white"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-bg hover:text-text-primary sm:hidden"
           aria-label="Abrir menú"
           aria-expanded={drawerOpen}
         >
-          <Menu size={20} strokeWidth={1.5} aria-hidden />
+          <Menu size={20} strokeWidth={1.6} aria-hidden />
         </button>
-        <Logo />
-      </div>
+        <Brand />
+        <div className="ml-auto hidden sm:block">
+          <UserPill />
+        </div>
+      </header>
 
-      {/* ── Mobile: slide-in drawer ───────────────────────────────────────── */}
+      {/* ── Celular: menú lateral ────────────────────────────────────────── */}
       {drawerOpen && (
         <div
           className="fixed inset-0 z-50 sm:hidden"
@@ -228,34 +331,34 @@ export function AppLayout() {
           aria-modal
           aria-label="Menú de navegación"
         >
-          {/* Scrim */}
           <div className="absolute inset-0 bg-black/50" onClick={closeDrawer} aria-hidden />
-          {/* Panel */}
-          <aside className="absolute left-0 top-0 flex h-full w-72 flex-col bg-brand-navy shadow-[0_8px_32px_-4px_oklch(0%_0_0/0.22)]">
-            <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
-              <Logo />
+          <aside className="absolute top-0 left-0 flex h-full w-72 flex-col bg-surface-card shadow-[0_8px_32px_-4px_oklch(0%_0_0/0.22)]">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <Brand />
               <button
                 type="button"
                 onClick={closeDrawer}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/85 transition-colors hover:bg-white/15 hover:text-white"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-bg hover:text-text-primary"
                 aria-label="Cerrar menú"
               >
-                <X size={18} strokeWidth={1.5} aria-hidden />
+                <X size={18} strokeWidth={1.6} aria-hidden />
               </button>
             </div>
-            <SidebarNav onNav={closeDrawer} />
+            <div className="px-3 pt-3">
+              <UserPill onNav={closeDrawer} />
+            </div>
+            <DrawerNav onNav={closeDrawer} />
           </aside>
         </div>
       )}
 
-      {/* ── Main content ──────────────────────────────────────────────────── */}
-      <main
-        className="relative flex-1 overflow-auto pt-14 sm:pt-0 bg-surface-bg vt-page"
-        inert={drawerOpen || undefined}
-      >
-        <SubscriptionNotice />
-        <Outlet />
-      </main>
+      <div className="flex min-h-0 flex-1 gap-2 sm:pl-4" inert={drawerOpen || undefined}>
+        <IconRail />
+        <main className="vt-page relative min-w-0 flex-1 overflow-auto">
+          <SubscriptionNotice />
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

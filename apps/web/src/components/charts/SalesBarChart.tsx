@@ -50,7 +50,7 @@ function SalesTooltip({
   const entry = payload?.[0]?.payload;
   if (!active || !entry) return null;
   return (
-    <div className="rounded-lg border border-border bg-surface-card px-3 py-2 shadow-md">
+    <div className="rounded-xl border border-border bg-surface-card px-3 py-2 shadow-md">
       <p className="text-xs capitalize text-text-muted">{formatDate(entry.date)}</p>
       <p className="text-sm font-semibold tabular-nums text-text-primary">
         {formatColones(entry.total)}

@@ -135,11 +135,13 @@ export function BoletasPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-text-primary">{ordersLabel}</h1>
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+            {ordersLabel}
+          </h1>
         </div>
         <Link
           to="/nueva-boleta"
-          className="flex h-9 items-center gap-1.5 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
+          className="flex h-9 items-center gap-1.5 rounded-full bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
         >
           <Plus size={15} strokeWidth={1.5} aria-hidden />
           Nueva
@@ -160,7 +162,7 @@ export function BoletasPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Buscar por cliente, teléfono, cualquier dato o número..."
-            className="h-10 w-full rounded-lg border border-border bg-surface-input pl-9 pr-4 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
+            className="h-10 w-full rounded-full border border-border bg-surface-input pl-9 pr-4 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
           />
           {search && (
             <button
@@ -179,7 +181,7 @@ export function BoletasPage() {
 
       {/* Results */}
       {isLoading ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
           {Array.from({ length: 5 }, (_, i) => (
             <div
               key={i}
@@ -196,7 +198,7 @@ export function BoletasPage() {
           ))}
         </div>
       ) : !data?.boletas.length ? (
-        <div className="flex h-24 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border">
+        <div className="flex h-24 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-border">
           <p className="text-sm text-text-muted">
             {search ? `Sin resultados para "${search}"` : 'Todavía no hay registros'}
           </p>
@@ -217,7 +219,7 @@ export function BoletasPage() {
               {search && ` para "${search}"`}
             </p>
           )}
-          <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
             {data.boletas.map((b) => (
               <BoletaRow key={b.id} boleta={b} onPrint={printBoleta} />
             ))}

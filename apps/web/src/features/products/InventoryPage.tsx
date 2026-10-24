@@ -15,12 +15,12 @@ import { useCan } from '../auth/useCurrentUser';
 import { productsApi, type ProductFilter } from './api';
 
 const inputCls =
-  'h-10 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20';
+  'h-10 w-full rounded-full border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20';
 const labelCls = 'block text-sm font-medium text-text-secondary';
 const primaryBtn =
-  'flex h-10 items-center justify-center gap-1.5 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60';
+  'flex h-10 items-center justify-center gap-1.5 rounded-full bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60';
 const secondaryBtn =
-  'flex h-10 items-center justify-center rounded-lg border border-border px-4 text-sm text-text-secondary transition-colors hover:bg-surface-bg';
+  'flex h-10 items-center justify-center rounded-full border border-border px-4 text-sm text-text-secondary transition-colors hover:bg-surface-bg';
 
 const MOVEMENT_LABELS: Record<StockMovementType, string> = {
   entrada: 'Entrada',
@@ -251,7 +251,7 @@ function ProductForm({ product, onDone }: { product?: Product; onDone: () => voi
                 (err) => setError(errorText(err)),
               )
             }
-            className="mr-auto flex h-10 items-center rounded-lg px-3 text-sm text-text-muted transition-colors hover:bg-brand-error/10 hover:text-brand-error"
+            className="mr-auto flex h-10 items-center rounded-full px-3 text-sm text-text-muted transition-colors hover:bg-brand-error/10 hover:text-brand-error"
           >
             {product.active ? 'Desactivar producto' : 'Reactivar producto'}
           </button>
@@ -331,7 +331,7 @@ function StockMovementForm({ product }: { product: Product }) {
               setError(null);
             }}
             className={[
-              'flex h-9 flex-1 items-center justify-center rounded-lg border text-sm transition-colors',
+              'flex h-9 flex-1 items-center justify-center rounded-full border text-sm transition-colors',
               type === t
                 ? 'border-brand-blue bg-brand-blue/10 font-medium text-brand-blue'
                 : 'border-border text-text-secondary hover:bg-surface-bg',
@@ -584,7 +584,9 @@ export function InventoryPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">
       <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold text-text-primary">Inventario</h1>
+        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+          Inventario
+        </h1>
         {canManage && !creating && (
           <button type="button" onClick={() => setCreating(true)} className={primaryBtn}>
             <Plus size={16} strokeWidth={1.5} aria-hidden />
@@ -594,7 +596,7 @@ export function InventoryPage() {
       </div>
 
       {creating && (
-        <div className="mb-6 rounded-xl border border-border bg-surface-card p-4 sm:p-5">
+        <div className="mb-6 rounded-3xl border border-border bg-surface-card p-4 sm:p-5">
           <ProductForm onDone={() => setCreating(false)} />
         </div>
       )}
@@ -628,7 +630,7 @@ export function InventoryPage() {
               aria-selected={filter === t.key}
               onClick={() => setFilter(t.key)}
               className={[
-                'h-8 whitespace-nowrap rounded-md px-3 text-xs transition-colors',
+                'h-8 whitespace-nowrap rounded-full px-3 text-xs transition-colors',
                 filter === t.key
                   ? 'bg-brand-blue/10 font-medium text-brand-blue'
                   : 'text-text-secondary hover:text-text-primary',
@@ -644,7 +646,7 @@ export function InventoryPage() {
       </div>
 
       {isLoading ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
           {[0, 1, 2, 3].map((i) => (
             <div
               key={i}
@@ -656,7 +658,7 @@ export function InventoryPage() {
           ))}
         </div>
       ) : isError ? (
-        <div className="rounded-xl border border-border bg-surface-card p-6 text-center">
+        <div className="rounded-3xl border border-border bg-surface-card p-6 text-center">
           <p className="text-sm text-text-muted">No se pudo cargar el inventario.</p>
           <button
             type="button"
@@ -667,7 +669,7 @@ export function InventoryPage() {
           </button>
         </div>
       ) : !data?.products.length ? (
-        <div className="flex flex-col items-center rounded-xl border border-dashed border-border px-6 py-10 text-center">
+        <div className="flex flex-col items-center rounded-3xl border border-dashed border-border px-6 py-10 text-center">
           <Boxes size={28} strokeWidth={1.5} className="text-text-muted" aria-hidden />
           <p className="mt-3 text-sm font-medium text-text-primary">
             {q
@@ -687,7 +689,7 @@ export function InventoryPage() {
           )}
         </div>
       ) : (
-        <ul className="m-0 list-none overflow-hidden rounded-xl border border-border bg-surface-card p-0">
+        <ul className="m-0 list-none overflow-hidden rounded-2xl border border-border bg-surface-card p-0">
           <li
             className="hidden items-center gap-3 border-b border-border px-4 py-2 text-xs font-medium uppercase tracking-wide text-text-muted sm:flex"
             aria-hidden

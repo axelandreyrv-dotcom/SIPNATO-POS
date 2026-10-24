@@ -49,7 +49,9 @@ export function MyAccountPage() {
 
   return (
     <div className="mx-auto max-w-xl px-4 py-8 sm:px-8">
-      <h1 className="text-xl font-semibold text-text-primary">Mi cuenta</h1>
+      <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+        Mi cuenta
+      </h1>
 
       <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
         <dt className="text-text-muted">Nombre</dt>
@@ -105,7 +107,7 @@ export function MyAccountPage() {
         <button
           type="submit"
           disabled={mutation.isPending || !current || !next || !confirm}
-          className="flex h-10 items-center gap-1.5 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+          className="flex h-10 items-center gap-1.5 rounded-full bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
         >
           {mutation.isPending && (
             <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />

@@ -41,7 +41,7 @@ export function BackupSection() {
           type="button"
           onClick={() => void download()}
           disabled={pending}
-          className="flex h-9 items-center gap-2 rounded-lg border border-border px-4 text-sm font-medium text-text-primary transition-all duration-150 hover:bg-surface-input active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex h-9 items-center gap-2 rounded-full border border-border px-4 text-sm font-medium text-text-primary transition-all duration-150 hover:bg-surface-input active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pending ? (
             <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />

@@ -25,7 +25,7 @@ export function SetupCodePanel({ tenant, code }: { tenant: PlatformTenant; code:
   }
 
   return (
-    <div className="rounded-xl border border-border bg-surface-card p-4">
+    <div className="rounded-2xl border border-border bg-surface-card p-4">
       <p className="text-xs font-medium text-text-muted">Código de activación</p>
       <p className="mt-1 select-all font-mono text-2xl font-semibold tracking-wider text-text-primary">
         {code}

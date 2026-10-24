@@ -20,7 +20,9 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <h1 className="text-xl font-semibold tracking-tight text-text-primary">Configuración</h1>
+      <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+        Configuración
+      </h1>
       {error && <p className="mt-4 text-sm text-brand-error">{errorText(error)}</p>}
       <div className="divide-y divide-border">
         {data ? (

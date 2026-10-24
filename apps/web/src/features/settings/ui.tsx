@@ -1,14 +1,14 @@
 // Piezas de UI compartidas por las secciones de Configuración.
 
 export const inputClass = [
-  'h-9 w-full rounded-lg border px-3 text-sm text-text-primary',
+  'h-9 w-full rounded-full border px-3 text-sm text-text-primary',
   'bg-surface-input outline-none transition-all duration-150',
   'border-border focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20',
   'placeholder:text-text-muted',
 ].join(' ');
 
 export const textareaClass = [
-  'w-full rounded-lg border px-3 py-2 text-sm text-text-primary',
+  'w-full rounded-xl border px-3 py-2 text-sm text-text-primary',
   'bg-surface-input outline-none transition-all duration-150 resize-none',
   'border-border focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20',
   'placeholder:text-text-muted',
@@ -34,7 +34,7 @@ export function Section({
   return (
     <div className="py-8 sm:grid sm:grid-cols-3 sm:gap-8">
       <div>
-        <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
+        <h2 className="text-base font-semibold text-text-primary">{title}</h2>
         <p className="mt-1 text-sm text-text-muted leading-relaxed">{description}</p>
       </div>
       <div className="mt-6 sm:col-span-2 sm:mt-0 space-y-4">{children}</div>

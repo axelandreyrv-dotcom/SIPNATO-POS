@@ -56,7 +56,7 @@ export function SupervisorAuthDialog({
   }
 
   const inputCls =
-    'h-10 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20';
+    'h-10 w-full rounded-full border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20';
 
   return (
     <div
@@ -83,7 +83,7 @@ export function SupervisorAuthDialog({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
             aria-label="Cerrar"
           >
             <X size={16} strokeWidth={1.5} aria-hidden />
@@ -139,14 +139,14 @@ export function SupervisorAuthDialog({
           <button
             type="button"
             onClick={onClose}
-            className="flex flex-1 h-10 items-center justify-center rounded-lg border border-border text-sm text-text-secondary transition-colors hover:bg-surface-bg"
+            className="flex flex-1 h-10 items-center justify-center rounded-full border border-border text-sm text-text-secondary transition-colors hover:bg-surface-bg"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={!canSubmit}
-            className="flex flex-1 h-10 items-center justify-center gap-1.5 rounded-lg bg-brand-error text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex flex-1 h-10 items-center justify-center gap-1.5 rounded-full bg-brand-error text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isLoading && (
               <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />

@@ -34,7 +34,7 @@ export function LoginPage() {
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-surface-bg px-6 py-12">
       <div className="w-full max-w-[340px]">
         <div className="mb-8 flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-navy">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-navy dark:bg-brand-blue">
             <img src="/logo.png" alt="" width={22} height={22} aria-hidden />
           </span>
           <div>
@@ -43,7 +43,9 @@ export function LoginPage() {
           </div>
         </div>
 
-        <h1 className="text-xl font-semibold tracking-tight text-text-primary">Iniciar sesión</h1>
+        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+          Iniciar sesión
+        </h1>
 
         <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-4">
           <div>

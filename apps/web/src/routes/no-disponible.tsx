@@ -41,7 +41,9 @@ function NoDisponiblePage() {
           className="mt-0.5 shrink-0 text-text-muted"
         />
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-text-primary">{titulo}</h1>
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+            {titulo}
+          </h1>
           <p className="mt-2 text-sm leading-relaxed text-text-muted">{detalle}</p>
         </div>
       </div>

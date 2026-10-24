@@ -109,7 +109,7 @@ function SummaryGrid({ data, loading }: { data: ReportSummary | undefined; loadi
   return (
     <div
       className={[
-        'grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border',
+        'grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border',
         wide ? 'sm:grid-cols-4' : 'sm:grid-cols-3',
       ].join(' ')}
     >
@@ -231,7 +231,9 @@ export function ReportesPage() {
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8">
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-text-primary">Reportes</h1>
+        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+          Reportes
+        </h1>
         <p className="mt-1 text-sm text-text-muted">Análisis de ventas y gastos por período.</p>
       </div>
 
@@ -245,7 +247,7 @@ export function ReportesPage() {
               type="button"
               onClick={() => setPreset(key)}
               className={[
-                'h-8 rounded-md px-3 text-sm font-medium transition-colors',
+                'h-8 rounded-full px-3 text-sm font-medium transition-colors',
                 preset === key
                   ? 'bg-brand-blue text-white'
                   : 'border border-border bg-surface-card text-text-secondary hover:border-brand-blue/40 hover:text-text-primary',
@@ -276,7 +278,7 @@ export function ReportesPage() {
               onChange={(e) => {
                 setCustomFrom(e.target.value);
               }}
-              className="h-8 rounded-md border border-border bg-surface-input px-2 text-sm text-text-primary outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
+              className="h-8 rounded-full border border-border bg-surface-input px-2 text-sm text-text-primary outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
             />
             <span className="text-xs text-text-muted">hasta</span>
             <label htmlFor="rep-to" className="sr-only">
@@ -291,7 +293,7 @@ export function ReportesPage() {
               onChange={(e) => {
                 setCustomTo(e.target.value);
               }}
-              className="h-8 rounded-md border border-border bg-surface-input px-2 text-sm text-text-primary outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
+              className="h-8 rounded-full border border-border bg-surface-input px-2 text-sm text-text-primary outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
             />
             {!rangeValid && (
               <p className="text-xs text-brand-error">
@@ -315,7 +317,7 @@ export function ReportesPage() {
               value={qFilter}
               onChange={(e) => setQFilter(e.target.value)}
               placeholder="Buscar descripción..."
-              className="h-8 w-full rounded-md border border-border bg-surface-input pl-8 pr-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
+              className="h-8 w-full rounded-full border border-border bg-surface-input pl-8 pr-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
             />
           </div>
           <div className="flex items-center gap-1.5">
@@ -332,7 +334,7 @@ export function ReportesPage() {
               id="rep-pm"
               value={pmFilter}
               onChange={(e) => setPmFilter(e.target.value as PmFilter)}
-              className="h-8 rounded-md border border-border bg-surface-input pl-2 pr-7 text-sm text-text-primary outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
+              className="h-8 rounded-full border border-border bg-surface-input pl-2 pr-7 text-sm text-text-primary outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
             >
               <option value="">Todos los métodos</option>
               <option value="efectivo">Efectivo</option>
@@ -348,7 +350,7 @@ export function ReportesPage() {
       {/* ── Summary grid ─────────────────────────────────────────────────── */}
       <section aria-label="Resumen del período" className="mb-8">
         <div className="mb-3 flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-text-primary">
+          <h2 className="text-base font-semibold text-text-primary">
             Resumen
             {summary !== undefined && (
               <span className="ml-2 text-xs font-normal text-text-muted">
@@ -366,7 +368,7 @@ export function ReportesPage() {
           )}
         </div>
         {summaryQuery.isError ? (
-          <div className="flex h-20 items-center justify-center rounded-xl border border-dashed border-brand-error/30 bg-brand-error/[0.03]">
+          <div className="flex h-20 items-center justify-center rounded-2xl border border-dashed border-brand-error/30 bg-brand-error/[0.03]">
             <p className="text-sm text-brand-error">Error al cargar el resumen.</p>
           </div>
         ) : (
@@ -377,7 +379,7 @@ export function ReportesPage() {
       {/* ── Daily bar chart ───────────────────────────────────────────────── */}
       <section aria-label="Ventas diarias" className="mb-8">
         <div className="mb-3 flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-text-primary">Ventas diarias</h2>
+          <h2 className="text-base font-semibold text-text-primary">Ventas diarias</h2>
           {dailyQuery.isFetching && !dailyQuery.isLoading && (
             <Loader2
               size={12}
@@ -387,7 +389,7 @@ export function ReportesPage() {
             />
           )}
         </div>
-        <div className="rounded-xl border border-border bg-surface-card px-2 pb-2 pt-4">
+        <div className="rounded-2xl border border-border bg-surface-card px-2 pb-2 pt-4">
           {dailyQuery.isLoading ? (
             <div className="flex h-[220px] items-center justify-center">
               <Loader2
@@ -422,7 +424,7 @@ export function ReportesPage() {
       {/* ── Sales table ───────────────────────────────────────────────────── */}
       <section aria-label="Lista de ventas">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-text-primary">
+          <h2 className="text-base font-semibold text-text-primary">
             Ventas
             {salesData !== undefined && (
               <span className="ml-2 text-xs font-normal text-text-muted">({salesData.total})</span>
@@ -432,7 +434,7 @@ export function ReportesPage() {
             type="button"
             onClick={() => void handleExport()}
             disabled={isExporting || !rangeValid}
-            className="flex h-8 items-center gap-1.5 rounded-md border border-border bg-surface-card px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-blue/40 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-8 items-center gap-1.5 rounded-full border border-border bg-surface-card px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-blue/40 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isExporting ? (
               <Loader2 size={12} strokeWidth={1.5} className="animate-spin" aria-hidden />
@@ -445,7 +447,7 @@ export function ReportesPage() {
 
         {salesQuery.isLoading ? (
           /* Skeleton table */
-          <div className="overflow-hidden rounded-xl border border-border">
+          <div className="overflow-hidden rounded-2xl border border-border">
             <table className="w-full table-fixed text-sm">
               <thead>
                 <tr className="border-b border-border bg-surface-bg">
@@ -480,11 +482,11 @@ export function ReportesPage() {
             </table>
           </div>
         ) : salesQuery.isError ? (
-          <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-brand-error/30">
+          <div className="flex h-24 items-center justify-center rounded-2xl border border-dashed border-brand-error/30">
             <p className="text-sm text-brand-error">Error al cargar las ventas.</p>
           </div>
         ) : !salesData?.sales.length ? (
-          <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-border">
+          <div className="flex h-24 items-center justify-center rounded-2xl border border-dashed border-border">
             <p className="text-sm text-text-muted">
               {qFilter || pmFilter
                 ? 'Sin resultados con los filtros aplicados.'
@@ -493,7 +495,7 @@ export function ReportesPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto rounded-xl border border-border bg-surface-card">
+            <div className="overflow-x-auto rounded-2xl border border-border bg-surface-card">
               <table className="w-full min-w-[540px] table-fixed text-sm">
                 <colgroup>
                   <col style={{ width: '6%' }} />
@@ -581,7 +583,7 @@ export function ReportesPage() {
                   type="button"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="flex h-8 items-center gap-1 rounded-md border border-border px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-blue/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-8 items-center gap-1 rounded-full border border-border px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-blue/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <ChevronLeft size={14} strokeWidth={1.5} aria-hidden />
                   Anterior
@@ -593,7 +595,7 @@ export function ReportesPage() {
                   type="button"
                   onClick={() => setPage((p) => Math.min(salesData.totalPages, p + 1))}
                   disabled={page === salesData.totalPages}
-                  className="flex h-8 items-center gap-1 rounded-md border border-border px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-blue/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-8 items-center gap-1 rounded-full border border-border px-3 text-xs font-medium text-text-secondary transition-colors hover:border-brand-blue/30 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Siguiente
                   <ChevronRight size={14} strokeWidth={1.5} aria-hidden />

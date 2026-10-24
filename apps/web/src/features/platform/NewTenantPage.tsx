@@ -87,7 +87,7 @@ export function NewTenantPage() {
       <div className="mx-auto max-w-xl space-y-6">
         <BackLink />
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
             {created.tenant.name} está listo
           </h1>
           <p className="mt-1 text-sm text-text-muted">
@@ -109,7 +109,9 @@ export function NewTenantPage() {
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <BackLink />
-      <h1 className="text-xl font-semibold tracking-tight text-text-primary">Nuevo negocio</h1>
+      <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+        Nuevo negocio
+      </h1>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-8">
         <fieldset className="space-y-4">

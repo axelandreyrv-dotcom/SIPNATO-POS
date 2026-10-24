@@ -69,7 +69,9 @@ export function NuevaCotizacionPage() {
         Cotizaciones
       </Link>
 
-      <h1 className="mb-8 text-xl font-semibold text-text-primary">Nueva cotización</h1>
+      <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] mb-8 text-text-primary">
+        Nueva cotización
+      </h1>
 
       <form onSubmit={handleSubmit}>
         <fieldset disabled={createMutation.isPending} className="disabled:opacity-60">
@@ -91,7 +93,7 @@ export function NuevaCotizacionPage() {
                   placeholder={`Ítem ${index + 1}`}
                   maxLength={500}
                   required
-                  className="h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
+                  className="h-9 w-full rounded-full border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
                 />
 
                 <div className="relative">
@@ -105,7 +107,7 @@ export function NuevaCotizacionPage() {
                     value={item.amountStr}
                     onChange={(e) => updateItem(item.id, 'amountStr', e.target.value)}
                     placeholder="0"
-                    className="h-9 w-full rounded-lg border border-border bg-surface-input pl-6 pr-2 text-sm tabular-nums text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
+                    className="h-9 w-full rounded-full border border-border bg-surface-input pl-6 pr-2 text-sm tabular-nums text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
                   />
                 </div>
 
@@ -113,7 +115,7 @@ export function NuevaCotizacionPage() {
                   type="button"
                   onClick={() => removeItem(item.id)}
                   disabled={items.length <= 1}
-                  className="flex h-9 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-brand-error/10 hover:text-brand-error disabled:pointer-events-none disabled:opacity-30"
+                  className="flex h-9 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-brand-error/10 hover:text-brand-error disabled:pointer-events-none disabled:opacity-30"
                   aria-label="Eliminar ítem"
                 >
                   <Minus size={13} strokeWidth={1.5} aria-hidden />
@@ -133,7 +135,7 @@ export function NuevaCotizacionPage() {
           </button>
 
           {/* Total preview */}
-          <div className="mt-6 flex items-center justify-between rounded-xl border border-border bg-surface-card px-5 py-4">
+          <div className="mt-6 flex items-center justify-between rounded-3xl border border-border bg-surface-card px-5 py-4">
             <span className="text-sm font-medium text-text-secondary">Total</span>
             <span className="text-2xl font-semibold tabular-nums text-text-primary">
               {formatColones(total)}
@@ -144,7 +146,7 @@ export function NuevaCotizacionPage() {
           <button
             type="submit"
             disabled={!allValid || createMutation.isPending}
-            className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-blue text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand-blue text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createMutation.isPending ? (
               <>

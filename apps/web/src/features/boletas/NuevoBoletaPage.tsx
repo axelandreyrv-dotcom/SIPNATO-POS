@@ -49,7 +49,7 @@ function Input({ className = '', ...props }: React.InputHTMLAttributes<HTMLInput
   return (
     <input
       {...props}
-      className={`h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted disabled:opacity-50 ${className}`}
+      className={`h-9 w-full rounded-full border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted disabled:opacity-50 ${className}`}
     />
   );
 }
@@ -83,7 +83,7 @@ function OrderFieldInput({
         <select
           {...common}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
+          className="h-9 w-full rounded-full border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
         >
           <option value="">Elegir…</option>
           {field.options?.map((o) => (
@@ -240,18 +240,20 @@ export function NuevoBoletaPage() {
         <button
           type="button"
           onClick={() => void navigate({ to: '/boletas' })}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
           aria-label="Volver"
         >
           <ChevronLeft size={18} strokeWidth={1.5} aria-hidden />
         </button>
         <div>
-          <h1 className="text-xl font-semibold text-text-primary">{ordersLabel}: nuevo ingreso</h1>
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+            {ordersLabel}: nuevo ingreso
+          </h1>
         </div>
       </div>
 
       {saved !== null && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-brand-success/30 bg-brand-success/10 px-4 py-3 text-sm">
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-brand-success/30 bg-brand-success/10 px-4 py-3 text-sm">
           <span className="mr-auto text-brand-success">
             #{saved.consecutive} guardado e impreso. Formulario listo para el siguiente.
           </span>
@@ -280,10 +282,10 @@ export function NuevoBoletaPage() {
       <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-8">
         {/* Customer section */}
         <section>
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-text-muted">
+          <h2 className="mb-4 text-base font-semibold uppercase tracking-wide text-text-muted">
             Cliente
           </h2>
-          <div className="space-y-4 rounded-xl border border-border bg-surface-card p-5">
+          <div className="space-y-4 rounded-3xl border border-border bg-surface-card p-5">
             <Field id="nb-phone" label="Celular" required error={phoneError}>
               <div className="relative">
                 <Input
@@ -365,10 +367,10 @@ export function NuevoBoletaPage() {
 
         {/* Artículo + campos definidos por el negocio */}
         <section>
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-text-muted">
+          <h2 className="mb-4 text-base font-semibold uppercase tracking-wide text-text-muted">
             {itemLabel}
           </h2>
-          <div className="space-y-4 rounded-xl border border-border bg-surface-card p-5">
+          <div className="space-y-4 rounded-3xl border border-border bg-surface-card p-5">
             <Field id="nb-model" label={itemLabel} required>
               <Input
                 id="nb-model"
@@ -416,14 +418,14 @@ export function NuevoBoletaPage() {
           <button
             type="button"
             onClick={() => void navigate({ to: '/boletas' })}
-            className="flex h-10 flex-1 items-center justify-center rounded-lg border border-border text-sm text-text-secondary transition-colors hover:bg-surface-bg"
+            className="flex h-10 flex-1 items-center justify-center rounded-full border border-border text-sm text-text-secondary transition-colors hover:bg-surface-bg"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={!canSubmit || createMutation.isPending}
-            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-success text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-brand-success text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createMutation.isPending ? (
               <>
@@ -438,7 +440,7 @@ export function NuevoBoletaPage() {
             type="button"
             disabled={!canSubmit || createMutation.isPending}
             onClick={(e) => handleSubmit(e as unknown as React.FormEvent, true)}
-            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-blue text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-brand-blue text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Printer size={15} strokeWidth={1.5} aria-hidden />
             Guardar e imprimir
