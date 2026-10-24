@@ -176,14 +176,14 @@ function ChangeCalcModal({
           <div
             className={[
               'mb-5 rounded-lg px-4 py-4 text-center',
-              canConfirm ? 'bg-brand-success/[0.08]' : 'bg-brand-error/[0.08]',
+              canConfirm ? 'bg-surface-bg' : 'bg-brand-error/[0.08]',
             ].join(' ')}
           >
             <p className="text-xs text-text-muted mb-1">Vuelto</p>
             <p
               className={[
                 'text-3xl font-bold tabular-nums',
-                canConfirm ? 'text-brand-success' : 'text-brand-error',
+                canConfirm ? 'text-text-primary' : 'text-brand-error',
               ].join(' ')}
             >
               {canConfirm ? formatColones(change) : `−${formatColones(amount - receivedAmount)}`}
@@ -208,7 +208,7 @@ function ChangeCalcModal({
             type="button"
             disabled={!canConfirm || isLoading}
             onClick={onConfirm}
-            className="flex flex-1 h-9 items-center justify-center gap-1.5 rounded-full bg-brand-success text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex flex-1 h-9 items-center justify-center gap-1.5 rounded-full bg-brand-blue text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isLoading && (
               <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />

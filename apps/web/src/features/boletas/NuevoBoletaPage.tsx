@@ -425,7 +425,7 @@ export function NuevoBoletaPage() {
           <button
             type="submit"
             disabled={!canSubmit || createMutation.isPending}
-            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-brand-success text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-brand-blue text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createMutation.isPending ? (
               <>
