@@ -86,7 +86,7 @@ export function SubscriptionNotice() {
             writeDismissed(key);
             setDismissed(key);
           }}
-          className="-my-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-border/60 hover:text-text-primary"
+          className="-my-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-border/60 hover:text-text-primary"
           aria-label="Cerrar aviso"
         >
           <X size={16} strokeWidth={1.5} aria-hidden />

@@ -67,7 +67,7 @@ export function TenantDetailPage({ slug }: { slug: string }) {
         <p className="text-sm text-brand-error">{errorText(error)}</p>
       ) : isPending ? (
         <div className="space-y-4">
-          <div className="h-8 w-64 animate-pulse rounded-lg bg-border/60" />
+          <div className="h-8 w-64 animate-pulse rounded-full bg-border/60" />
           <div className="h-20 animate-pulse rounded-xl bg-border/40" />
         </div>
       ) : (
@@ -84,7 +84,9 @@ function Detail({ detail }: { detail: PlatformTenantDetail }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight text-text-primary">{t.name}</h1>
+            <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+              {t.name}
+            </h1>
             {t.status === 'suspended' && <SuspendedBadge />}
             {t.unavailable && <UnavailableBadge />}
           </div>
@@ -104,14 +106,14 @@ function Detail({ detail }: { detail: PlatformTenantDetail }) {
       {t.unavailable && (
         <p
           role="alert"
-          className="rounded-lg border border-brand-warning/30 bg-brand-warning/[0.07] px-3 py-2 text-sm text-text-primary"
+          className="rounded-xl border border-brand-warning/30 bg-brand-warning/[0.07] px-3 py-2 text-sm text-text-primary"
         >
           El negocio no responde. Los pagos y los datos de esta página se guardan igual; el uso, el
           tipo de negocio y los módulos no se pueden mostrar ni cambiar hasta que vuelva.
         </p>
       )}
 
-      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-4">
         <Fact label="Suscripción">
           <span className="flex flex-wrap items-center gap-2">
             <SubscriptionBadge status={t.subscription} />
@@ -205,7 +207,7 @@ function Block({
   return (
     <section className="py-8 lg:grid lg:grid-cols-3 lg:gap-8">
       <div>
-        <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
+        <h2 className="text-base font-semibold text-text-primary">{title}</h2>
         <p className="mt-1 max-w-xs text-sm leading-relaxed text-text-muted">{description}</p>
       </div>
       <div className="mt-5 lg:col-span-2 lg:mt-0">{children}</div>
@@ -290,7 +292,7 @@ function Payments({
       {payments.length === 0 ? (
         <p className="text-sm text-text-muted">Todavía no hay pagos registrados.</p>
       ) : (
-        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-card">
+        <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface-card">
           {payments.map((p) => (
             <PaymentRow key={p.id} slug={tenant.slug} payment={p} onVoided={setNotice} />
           ))}
@@ -356,7 +358,7 @@ function PaymentForm({
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="space-y-4 rounded-xl border border-border bg-surface-card p-4"
+      className="space-y-4 rounded-2xl border border-border bg-surface-card p-4"
     >
       <div>
         <span className="mb-1.5 block text-sm font-medium text-text-secondary">Meses que paga</span>
@@ -369,7 +371,7 @@ function PaymentForm({
               aria-checked={months === n}
               onClick={() => pickMonths(n)}
               className={[
-                'h-9 min-w-11 rounded-lg border px-3 text-sm tabular-nums transition-colors duration-150',
+                'h-9 min-w-11 rounded-full border px-3 text-sm tabular-nums transition-colors duration-150',
                 months === n
                   ? 'border-brand-blue bg-brand-blue/10 font-medium text-brand-blue'
                   : 'border-border text-text-secondary hover:text-text-primary',
@@ -535,7 +537,7 @@ function PaymentRow({
         <button
           type="button"
           onClick={() => setConfirming(true)}
-          className="h-8 rounded-lg px-2 text-xs text-text-muted transition-colors hover:text-brand-error"
+          className="h-8 rounded-full px-2 text-xs text-text-muted transition-colors hover:text-brand-error"
         >
           Anular
         </button>
@@ -733,7 +735,7 @@ function BusinessForm({ tenant: t }: { tenant: PlatformTenant }) {
       {changesType && (
         <p
           role="alert"
-          className="rounded-lg border border-brand-warning/30 bg-brand-warning/[0.07] px-3 py-2 text-sm text-text-primary"
+          className="rounded-xl border border-brand-warning/30 bg-brand-warning/[0.07] px-3 py-2 text-sm text-text-primary"
         >
           Cambiar el tipo reemplaza los nombres y campos de las órdenes de este negocio por los de
           la plantilla. Las órdenes ya creadas no cambian.

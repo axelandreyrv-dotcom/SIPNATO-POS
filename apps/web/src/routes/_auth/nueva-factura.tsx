@@ -97,7 +97,9 @@ function NuevaFacturaPage() {
       {printPortal}
 
       <div className="flex items-center justify-between mb-6 print:hidden">
-        <h1 className="text-xl font-semibold text-foreground">Nueva Factura</h1>
+        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-foreground">
+          Nueva Factura
+        </h1>
         <button
           onClick={() => void navigate({ to: '/facturas' as string })}
           className="text-sm text-muted-foreground hover:text-foreground"
@@ -107,7 +109,7 @@ function NuevaFacturaPage() {
       </div>
 
       {savedConsecutive !== null && (
-        <div className="print:hidden mb-4 flex items-center justify-between rounded-lg border border-brand-success/30 bg-brand-success/10 px-4 py-3 text-sm">
+        <div className="print:hidden mb-4 flex items-center justify-between rounded-xl border border-brand-success/30 bg-brand-success/10 px-4 py-3 text-sm">
           <span className="text-brand-success">
             Factura #{savedConsecutive} guardada e impresa. Formulario listo para la siguiente.
           </span>
@@ -129,7 +131,7 @@ function NuevaFacturaPage() {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              className="w-full rounded-full border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
             />
           </div>
           <div className="sm:col-span-2">
@@ -141,7 +143,7 @@ function NuevaFacturaPage() {
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
               placeholder="Nombre del cliente"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              className="w-full rounded-full border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
             />
           </div>
           <div>
@@ -151,7 +153,7 @@ function NuevaFacturaPage() {
               value={clientCedula}
               onChange={(e) => setClientCedula(e.target.value)}
               placeholder="0-0000-0000"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              className="w-full rounded-full border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
             />
           </div>
           <div>
@@ -162,7 +164,7 @@ function NuevaFacturaPage() {
               max={100}
               value={ivaPercent}
               onChange={(e) => setIvaPercent(parseInt(e.target.value, 10) || 0)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              className="w-full rounded-full border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
             />
           </div>
         </div>
@@ -191,14 +193,14 @@ function NuevaFacturaPage() {
                     onChange={(e) =>
                       updateItem(i, 'quantity', Math.max(1, parseInt(e.target.value, 10) || 1))
                     }
-                    className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    className="w-full rounded-full border border-border bg-background px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   />
                   <input
                     type="text"
                     value={item.description}
                     onChange={(e) => updateItem(i, 'description', e.target.value)}
                     placeholder="Descripción"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    className="w-full rounded-full border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   />
                   <input
                     type="number"
@@ -206,7 +208,7 @@ function NuevaFacturaPage() {
                     value={item.unitPrice}
                     onChange={(e) => updateItem(i, 'unitPrice', e.target.value)}
                     placeholder="0"
-                    className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    className="w-full rounded-full border border-border bg-background px-2 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   />
                   <div className="text-sm text-right text-foreground pr-1">
                     {formatColones(lineTotal)}
@@ -215,7 +217,7 @@ function NuevaFacturaPage() {
                     onClick={() => removeItem(i)}
                     disabled={items.length === 1}
                     aria-label="Eliminar ítem"
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-red-500 disabled:opacity-30"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-red-500 disabled:opacity-30"
                   >
                     <Trash2 size={15} strokeWidth={1.5} aria-hidden />
                   </button>
@@ -256,21 +258,21 @@ function NuevaFacturaPage() {
         <div className="flex justify-end gap-3 pt-2">
           <button
             onClick={() => void navigate({ to: '/facturas' as string })}
-            className="rounded-lg border border-border px-4 py-2 text-sm hover:bg-muted/50"
+            className="rounded-full border border-border px-4 py-2 text-sm hover:bg-muted/50"
           >
             Cancelar
           </button>
           <button
             onClick={() => void handleSave(false)}
             disabled={saving}
-            className="rounded-lg bg-brand-success px-4 py-2 text-sm font-medium text-white hover:bg-brand-success/90 disabled:opacity-60"
+            className="rounded-full bg-brand-success px-4 py-2 text-sm font-medium text-white hover:bg-brand-success/90 disabled:opacity-60"
           >
             Solo guardar
           </button>
           <button
             onClick={() => void handleSave(true)}
             disabled={saving}
-            className="flex items-center gap-2 rounded-lg bg-brand-blue px-4 py-2 text-sm font-medium text-white hover:bg-brand-blue/90 disabled:opacity-60"
+            className="flex items-center gap-2 rounded-full bg-brand-blue px-4 py-2 text-sm font-medium text-white hover:bg-brand-blue/90 disabled:opacity-60"
           >
             <Printer size={15} strokeWidth={1.5} aria-hidden />
             Guardar e imprimir

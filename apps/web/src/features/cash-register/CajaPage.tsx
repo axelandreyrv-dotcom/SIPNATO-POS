@@ -8,16 +8,16 @@ import { fmtDate, fmtTime } from '../../lib/format';
 import { cashRegisterApi } from './api';
 
 const inputCls =
-  'h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted';
+  'h-9 w-full rounded-full border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted';
 
 const btnBase =
-  'flex flex-1 h-9 items-center justify-center gap-1.5 rounded-lg text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
+  'flex flex-1 h-9 items-center justify-center gap-1.5 rounded-full text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
 
 const btnPrimary = btnBase + ' bg-brand-blue';
 const btnDanger = btnBase + ' bg-brand-error';
 
 const btnSecondary =
-  'flex flex-1 h-9 items-center justify-center rounded-lg border border-border text-sm text-text-secondary transition-colors hover:bg-surface-bg';
+  'flex flex-1 h-9 items-center justify-center rounded-full border border-border text-sm text-text-secondary transition-colors hover:bg-surface-bg';
 
 type TotalsRow = { label: string; value: number; negative?: boolean };
 
@@ -40,7 +40,7 @@ function TotalsGrid({ totals }: { totals: CashRegisterCurrent['totals'] }) {
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
       {rows.map(({ label, value, negative }) => (
-        <div key={label} className="rounded-lg border border-border bg-surface-card p-3">
+        <div key={label} className="rounded-xl border border-border bg-surface-card p-3">
           <p className="text-xs text-text-muted">{label}</p>
           <p className="mt-1 text-[15px] font-semibold tabular-nums text-text-primary">
             {negative ? '−' : ''}
@@ -76,7 +76,7 @@ function UsdCashRow({ totals }: { totals: CashRegisterCurrent['totals'] }) {
 
 function NetRow({ amount }: { amount: number }) {
   return (
-    <div className="mt-3 flex items-center justify-between rounded-lg border border-border bg-surface-bg px-4 py-3">
+    <div className="mt-3 flex items-center justify-between rounded-xl border border-border bg-surface-bg px-4 py-3">
       <span className="text-sm font-medium text-text-secondary">Balance neto</span>
       <span className="text-base font-semibold tabular-nums text-text-primary">
         {signedColones(amount)}
@@ -122,7 +122,7 @@ function ModalHeader({ id, title, onClose }: { id: string; title: string; onClos
       <button
         type="button"
         onClick={onClose}
-        className="flex h-9 w-9 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
+        className="flex h-9 w-9 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
         aria-label="Cerrar"
       >
         <X size={16} strokeWidth={1.5} aria-hidden />
@@ -313,7 +313,7 @@ function HistoryRow({ register }: { register: CashRegisterSummary }) {
 
 function EmptyState({ onOpen }: { onOpen: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-14 px-6 text-center">
+    <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border py-14 px-6 text-center">
       <Landmark size={36} strokeWidth={1} className="mb-4 text-text-muted" aria-hidden />
       <p className="text-sm font-medium text-text-primary">No hay caja abierta</p>
       <p className="mt-1 text-xs text-text-muted">
@@ -322,7 +322,7 @@ function EmptyState({ onOpen }: { onOpen: () => void }) {
       <button
         type="button"
         onClick={onOpen}
-        className="mt-5 flex items-center gap-2 rounded-lg bg-brand-blue px-5 py-2 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
+        className="mt-5 flex items-center gap-2 rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
       >
         Abrir Caja
       </button>
@@ -338,7 +338,7 @@ function OpenRegisterCard({
   onClose: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-surface-card p-5">
+    <div className="rounded-3xl border border-border bg-surface-card p-5">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-bg px-2.5 py-1 text-xs font-medium text-text-primary">
@@ -355,7 +355,7 @@ function OpenRegisterCard({
         <button
           type="button"
           onClick={onClose}
-          className="shrink-0 rounded-lg border border-brand-error/30 bg-brand-error/5 px-3 py-1.5 text-xs font-medium text-brand-error transition-colors hover:bg-brand-error/10"
+          className="shrink-0 rounded-full border border-brand-error/30 bg-brand-error/5 px-3 py-1.5 text-xs font-medium text-brand-error transition-colors hover:bg-brand-error/10"
         >
           Cerrar Caja
         </button>
@@ -411,7 +411,9 @@ export function CajaPage() {
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-text-primary">Control de Caja</h1>
+        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+          Control de Caja
+        </h1>
         <p className="mt-1 text-sm text-text-muted">
           Apertura, cierre y seguimiento de ventas del día.
         </p>
@@ -419,18 +421,18 @@ export function CajaPage() {
 
       {/* Status section */}
       {isLoading ? (
-        <div className="animate-pulse rounded-xl border border-border bg-surface-card p-5">
+        <div className="animate-pulse rounded-3xl border border-border bg-surface-card p-5">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div className="space-y-2">
               <div className="h-6 w-28 rounded-full bg-border" />
               <div className="h-3 w-44 rounded bg-border" />
               <div className="h-3 w-32 rounded bg-border" />
             </div>
-            <div className="h-8 w-24 rounded-lg bg-border" />
+            <div className="h-8 w-24 rounded-full bg-border" />
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {Array.from({ length: 6 }, (_, i) => (
-              <div key={i} className="rounded-lg border border-border bg-surface-bg p-3">
+              <div key={i} className="rounded-xl border border-border bg-surface-bg p-3">
                 <div className="h-2.5 w-14 rounded bg-border" />
                 <div className="mt-2 h-4 w-20 rounded bg-border" />
               </div>
@@ -446,8 +448,8 @@ export function CajaPage() {
       {/* History */}
       {(history?.registers.length ?? 0) > 0 && (
         <div className="mt-8">
-          <h2 className="mb-3 text-sm font-semibold text-text-primary">Historial</h2>
-          <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+          <h2 className="mb-3 text-base font-semibold text-text-primary">Historial</h2>
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
             {history!.registers.map((r) => (
               <HistoryRow key={r.id} register={r} />
             ))}
@@ -466,7 +468,7 @@ export function CajaPage() {
 
       {/* Warning if there are closed registers but none open */}
       {!isLoading && !current && (history?.registers.length ?? 0) > 0 && (
-        <div className="mt-4 flex items-start gap-2 rounded-lg border border-brand-warning/20 bg-brand-warning/[0.06] px-4 py-3">
+        <div className="mt-4 flex items-start gap-2 rounded-xl border border-brand-warning/20 bg-brand-warning/[0.06] px-4 py-3">
           <AlertTriangle
             size={14}
             strokeWidth={1.5}

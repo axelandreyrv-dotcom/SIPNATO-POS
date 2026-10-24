@@ -14,7 +14,7 @@ import { usersApi } from './api';
 import { SecretInput, secretLabel } from './SecretInput';
 
 const inputCls =
-  'h-10 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20';
+  'h-10 w-full rounded-full border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20';
 
 const ROLE_BADGE: Record<UserRole, string> = {
   dueno: 'bg-brand-blue/10 text-brand-blue',
@@ -59,7 +59,7 @@ function CreateUserForm({ roles, onDone }: { roles: UserRole[]; onDone: () => vo
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="mb-6 rounded-xl border border-border bg-surface-card p-4 sm:p-5"
+      className="mb-6 rounded-3xl border border-border bg-surface-card p-4 sm:p-5"
       aria-label="Nuevo usuario"
     >
       <div className="grid gap-4 sm:grid-cols-2">
@@ -109,7 +109,7 @@ function CreateUserForm({ roles, onDone }: { roles: UserRole[]; onDone: () => vo
                   }}
                   aria-pressed={role === r}
                   className={[
-                    'flex h-10 flex-1 items-center justify-center rounded-lg border text-sm transition-colors',
+                    'flex h-10 flex-1 items-center justify-center rounded-full border text-sm transition-colors',
                     role === r
                       ? 'border-brand-blue bg-brand-blue/10 font-medium text-brand-blue'
                       : 'border-border text-text-secondary hover:bg-surface-bg',
@@ -146,14 +146,14 @@ function CreateUserForm({ roles, onDone }: { roles: UserRole[]; onDone: () => vo
         <button
           type="button"
           onClick={onDone}
-          className="flex h-10 items-center rounded-lg border border-border px-4 text-sm text-text-secondary transition-colors hover:bg-surface-bg"
+          className="flex h-10 items-center rounded-full border border-border px-4 text-sm text-text-secondary transition-colors hover:bg-surface-bg"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={mutation.isPending}
-          className="flex h-10 items-center gap-1.5 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+          className="flex h-10 items-center gap-1.5 rounded-full bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
         >
           {mutation.isPending && (
             <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
@@ -235,7 +235,7 @@ function UserRow({
                 type="button"
                 onClick={() => mutation.mutate({ unlock: true })}
                 disabled={mutation.isPending}
-                className="flex h-9 items-center rounded-lg px-3 text-xs font-medium text-brand-blue transition-colors hover:bg-brand-blue/10"
+                className="flex h-9 items-center rounded-full px-3 text-xs font-medium text-brand-blue transition-colors hover:bg-brand-blue/10"
               >
                 Desbloquear
               </button>
@@ -249,7 +249,7 @@ function UserRow({
                   setSecret('');
                 }}
                 aria-expanded={resetting}
-                className="flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs text-text-secondary transition-colors hover:bg-surface-bg hover:text-text-primary"
+                className="flex h-9 items-center gap-1.5 rounded-full px-3 text-xs text-text-secondary transition-colors hover:bg-surface-bg hover:text-text-primary"
               >
                 <KeyRound size={13} strokeWidth={1.5} aria-hidden />
                 {user.role === 'cajero' ? 'Cambiar PIN' : 'Cambiar contraseña'}
@@ -260,7 +260,7 @@ function UserRow({
               onClick={() => mutation.mutate({ active: !user.active })}
               disabled={mutation.isPending}
               className={[
-                'flex h-9 items-center rounded-lg px-3 text-xs transition-colors',
+                'flex h-9 items-center rounded-full px-3 text-xs transition-colors',
                 user.active
                   ? 'text-text-muted hover:bg-brand-error/10 hover:text-brand-error'
                   : 'text-brand-blue hover:bg-brand-blue/10',
@@ -296,7 +296,7 @@ function UserRow({
             <button
               type="submit"
               disabled={mutation.isPending || secret.length === 0}
-              className="flex h-10 items-center gap-1.5 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 disabled:opacity-60"
+              className="flex h-10 items-center gap-1.5 rounded-full bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 disabled:opacity-60"
             >
               {mutation.isPending && (
                 <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
@@ -306,7 +306,7 @@ function UserRow({
             <button
               type="button"
               onClick={() => setResetting(false)}
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-text-muted hover:bg-surface-bg"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-text-muted hover:bg-surface-bg"
               aria-label="Cancelar"
             >
               <X size={16} strokeWidth={1.5} aria-hidden />
@@ -344,7 +344,9 @@ export function UsersPage() {
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-text-primary">Usuarios</h1>
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+            Usuarios
+          </h1>
           <p className="mt-1 text-sm text-text-muted">
             {me.role === 'dueno'
               ? 'Administradores y cajeros del negocio.'
@@ -355,7 +357,7 @@ export function UsersPage() {
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
+            className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
           >
             <Plus size={16} strokeWidth={1.5} aria-hidden />
             Nuevo usuario
@@ -366,7 +368,7 @@ export function UsersPage() {
       {creating && <CreateUserForm roles={roles} onDone={() => setCreating(false)} />}
 
       {isLoading ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
@@ -378,7 +380,7 @@ export function UsersPage() {
           ))}
         </div>
       ) : isError ? (
-        <div className="rounded-xl border border-border bg-surface-card p-6 text-center">
+        <div className="rounded-3xl border border-border bg-surface-card p-6 text-center">
           <p className="text-sm text-text-muted">No se pudieron cargar los usuarios.</p>
           <button
             type="button"
@@ -389,7 +391,7 @@ export function UsersPage() {
           </button>
         </div>
       ) : users && users.length <= 1 ? (
-        <div className="flex flex-col items-center rounded-xl border border-dashed border-border px-6 py-10 text-center">
+        <div className="flex flex-col items-center rounded-3xl border border-dashed border-border px-6 py-10 text-center">
           <UserPlus size={28} strokeWidth={1.5} className="text-text-muted" aria-hidden />
           <p className="mt-3 text-sm font-medium text-text-primary">Todavía trabajas solo</p>
           <p className="mt-1 max-w-sm text-sm text-text-muted">
@@ -398,7 +400,7 @@ export function UsersPage() {
           </p>
         </div>
       ) : (
-        <ul className="m-0 list-none overflow-hidden rounded-xl border border-border bg-surface-card p-0">
+        <ul className="m-0 list-none overflow-hidden rounded-2xl border border-border bg-surface-card p-0">
           {users?.map((u) => (
             <UserRow
               key={u.id}

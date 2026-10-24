@@ -116,7 +116,7 @@ function BalanceCard({
   const s = styles[variant];
 
   return (
-    <div className={`flex flex-col gap-1 rounded-xl border p-4 ${s.bg}`}>
+    <div className={`flex flex-col gap-1 rounded-2xl border p-4 ${s.bg}`}>
       <div className="flex items-center justify-between">
         <span className="text-xs text-text-muted">{label}</span>
         {s.icon}
@@ -213,13 +213,15 @@ export function ExpensesPage() {
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-text-primary">Gastos</h1>
+        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+          Gastos
+        </h1>
         <p className="mt-1 text-sm text-text-muted">Registra los egresos de la caja.</p>
       </div>
 
       {/* No register warning */}
       {noRegister && (
-        <div className="mb-6 flex items-start gap-3 rounded-lg border border-brand-warning/25 bg-brand-warning/[0.07] px-4 py-3">
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-brand-warning/25 bg-brand-warning/[0.07] px-4 py-3">
           <AlertTriangle
             size={16}
             strokeWidth={1.5}
@@ -267,7 +269,7 @@ export function ExpensesPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Ej. Compra de insumos, pago de servicio..."
-              className="h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
+              className="h-9 w-full rounded-full border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
@@ -297,7 +299,7 @@ export function ExpensesPage() {
                 value={amountStr}
                 onChange={(e) => setAmountStr(e.target.value)}
                 placeholder="0"
-                className="h-11 w-full rounded-lg border border-border bg-surface-input pl-7 pr-3 text-lg font-medium tabular-nums text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted placeholder:font-normal placeholder:text-base"
+                className="h-11 w-full rounded-full border border-border bg-surface-input pl-7 pr-3 text-lg font-medium tabular-nums text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted placeholder:font-normal placeholder:text-base"
               />
             </div>
           </div>
@@ -305,7 +307,7 @@ export function ExpensesPage() {
           <button
             type="submit"
             disabled={!canSubmit || noRegister || createMutation.isPending}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-error text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand-error text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createMutation.isPending ? (
               <>
@@ -330,7 +332,7 @@ export function ExpensesPage() {
       {/* Expenses list */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-text-primary">
+          <h2 className="text-base font-semibold text-text-primary">
             Gastos de la caja
             {(expensesData?.expenses.length ?? 0) > 0 && (
               <span className="ml-2 text-xs font-normal text-text-muted">
@@ -349,7 +351,7 @@ export function ExpensesPage() {
         </div>
 
         {expensesLoading ? (
-          <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
             {Array.from({ length: 4 }, (_, i) => (
               <div
                 key={i}
@@ -362,13 +364,13 @@ export function ExpensesPage() {
             ))}
           </div>
         ) : !expensesData?.expenses.length ? (
-          <div className="flex h-20 items-center justify-center rounded-xl border border-dashed border-border">
+          <div className="flex h-20 items-center justify-center rounded-2xl border border-dashed border-border">
             <p className="text-sm text-text-muted">
               {noRegister ? 'Abre la caja para ver los gastos' : 'Sin gastos registrados aún'}
             </p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
             {expensesData.expenses.map((expense) => (
               <ExpenseRow
                 key={expense.id}

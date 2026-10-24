@@ -61,7 +61,7 @@ export function BusinessTypeFields({
           {TOGGLEABLE_MODULES.map((m) => (
             <label
               key={m}
-              className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm text-text-primary transition-colors hover:bg-brand-blue/[0.04]"
+              className="flex min-h-11 cursor-pointer items-center gap-3 rounded-full border border-border px-3 py-2 text-sm text-text-primary transition-colors hover:bg-brand-blue/[0.04]"
             >
               <input
                 type="checkbox"

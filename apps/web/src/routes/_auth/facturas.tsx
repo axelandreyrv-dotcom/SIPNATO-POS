@@ -40,7 +40,7 @@ function FacturaRow({
 
   return (
     <div
-      className={`border border-border rounded-xl overflow-hidden ${isAnulada ? 'opacity-60' : ''}`}
+      className={`border border-border rounded-2xl overflow-hidden ${isAnulada ? 'opacity-60' : ''}`}
     >
       <button
         onClick={() => setExpanded((v) => !v)}
@@ -156,14 +156,14 @@ function FacturaRow({
                     onAnular(factura.id);
                     setConfirmAnular(false);
                   }}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400"
                   aria-label="Confirmar anulación"
                 >
                   <XCircle size={15} strokeWidth={1.5} aria-hidden />
                 </button>
                 <button
                   onClick={() => setConfirmAnular(false)}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-muted/50"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted/50"
                   aria-label="Cancelar"
                 >
                   ✕
@@ -223,7 +223,9 @@ function FacturasPage() {
       <div className="print:hidden">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Facturas</h1>
+            <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-foreground">
+              Facturas
+            </h1>
             {data && (
               <p className="text-sm text-muted-foreground mt-0.5">
                 {data.total} factura{data.total !== 1 ? 's' : ''}
@@ -251,7 +253,7 @@ function FacturasPage() {
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Buscar por cliente, cédula o número..."
-            className="w-full rounded-xl border border-border bg-background pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+            className="w-full rounded-2xl border border-border bg-background pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
           />
         </div>
 
@@ -288,7 +290,7 @@ function FacturasPage() {
             <button
               disabled={page === 1}
               onClick={() => setPage((p) => p - 1)}
-              className="rounded-lg border border-border px-3 py-1.5 text-sm disabled:opacity-40 hover:bg-muted/50"
+              className="rounded-full border border-border px-3 py-1.5 text-sm disabled:opacity-40 hover:bg-muted/50"
             >
               ← Anterior
             </button>
@@ -298,7 +300,7 @@ function FacturasPage() {
             <button
               disabled={page === totalPages}
               onClick={() => setPage((p) => p + 1)}
-              className="rounded-lg border border-border px-3 py-1.5 text-sm disabled:opacity-40 hover:bg-muted/50"
+              className="rounded-full border border-border px-3 py-1.5 text-sm disabled:opacity-40 hover:bg-muted/50"
             >
               Siguiente →
             </button>

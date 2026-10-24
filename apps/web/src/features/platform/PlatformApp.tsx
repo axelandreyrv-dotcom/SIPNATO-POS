@@ -96,20 +96,25 @@ function Shell({ admin }: { admin: Superadmin }) {
 
   return (
     <div className="min-h-[100dvh] bg-surface-bg">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-brand-navy">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:gap-6 sm:px-6">
+      <header className="sticky top-0 z-20 bg-surface-bg/90 backdrop-blur-sm">
+        <div className="mx-auto flex h-[4.5rem] max-w-6xl items-center gap-3 px-4 sm:gap-6 sm:px-6">
           <Link
             to="/"
             className="flex shrink-0 items-center gap-2.5"
             aria-label="Dosuxsoft · Plataforma"
           >
-            <img src="/logo.png" alt="" width={24} height={24} aria-hidden />
-            <span className="hidden text-sm font-semibold tracking-tight text-white sm:inline">
-              Dosuxsoft <span className="font-normal text-white/75">· Plataforma</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-navy dark:bg-brand-blue">
+              <img src="/logo.png" alt="" width={20} height={20} aria-hidden />
+            </span>
+            <span className="hidden text-base font-semibold tracking-tight text-text-primary md:inline">
+              Dosuxsoft <span className="font-normal text-text-muted">· Plataforma</span>
             </span>
           </Link>
 
-          <nav className="flex h-full items-stretch gap-1" aria-label="Secciones">
+          <nav
+            className="flex items-center gap-1 rounded-full border border-border bg-surface-card p-1 sm:mx-auto"
+            aria-label="Secciones"
+          >
             {NAV.map((item) => {
               const active = item.match(path);
               return (
@@ -118,10 +123,10 @@ function Shell({ admin }: { admin: Superadmin }) {
                   to={item.to}
                   aria-current={active ? 'page' : undefined}
                   className={[
-                    'flex items-center border-b-2 px-2 text-sm transition-colors duration-150',
+                    'flex h-9 items-center rounded-full px-3.5 text-sm transition-colors duration-150 sm:px-4',
                     active
-                      ? 'border-white font-medium text-white'
-                      : 'border-transparent text-white/80 hover:text-white',
+                      ? 'bg-brand-navy font-medium text-white dark:bg-brand-blue'
+                      : 'text-text-secondary hover:text-text-primary',
                   ].join(' ')}
                 >
                   {item.label}
@@ -130,28 +135,30 @@ function Shell({ admin }: { admin: Superadmin }) {
             })}
           </nav>
 
-          <div className="ml-auto flex items-center gap-1">
-            <span className="mr-2 hidden text-sm text-white/80 sm:inline">@{admin.username}</span>
+          <div className="ml-auto flex items-center gap-1.5 sm:ml-0">
+            <span className="mr-1 hidden text-sm text-text-secondary lg:inline">
+              @{admin.username}
+            </span>
             <button
               type="button"
               onClick={toggle}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-white/85 transition-colors hover:bg-white/15 hover:text-white"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface-card text-text-secondary transition-colors hover:text-text-primary"
               aria-label={isDark ? 'Modo claro' : 'Modo oscuro'}
             >
               {isDark ? (
-                <Sun size={18} strokeWidth={1.5} aria-hidden />
+                <Sun size={18} strokeWidth={1.6} aria-hidden />
               ) : (
-                <Moon size={18} strokeWidth={1.5} aria-hidden />
+                <Moon size={18} strokeWidth={1.6} aria-hidden />
               )}
             </button>
             <button
               type="button"
               onClick={() => logout.mutate()}
               disabled={logout.isPending}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-white/85 transition-colors hover:bg-white/15 hover:text-white"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface-card text-text-secondary transition-colors hover:text-text-primary"
               aria-label="Cerrar sesión"
             >
-              <LogOut size={18} strokeWidth={1.5} aria-hidden />
+              <LogOut size={18} strokeWidth={1.6} aria-hidden />
             </button>
           </div>
         </div>

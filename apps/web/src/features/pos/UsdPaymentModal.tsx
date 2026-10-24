@@ -64,7 +64,7 @@ export function UsdPaymentModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-text-muted hover:bg-surface-bg hover:text-text-primary"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-text-muted hover:bg-surface-bg hover:text-text-primary"
             aria-label="Cerrar"
           >
             <X size={16} strokeWidth={1.5} aria-hidden />
@@ -73,7 +73,7 @@ export function UsdPaymentModal({
 
         {rate === null ? (
           <p
-            className="rounded-lg bg-brand-warning/[0.08] px-4 py-3 text-sm text-text-primary"
+            className="rounded-xl bg-brand-warning/[0.08] px-4 py-3 text-sm text-text-primary"
             role="alert"
           >
             No hay tipo de cambio disponible. El dueño puede configurar uno de respaldo en
@@ -121,7 +121,7 @@ export function UsdPaymentModal({
                 value={received}
                 onChange={(e) => setReceived(e.target.value.replace(/[^\d.,]/g, ''))}
                 placeholder="20"
-                className="h-11 w-full rounded-lg border border-border bg-surface-input pl-7 pr-3 text-base tabular-nums text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
+                className="h-11 w-full rounded-full border border-border bg-surface-input pl-7 pr-3 text-base tabular-nums text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
               />
             </div>
 
@@ -163,7 +163,7 @@ export function UsdPaymentModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 flex-1 items-center justify-center rounded-lg border border-border text-sm text-text-secondary hover:bg-surface-bg"
+            className="flex h-10 flex-1 items-center justify-center rounded-full border border-border text-sm text-text-secondary hover:bg-surface-bg"
           >
             Cancelar
           </button>
@@ -171,7 +171,7 @@ export function UsdPaymentModal({
             type="button"
             disabled={!canConfirm || isLoading}
             onClick={() => onConfirm(cents!)}
-            className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-success text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-success text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isLoading && (
               <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />

@@ -28,7 +28,7 @@ function DraftCard({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-3 rounded-xl border-2 border-brand-blue/30 bg-surface-card p-4 shadow-sm"
+      className="flex flex-col gap-3 rounded-2xl border-2 border-brand-blue/30 bg-surface-card p-4 shadow-sm"
     >
       <input
         ref={titleRef}
@@ -39,7 +39,7 @@ function DraftCard({
         placeholder="Título de la nota"
         maxLength={200}
         required
-        className="h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm font-medium text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted placeholder:font-normal"
+        className="h-9 w-full rounded-full border border-border bg-surface-input px-3 text-sm font-medium text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted placeholder:font-normal"
       />
       <textarea
         value={body}
@@ -55,14 +55,14 @@ function DraftCard({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg px-3 py-1.5 text-xs text-text-muted transition-colors hover:bg-surface-bg"
+            className="rounded-full px-3 py-1.5 text-xs text-text-muted transition-colors hover:bg-surface-bg"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={!title.trim() || isCreating}
-            className="flex items-center gap-1.5 rounded-lg bg-brand-blue px-3 py-1.5 text-xs font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-full bg-brand-blue px-3 py-1.5 text-xs font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50"
           >
             {isCreating && (
               <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />
@@ -111,7 +111,7 @@ function NoteCard({
     return (
       <form
         onSubmit={handleSave}
-        className="flex flex-col gap-3 rounded-xl border-2 border-brand-blue/30 bg-surface-card p-4"
+        className="flex flex-col gap-3 rounded-2xl border-2 border-brand-blue/30 bg-surface-card p-4"
       >
         <input
           autoFocus
@@ -120,7 +120,7 @@ function NoteCard({
           onChange={(e) => setTitle(e.target.value)}
           maxLength={200}
           required
-          className="h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm font-medium text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
+          className="h-9 w-full rounded-full border border-border bg-surface-input px-3 text-sm font-medium text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
         />
         <textarea
           value={body}
@@ -135,14 +135,14 @@ function NoteCard({
             <button
               type="button"
               onClick={handleCancelEdit}
-              className="rounded-lg px-3 py-1.5 text-xs text-text-muted transition-colors hover:bg-surface-bg"
+              className="rounded-full px-3 py-1.5 text-xs text-text-muted transition-colors hover:bg-surface-bg"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={!title.trim() || isUpdating}
-              className="flex items-center gap-1.5 rounded-lg bg-brand-blue px-3 py-1.5 text-xs font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-full bg-brand-blue px-3 py-1.5 text-xs font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50"
             >
               {isUpdating && (
                 <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />
@@ -156,7 +156,7 @@ function NoteCard({
   }
 
   return (
-    <div className="group flex flex-col gap-2 rounded-xl border border-border bg-surface-card p-4 transition-shadow hover:shadow-sm">
+    <div className="group flex flex-col gap-2 rounded-2xl border border-border bg-surface-card p-4 transition-shadow hover:shadow-sm">
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">
@@ -261,14 +261,16 @@ export function NotesPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-text-primary">Notas</h1>
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+            Notas
+          </h1>
           <p className="mt-1 text-sm text-text-muted">Recordatorios e información interna.</p>
         </div>
         {!draftOpen && (
           <button
             type="button"
             onClick={() => setDraftOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99]"
+            className="flex items-center gap-2 rounded-full bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99]"
           >
             <Plus size={15} strokeWidth={1.5} aria-hidden />
             <span className="hidden sm:inline">Nueva nota</span>
@@ -294,7 +296,7 @@ export function NotesPage() {
           {Array.from({ length: 6 }, (_, i) => (
             <div
               key={i}
-              className="animate-pulse flex flex-col gap-3 rounded-xl border border-border bg-surface-card p-4"
+              className="animate-pulse flex flex-col gap-3 rounded-2xl border border-border bg-surface-card p-4"
             >
               <div className="h-4 w-3/5 rounded bg-border" />
               <div className="space-y-2">
@@ -307,7 +309,7 @@ export function NotesPage() {
           ))}
         </div>
       ) : !notes?.length ? (
-        <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border">
+        <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border">
           <p className="text-sm text-text-muted">No hay notas todavía.</p>
           {!draftOpen && (
             <button

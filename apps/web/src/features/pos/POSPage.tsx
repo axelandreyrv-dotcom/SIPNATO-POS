@@ -34,12 +34,13 @@ const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'dolares', label: 'Dólares' },
 ];
 
+// Etiquetas neutras: el nombre del método ya lo dice, el color no agregaba información.
 const METHOD_COLORS: Record<PaymentMethod, string> = {
-  efectivo: 'bg-brand-success/10 text-brand-success',
-  tarjeta: 'bg-brand-blue/10 text-brand-blue',
-  sinpe: 'bg-brand-warning/10 text-brand-warning',
-  transferencia: 'bg-surface-bg text-text-muted border border-border',
-  dolares: 'bg-brand-success/10 text-brand-success border border-brand-success/30',
+  efectivo: 'border border-border bg-surface-bg text-text-secondary',
+  tarjeta: 'border border-border bg-surface-bg text-text-secondary',
+  sinpe: 'border border-border bg-surface-bg text-text-secondary',
+  transferencia: 'border border-border bg-surface-bg text-text-secondary',
+  dolares: 'border border-border bg-surface-bg text-text-secondary',
 };
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
@@ -60,7 +61,7 @@ function ToastList({
           key={t.id}
           role="status"
           aria-live="polite"
-          className="animate-slide-up-fade flex items-center gap-3 rounded-lg border border-brand-success/20 bg-surface-card px-4 py-3 shadow-lg"
+          className="animate-slide-up-fade flex items-center gap-3 rounded-xl border border-brand-success/20 bg-surface-card px-4 py-3 shadow-lg"
         >
           <CheckCircle
             size={16}
@@ -131,14 +132,14 @@ function ChangeCalcModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary"
             aria-label="Cerrar"
           >
             <X size={16} strokeWidth={1.5} aria-hidden />
           </button>
         </div>
 
-        <div className="mb-5 rounded-lg bg-surface-bg px-4 py-3 text-center">
+        <div className="mb-5 rounded-xl bg-surface-bg px-4 py-3 text-center">
           <p className="text-xs text-text-muted mb-1">Total a cobrar</p>
           <p className="text-2xl font-semibold tabular-nums text-text-primary">
             {formatColones(amount)}
@@ -166,7 +167,7 @@ function ChangeCalcModal({
               onChange={(e) => setReceived(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="0"
-              className="h-11 w-full rounded-lg border border-border bg-surface-input pl-7 pr-3 text-base text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
+              className="h-11 w-full rounded-full border border-border bg-surface-input pl-7 pr-3 text-base text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
             />
           </div>
         </div>
@@ -199,7 +200,7 @@ function ChangeCalcModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex flex-1 h-9 items-center justify-center rounded-lg border border-border text-sm text-text-secondary transition-colors hover:bg-surface-bg"
+            className="flex flex-1 h-9 items-center justify-center rounded-full border border-border text-sm text-text-secondary transition-colors hover:bg-surface-bg"
           >
             Cancelar
           </button>
@@ -207,7 +208,7 @@ function ChangeCalcModal({
             type="button"
             disabled={!canConfirm || isLoading}
             onClick={onConfirm}
-            className="flex flex-1 h-9 items-center justify-center gap-1.5 rounded-lg bg-brand-success text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex flex-1 h-9 items-center justify-center gap-1.5 rounded-full bg-brand-success text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isLoading && (
               <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
@@ -607,13 +608,15 @@ export function POSPage() {
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-text-primary">Punto de Venta</h1>
+        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+          Punto de Venta
+        </h1>
         <p className="mt-1 text-sm text-text-muted">Registra ventas rápidamente.</p>
       </div>
 
       {/* No register warning */}
       {noRegister && (
-        <div className="mb-6 flex items-start gap-3 rounded-lg border border-brand-warning/25 bg-brand-warning/[0.07] px-4 py-3">
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-brand-warning/25 bg-brand-warning/[0.07] px-4 py-3">
           <AlertTriangle
             size={16}
             strokeWidth={1.5}
@@ -674,7 +677,7 @@ export function POSPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Ej. Cambio de pantalla, Cargador Samsung..."
-              className="h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
+              className="h-9 w-full rounded-full border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
@@ -705,7 +708,7 @@ export function POSPage() {
                 value={amountStr}
                 onChange={(e) => setAmountStr(e.target.value)}
                 placeholder="0"
-                className="h-11 w-full rounded-lg border border-border bg-surface-input pl-7 pr-3 text-lg font-medium tabular-nums text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted placeholder:font-normal placeholder:text-base"
+                className="h-11 w-full rounded-full border border-border bg-surface-input pl-7 pr-3 text-lg font-medium tabular-nums text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted placeholder:font-normal placeholder:text-base"
               />
             </div>
           </div>
@@ -730,7 +733,7 @@ export function POSPage() {
                   onClick={() => setMethod(value)}
                   onKeyDown={(e) => handleMethodKey(e, value)}
                   className={[
-                    'h-11 rounded-lg border text-sm font-medium transition-all',
+                    'h-11 rounded-full border text-sm font-medium transition-all',
                     method === value
                       ? 'border-brand-blue bg-brand-blue text-white shadow-sm'
                       : 'border-border bg-surface-card text-text-secondary hover:border-brand-blue/40 hover:text-text-primary',
@@ -746,7 +749,7 @@ export function POSPage() {
           <button
             type="submit"
             disabled={!canSubmit || noRegister || createMutation.isPending}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-brand-blue text-base font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-brand-blue text-base font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createMutation.isPending ? (
               <>
@@ -771,7 +774,7 @@ export function POSPage() {
       {/* Sales list */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-text-primary">
+          <h2 className="text-base font-semibold text-text-primary">
             Ventas de la caja
             {totalSales > 0 && (
               <span className="ml-2 text-xs font-normal text-text-muted">({totalSales})</span>
@@ -788,7 +791,7 @@ export function POSPage() {
         </div>
 
         {salesLoading ? (
-          <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
             {Array.from({ length: 4 }, (_, i) => (
               <div
                 key={i}
@@ -803,13 +806,13 @@ export function POSPage() {
             ))}
           </div>
         ) : !salesData?.sales.length ? (
-          <div className="flex h-20 items-center justify-center rounded-xl border border-dashed border-border">
+          <div className="flex h-20 items-center justify-center rounded-2xl border border-dashed border-border">
             <p className="text-sm text-text-muted">
               {noRegister ? 'Abre la caja para ver las ventas' : 'Sin ventas registradas aún'}
             </p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
             {salesData.sales.map((sale) => (
               <SaleRow
                 key={sale.id}

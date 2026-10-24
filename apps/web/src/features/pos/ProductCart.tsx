@@ -120,7 +120,7 @@ export function ProductSearch({
             if (e.key === 'Escape') setOpen(false);
           }}
           placeholder="Buscar producto o escanear código"
-          className="h-10 w-full rounded-lg border border-border bg-surface-input pl-9 pr-3 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
+          className="h-10 w-full rounded-full border border-border bg-surface-input pl-9 pr-3 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
         />
       </div>
 
@@ -187,7 +187,7 @@ export function CartLines({
   if (lines.length === 0) return null;
 
   return (
-    <ul className="m-0 list-none divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-card p-0">
+    <ul className="m-0 list-none divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface-card p-0">
       {lines.map(({ product, quantity }) => {
         const short = product.trackStock && quantity > product.stock;
         return (

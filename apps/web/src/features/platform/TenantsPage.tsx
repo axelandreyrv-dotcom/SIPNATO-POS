@@ -73,7 +73,9 @@ export function TenantsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold tracking-tight text-text-primary">Negocios</h1>
+        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+          Negocios
+        </h1>
         <Link to="/nuevo" className={primaryButton}>
           <Plus size={16} strokeWidth={1.5} aria-hidden />
           Nuevo negocio
@@ -102,7 +104,7 @@ export function TenantsPage() {
                 aria-selected={filter === f.key}
                 onClick={() => setFilter(f.key)}
                 className={[
-                  'flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-sm transition-colors duration-150',
+                  'flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm transition-colors duration-150',
                   filter === f.key
                     ? 'bg-brand-blue/10 font-medium text-brand-blue'
                     : 'text-text-secondary hover:bg-border/50 hover:text-text-primary',
@@ -127,13 +129,13 @@ export function TenantsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Nombre, subdominio o contacto"
-            className="h-9 w-full rounded-lg border border-border bg-surface-input pl-9 pr-3 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
+            className="h-9 w-full rounded-full border border-border bg-surface-input pl-9 pr-3 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
           />
         </label>
       </div>
 
       {error ? (
-        <div className="rounded-xl border border-border bg-surface-card p-6 text-sm">
+        <div className="rounded-3xl border border-border bg-surface-card p-6 text-sm">
           <p className="text-brand-error">{errorText(error)}</p>
           <button
             type="button"
@@ -144,7 +146,7 @@ export function TenantsPage() {
           </button>
         </div>
       ) : isPending ? (
-        <div className="space-y-px overflow-hidden rounded-xl border border-border">
+        <div className="space-y-px overflow-hidden rounded-2xl border border-border">
           {[0, 1, 2].map((i) => (
             <div key={i} className="h-[68px] animate-pulse bg-surface-card" />
           ))}
@@ -152,7 +154,7 @@ export function TenantsPage() {
       ) : tenants.length === 0 ? (
         <EmptyState hasAny={(data?.tenants.length ?? 0) > 0} />
       ) : (
-        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-card">
+        <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface-card">
           {tenants.map((t) => (
             <TenantRow key={t.slug} tenant={t} />
           ))}
@@ -171,7 +173,7 @@ function SummaryStrip({ summary }: { summary: PlatformSummary }) {
     { label: 'Cobrado este mes', value: formatColones(summary.collectedThisMonth) },
   ];
   return (
-    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-5">
+    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-5">
       {cells.map((c, i) => (
         <div
           key={c.label}
@@ -247,13 +249,13 @@ function TenantRow({ tenant: t }: { tenant: PlatformTenant }) {
 function EmptyState({ hasAny }: { hasAny: boolean }) {
   if (hasAny) {
     return (
-      <p className="rounded-xl border border-border bg-surface-card px-4 py-10 text-center text-sm text-text-muted">
+      <p className="rounded-2xl border border-border bg-surface-card px-4 py-10 text-center text-sm text-text-muted">
         Ningún negocio coincide.
       </p>
     );
   }
   return (
-    <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
+    <div className="rounded-3xl border border-dashed border-border px-6 py-12 text-center">
       <p className="text-sm font-medium text-text-primary">Todavía no hay negocios</p>
       <p className="mx-auto mt-1 max-w-sm text-sm text-text-muted">
         Al crear uno se genera su base de datos y un código de activación para que el dueño

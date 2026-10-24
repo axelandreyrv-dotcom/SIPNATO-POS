@@ -31,11 +31,15 @@ function isOverdue(credito: Credito): boolean {
 
 function statusLabel(credito: Credito): { text: string; cls: string } {
   if (credito.status === 'pagado')
-    return { text: 'Pagado', cls: 'bg-brand-success/10 text-brand-success' };
+    return { text: 'Pagado', cls: 'border border-border bg-surface-bg text-text-secondary' };
   if (credito.status === 'cancelado')
-    return { text: 'Cancelado', cls: 'bg-border text-text-muted' };
-  if (isOverdue(credito)) return { text: 'Vencido', cls: 'bg-brand-error/10 text-brand-error' };
-  return { text: 'Activo', cls: 'bg-brand-blue/10 text-brand-blue' };
+    return { text: 'Cancelado', cls: 'border border-border bg-surface-bg text-text-muted' };
+  if (isOverdue(credito))
+    return {
+      text: 'Vencido',
+      cls: 'border border-text-primary/40 bg-surface-bg font-semibold text-text-primary',
+    };
+  return { text: 'Activo', cls: 'border border-border bg-surface-bg text-text-primary' };
 }
 
 // ── CreateModal ───────────────────────────────────────────────────────────────
@@ -68,7 +72,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
   });
 
   const inputClass =
-    'h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted';
+    'h-9 w-full rounded-full border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted';
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -86,7 +90,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-md rounded-2xl border border-border bg-surface-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-sm font-semibold text-text-primary">Nuevo crédito</h2>
+          <h2 className="text-base font-semibold text-text-primary">Nuevo crédito</h2>
           <button
             type="button"
             onClick={onClose}
@@ -162,14 +166,14 @@ function CreateModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={onClose}
-              className="h-9 flex-1 rounded-lg border border-border text-sm text-text-secondary transition-all hover:bg-surface-hover"
+              className="h-9 flex-1 rounded-full border border-border text-sm text-text-secondary transition-all hover:bg-surface-hover"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={mutation.isPending}
-              className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-blue text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+              className="flex h-9 flex-1 items-center justify-center gap-2 rounded-full bg-brand-blue text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
             >
               {mutation.isPending ? (
                 <Loader2 size={13} strokeWidth={1.5} className="animate-spin" aria-hidden />
@@ -238,7 +242,7 @@ function PaymentModal({ credito, onClose }: { credito: Credito; onClose: () => v
               type="button"
               onClick={onClose}
               autoFocus
-              className="h-9 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white hover:brightness-110"
+              className="h-9 rounded-full bg-brand-blue px-4 text-sm font-medium text-white hover:brightness-110"
             >
               Listo
             </button>
@@ -249,7 +253,7 @@ function PaymentModal({ credito, onClose }: { credito: Credito; onClose: () => v
   }
 
   const inputClass =
-    'h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted';
+    'h-9 w-full rounded-full border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted';
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -265,7 +269,7 @@ function PaymentModal({ credito, onClose }: { credito: Credito; onClose: () => v
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-surface-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-sm font-semibold text-text-primary">Registrar abono</h2>
+          <h2 className="text-base font-semibold text-text-primary">Registrar abono</h2>
           <button
             type="button"
             onClick={onClose}
@@ -275,7 +279,7 @@ function PaymentModal({ credito, onClose }: { credito: Credito; onClose: () => v
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4 p-5">
-          <div className="rounded-lg bg-surface-input p-3 text-sm">
+          <div className="rounded-xl bg-surface-input p-3 text-sm">
             <p className="text-text-secondary">{credito.debtorName}</p>
             <p className="mt-0.5 text-text-muted text-xs">{credito.description}</p>
             <div className="mt-2 flex justify-between">
@@ -318,14 +322,14 @@ function PaymentModal({ credito, onClose }: { credito: Credito; onClose: () => v
             <button
               type="button"
               onClick={onClose}
-              className="h-9 flex-1 rounded-lg border border-border text-sm text-text-secondary transition-all hover:bg-surface-hover"
+              className="h-9 flex-1 rounded-full border border-border text-sm text-text-secondary transition-all hover:bg-surface-hover"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={mutation.isPending}
-              className="flex h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-blue text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+              className="flex h-9 flex-1 items-center justify-center gap-2 rounded-full bg-brand-blue text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
             >
               {mutation.isPending ? (
                 <Loader2 size={13} strokeWidth={1.5} className="animate-spin" aria-hidden />
@@ -380,7 +384,7 @@ function CreditoRow({ credito, onAbono }: { credito: Credito; onAbono: (c: Credi
 
   return (
     <div
-      className={`rounded-xl border transition-all ${overdue ? 'border-brand-error/30 bg-brand-error/5' : 'border-border bg-surface-card'}`}
+      className={`rounded-2xl border transition-all ${overdue ? 'border-brand-error/30 bg-brand-error/5' : 'border-border bg-surface-card'}`}
     >
       {/* Row header */}
       <button
@@ -442,19 +446,19 @@ function CreditoRow({ credito, onAbono }: { credito: Credito; onAbono: (c: Credi
         <div className="border-t border-border px-4 py-3 space-y-3">
           {/* Amounts */}
           <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-lg bg-surface-input p-2">
+            <div className="rounded-xl bg-surface-input p-2">
               <p className="text-xs text-text-muted">Total</p>
               <p className="text-sm font-semibold text-text-primary">
                 {formatColones(credito.totalAmount)}
               </p>
             </div>
-            <div className="rounded-lg bg-surface-input p-2">
+            <div className="rounded-xl bg-surface-input p-2">
               <p className="text-xs text-text-muted">Abonado</p>
               <p className="text-sm font-semibold text-brand-success">
                 {formatColones(credito.paidAmount)}
               </p>
             </div>
-            <div className="rounded-lg bg-surface-input p-2">
+            <div className="rounded-xl bg-surface-input p-2">
               <p className="text-xs text-text-muted">Pendiente</p>
               <p
                 className={`text-sm font-semibold ${pending > 0 ? 'text-brand-error' : 'text-text-muted'}`}
@@ -513,7 +517,7 @@ function CreditoRow({ credito, onAbono }: { credito: Credito; onAbono: (c: Credi
               <button
                 type="button"
                 onClick={() => onAbono(credito)}
-                className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-blue text-xs font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
+                className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-blue text-xs font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
               >
                 <Plus size={13} strokeWidth={1.5} aria-hidden />
                 Abonar
@@ -522,7 +526,7 @@ function CreditoRow({ credito, onAbono }: { credito: Credito; onAbono: (c: Credi
                 <button
                   type="button"
                   onClick={() => setConfirmCancel(true)}
-                  className="flex h-8 items-center justify-center rounded-lg border border-border px-3 text-xs text-text-muted transition-all hover:border-brand-error hover:text-brand-error"
+                  className="flex h-8 items-center justify-center rounded-full border border-border px-3 text-xs text-text-muted transition-all hover:border-brand-error hover:text-brand-error"
                 >
                   Cancelar crédito
                 </button>
@@ -532,7 +536,7 @@ function CreditoRow({ credito, onAbono }: { credito: Credito; onAbono: (c: Credi
                     type="button"
                     onClick={() => cancelMutation.mutate()}
                     disabled={cancelMutation.isPending}
-                    className="flex h-8 items-center justify-center gap-1 rounded-lg bg-brand-error px-3 text-xs font-medium text-white disabled:opacity-60"
+                    className="flex h-8 items-center justify-center gap-1 rounded-full bg-brand-error px-3 text-xs font-medium text-white disabled:opacity-60"
                   >
                     {cancelMutation.isPending && (
                       <Loader2 size={11} strokeWidth={1.5} className="animate-spin" aria-hidden />
@@ -542,7 +546,7 @@ function CreditoRow({ credito, onAbono }: { credito: Credito; onAbono: (c: Credi
                   <button
                     type="button"
                     onClick={() => setConfirmCancel(false)}
-                    className="flex h-8 items-center justify-center rounded-lg border border-border px-3 text-xs text-text-muted hover:bg-surface-hover"
+                    className="flex h-8 items-center justify-center rounded-full border border-border px-3 text-xs text-text-muted hover:bg-surface-hover"
                   >
                     No
                   </button>
@@ -593,7 +597,9 @@ export function CreditosPage() {
       {/* Header */}
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-text-primary">Ventas a crédito</h1>
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+            Ventas a crédito
+          </h1>
           <p className="mt-0.5 text-sm text-text-muted">
             {tab === 'activo' && creditos.length > 0
               ? `${creditos.length} activo${creditos.length !== 1 ? 's' : ''} · ${formatColones(totalPending)} pendiente${overdueCount > 0 ? ` · ${overdueCount} vencido${overdueCount !== 1 ? 's' : ''}` : ''}`
@@ -603,7 +609,7 @@ export function CreditosPage() {
         <button
           type="button"
           onClick={() => setShowCreate(true)}
-          className="flex h-9 shrink-0 items-center gap-2 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
+          className="flex h-9 shrink-0 items-center gap-2 rounded-full bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
         >
           <Plus size={15} strokeWidth={1.5} aria-hidden />
           Nuevo
@@ -611,7 +617,7 @@ export function CreditosPage() {
       </div>
 
       {/* Tabs */}
-      <div className="mb-4 flex gap-1 rounded-xl border border-border bg-surface-input p-1">
+      <div className="mb-4 flex gap-1 rounded-2xl border border-border bg-surface-input p-1">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -642,7 +648,7 @@ export function CreditosPage() {
           placeholder="Buscar por nombre o teléfono…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="h-9 w-full rounded-lg border border-border bg-surface-input pl-9 pr-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
+          className="h-9 w-full rounded-full border border-border bg-surface-input pl-9 pr-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
         />
       </div>
 
@@ -656,7 +662,7 @@ export function CreditosPage() {
       )}
 
       {isError && (
-        <div className="flex items-center gap-2 rounded-xl border border-brand-error/20 bg-brand-error/5 p-4 text-sm text-brand-error">
+        <div className="flex items-center gap-2 rounded-2xl border border-brand-error/20 bg-brand-error/5 p-4 text-sm text-brand-error">
           <AlertCircle size={15} strokeWidth={1.5} aria-hidden />
           Error al cargar créditos
         </div>
@@ -681,7 +687,7 @@ export function CreditosPage() {
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="flex h-8 items-center gap-1.5 rounded-lg bg-brand-blue px-3 text-xs font-medium text-white transition-all hover:brightness-110"
+              className="flex h-8 items-center gap-1.5 rounded-full bg-brand-blue px-3 text-xs font-medium text-white transition-all hover:brightness-110"
             >
               <Plus size={13} strokeWidth={1.5} aria-hidden />
               Crear primer crédito

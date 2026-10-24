@@ -61,7 +61,7 @@ function PrintSection({ settings }: { settings: Settings | null }) {
       <button
         type="button"
         onClick={() => setTestPrint(true)}
-        className="flex h-9 items-center gap-2 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
+        className="flex h-9 items-center gap-2 rounded-full bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
       >
         <Printer size={14} strokeWidth={1.5} aria-hidden />
         Imprimir ticket de prueba
@@ -199,11 +199,11 @@ export function SettingsPage() {
               <div className="mt-6 space-y-4 sm:col-span-2 sm:mt-0">
                 <div>
                   <div className="mb-1.5 h-3 w-24 rounded bg-border" />
-                  <div className="h-9 w-full rounded-lg bg-border" />
+                  <div className="h-9 w-full rounded-full bg-border" />
                 </div>
                 <div>
                   <div className="mb-1.5 h-3 w-20 rounded bg-border" />
-                  <div className="h-9 w-full rounded-lg bg-border" />
+                  <div className="h-9 w-full rounded-full bg-border" />
                 </div>
               </div>
             </div>
@@ -227,7 +227,9 @@ export function SettingsPage() {
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
       {/* Header */}
       <div className="mb-2">
-        <h1 className="text-xl font-semibold text-text-primary">Configuración</h1>
+        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+          Configuración
+        </h1>
         <p className="mt-1 text-sm text-text-muted">
           Datos del negocio, tickets, tipo de negocio y módulos.
         </p>
@@ -389,7 +391,7 @@ export function SettingsPage() {
                   type="time"
                   value={current.auto_close_time}
                   onChange={(e) => patch({ auto_close_time: e.target.value })}
-                  className="h-9 rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all duration-150 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
+                  className="h-9 rounded-full border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all duration-150 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20"
                 />
               </div>
             )}
@@ -412,7 +414,7 @@ export function SettingsPage() {
             type="submit"
             disabled={mutation.isPending}
             className={[
-              'flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white',
+              'flex h-9 items-center gap-2 rounded-full px-4 text-sm font-medium text-white',
               'bg-brand-blue transition-all duration-150',
               'hover:brightness-110 active:scale-[0.98]',
               'disabled:cursor-not-allowed disabled:opacity-60',

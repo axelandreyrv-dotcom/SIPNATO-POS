@@ -119,7 +119,9 @@ export function CustomersPage() {
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-text-primary">Clientes</h1>
+        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+          Clientes
+        </h1>
         <p className="mt-1 text-sm text-text-muted">
           Directorio de clientes — clic para ver historial de boletas.
         </p>
@@ -139,7 +141,7 @@ export function CustomersPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Buscar por nombre, teléfono o cédula..."
-            className="h-10 w-full rounded-lg border border-border bg-surface-input pl-9 pr-4 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
+            className="h-10 w-full rounded-full border border-border bg-surface-input pl-9 pr-4 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
           />
           {search && (
             <button
@@ -158,7 +160,7 @@ export function CustomersPage() {
 
       {/* Results */}
       {isLoading ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
           {Array.from({ length: 5 }, (_, i) => (
             <div
               key={i}
@@ -175,7 +177,7 @@ export function CustomersPage() {
           ))}
         </div>
       ) : !data?.customers.length ? (
-        <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-border">
+        <div className="flex h-24 items-center justify-center rounded-2xl border border-dashed border-border">
           <p className="text-sm text-text-muted">
             {search ? `Sin resultados para "${search}"` : 'Sin clientes registrados aún'}
           </p>
@@ -188,7 +190,7 @@ export function CustomersPage() {
               {search && ` para "${search}"`}
             </p>
           )}
-          <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
             {data.customers.map((c) => (
               <CustomerRow key={c.id} customer={c} />
             ))}

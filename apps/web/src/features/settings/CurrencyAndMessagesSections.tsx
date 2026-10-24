@@ -25,7 +25,7 @@ export function ExchangeRateSection({ current, patch }: { current: Settings; pat
       title="Tipo de cambio"
       description="Para cobrar en dólares. Se usa el tipo de compra del BCCR, que se actualiza solo cada día."
     >
-      <div className="rounded-lg border border-border bg-surface-bg px-4 py-3 text-sm">
+      <div className="rounded-xl border border-border bg-surface-bg px-4 py-3 text-sm">
         {info?.source === 'bccr' ? (
           <p className="text-text-primary">
             BCCR del {info.date}: compra{' '}

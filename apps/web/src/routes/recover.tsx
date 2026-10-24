@@ -80,7 +80,7 @@ function RecoverPage() {
               className="mt-0.5 shrink-0 text-brand-success"
             />
             <div>
-              <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+              <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
                 Contraseña actualizada
               </h1>
               <p className="mt-1 text-sm text-text-muted">
@@ -90,7 +90,7 @@ function RecoverPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-brand-warning/30 bg-brand-warning/8 p-4">
+          <div className="rounded-2xl border border-brand-warning/30 bg-brand-warning/8 p-4">
             <div className="mb-2 flex items-center gap-2">
               <ShieldAlert size={15} strokeWidth={1.5} className="text-brand-warning" />
               <p className="text-xs font-semibold uppercase tracking-wide text-brand-warning">
@@ -104,7 +104,7 @@ function RecoverPage() {
 
           <div className="space-y-2">
             <p className="text-sm font-medium text-text-secondary">Código de recuperación</p>
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-input p-3">
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-input p-3">
               <code className="flex-1 break-all font-mono text-sm tracking-wider text-text-primary">
                 {newRecoveryCode}
               </code>
@@ -132,7 +132,7 @@ function RecoverPage() {
             type="button"
             onClick={() => void navigate({ to: '/' })}
             className={[
-              'flex h-10 w-full items-center justify-center rounded-lg',
+              'flex h-10 w-full items-center justify-center rounded-full',
               'bg-brand-blue text-sm font-medium text-white',
               'transition-all duration-150 hover:brightness-110 active:scale-[0.98]',
             ].join(' ')}
@@ -148,7 +148,7 @@ function RecoverPage() {
     <AuthShell>
       <div className="space-y-8">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
             Recuperar acceso
           </h1>
           <p className="mt-1 text-sm text-text-muted">
@@ -159,7 +159,7 @@ function RecoverPage() {
         {error && (
           <div
             role="alert"
-            className="rounded-lg border border-brand-error/30 bg-brand-error/8 px-4 py-3 text-sm text-brand-error"
+            className="rounded-xl border border-brand-error/30 bg-brand-error/8 px-4 py-3 text-sm text-brand-error"
             style={{ animation: 'slideDown 0.15s ease-out' }}
           >
             {error}
@@ -189,7 +189,7 @@ function RecoverPage() {
                 if (error) setError(null);
               }}
               className={[
-                'h-10 w-full rounded-lg border px-3 font-mono text-sm text-text-primary',
+                'h-10 w-full rounded-full border px-3 font-mono text-sm text-text-primary',
                 'bg-surface-input outline-none transition-all duration-150 placeholder:text-text-muted placeholder:font-sans',
                 fieldErrors.recoveryCode
                   ? 'border-brand-error ring-1 ring-brand-error/20'
@@ -221,7 +221,7 @@ function RecoverPage() {
                     setFieldErrors(({ newPassword: _n, ...rest }) => rest);
                 }}
                 className={[
-                  'h-10 w-full rounded-lg border px-3 pr-10 text-sm text-text-primary',
+                  'h-10 w-full rounded-full border px-3 pr-10 text-sm text-text-primary',
                   'bg-surface-input outline-none transition-all duration-150 placeholder:text-text-muted',
                   fieldErrors.newPassword
                     ? 'border-brand-error ring-1 ring-brand-error/20'
@@ -253,7 +253,7 @@ function RecoverPage() {
             type="submit"
             disabled={loading}
             className={[
-              'flex h-10 w-full items-center justify-center gap-2 rounded-lg',
+              'flex h-10 w-full items-center justify-center gap-2 rounded-full',
               'bg-brand-blue text-sm font-medium text-white',
               'transition-all duration-150 hover:brightness-110 active:scale-[0.98] active:brightness-95',
               'disabled:cursor-not-allowed disabled:opacity-60',

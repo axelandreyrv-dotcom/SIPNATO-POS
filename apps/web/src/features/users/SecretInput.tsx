@@ -34,7 +34,7 @@ export function SecretInput({
         }
         placeholder={isPin ? '6 dígitos' : 'Mínimo 8 caracteres'}
         className={[
-          'h-10 w-full rounded-lg border bg-surface-input px-3 pr-10 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted',
+          'h-10 w-full rounded-full border bg-surface-input px-3 pr-10 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted',
           isPin ? 'tabular-nums tracking-[0.3em] placeholder:tracking-normal' : '',
           invalid
             ? 'border-brand-error ring-1 ring-brand-error/20'
@@ -44,7 +44,7 @@ export function SecretInput({
       <button
         type="button"
         onClick={() => setVisible((v) => !v)}
-        className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-text-muted transition-colors hover:text-text-secondary"
+        className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-text-muted transition-colors hover:text-text-secondary"
         aria-label={visible ? 'Ocultar' : 'Mostrar'}
       >
         {visible ? (

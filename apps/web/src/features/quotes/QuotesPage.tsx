@@ -434,12 +434,14 @@ export function QuotesPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-text-primary">Cotizaciones</h1>
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+            Cotizaciones
+          </h1>
           <p className="mt-1 text-sm text-text-muted">Presupuestos generados para clientes.</p>
         </div>
         <Link
           to="/nueva-cotizacion"
-          className="flex items-center gap-2 rounded-lg bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99]"
+          className="flex items-center gap-2 rounded-full bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99]"
         >
           <Plus size={15} strokeWidth={1.5} aria-hidden />
           <span className="hidden sm:inline">Nueva cotización</span>
@@ -449,7 +451,7 @@ export function QuotesPage() {
 
       {/* List */}
       {isLoading ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
           {Array.from({ length: 5 }, (_, i) => (
             <div
               key={i}
@@ -464,7 +466,7 @@ export function QuotesPage() {
           ))}
         </div>
       ) : !data?.quotes.length ? (
-        <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border">
+        <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border">
           <p className="text-sm text-text-muted">No hay cotizaciones todavía.</p>
           <Link
             to="/nueva-cotizacion"
@@ -475,7 +477,7 @@ export function QuotesPage() {
         </div>
       ) : (
         <>
-          <div className="overflow-hidden rounded-xl border border-border bg-surface-card">
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
             {data.quotes.map((quote) => (
               <QuoteRow
                 key={quote.id}
@@ -498,7 +500,7 @@ export function QuotesPage() {
                 type="button"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-surface-bg disabled:opacity-40"
+                className="rounded-full border border-border px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-surface-bg disabled:opacity-40"
               >
                 ← Anterior
               </button>
@@ -509,7 +511,7 @@ export function QuotesPage() {
                 type="button"
                 disabled={page >= data.totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-surface-bg disabled:opacity-40"
+                className="rounded-full border border-border px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-surface-bg disabled:opacity-40"
               >
                 Siguiente →
               </button>

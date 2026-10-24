@@ -36,14 +36,14 @@ const STATUS_TABS = [
 // ─── Shared input styles ──────────────────────────────────────────────────────
 
 const inputClass = [
-  'h-9 w-full rounded-lg border px-3 text-sm text-text-primary',
+  'h-9 w-full rounded-full border px-3 text-sm text-text-primary',
   'bg-surface-input outline-none transition-all duration-150',
   'border-border focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20',
   'placeholder:text-text-muted',
 ].join(' ');
 
 const selectClass = [
-  'h-9 w-full rounded-lg border px-3 text-sm text-text-primary',
+  'h-9 w-full rounded-full border px-3 text-sm text-text-primary',
   'bg-surface-input outline-none transition-all duration-150',
   'border-border focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20',
 ].join(' ');
@@ -72,9 +72,9 @@ function ProgressBar({ paid, total }: { paid: number; total: number }) {
 
 function StatusBadge({ status }: { status: Apartado['status'] }) {
   const styles = {
-    activo: 'bg-brand-blue/10 text-brand-blue',
-    completado: 'bg-brand-success/10 text-brand-success',
-    cancelado: 'bg-border text-text-muted',
+    activo: 'border border-border bg-surface-bg text-text-primary',
+    completado: 'border border-border bg-surface-bg text-text-secondary',
+    cancelado: 'border border-border bg-surface-bg text-text-muted',
   };
   const labels = { activo: 'Activo', completado: 'Completado', cancelado: 'Cancelado' };
   return (
@@ -157,7 +157,7 @@ function AddPaymentForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="mt-3 rounded-lg border border-brand-blue/20 bg-brand-blue/5 p-3 space-y-2"
+      className="mt-3 rounded-xl border border-brand-blue/20 bg-brand-blue/5 p-3 space-y-2"
     >
       <p className="text-xs font-medium text-text-secondary">Agregar abono</p>
       <div className="flex gap-2">
@@ -193,7 +193,7 @@ function AddPaymentForm({
       <button
         type="submit"
         disabled={mutation.isPending}
-        className="flex h-8 items-center gap-1.5 rounded-lg bg-brand-blue px-3 text-xs font-medium text-white transition-all hover:brightness-110 disabled:opacity-60"
+        className="flex h-8 items-center gap-1.5 rounded-full bg-brand-blue px-3 text-xs font-medium text-white transition-all hover:brightness-110 disabled:opacity-60"
       >
         {mutation.isPending ? (
           <Loader2 size={12} strokeWidth={1.5} className="animate-spin" aria-hidden />
@@ -242,7 +242,7 @@ function ApartadoRow({ ap }: { ap: Apartado }) {
   });
 
   return (
-    <div className="rounded-xl border border-border bg-surface-card transition-shadow duration-150 hover:shadow-sm">
+    <div className="rounded-2xl border border-border bg-surface-card transition-shadow duration-150 hover:shadow-sm">
       {/* Header */}
       <button
         type="button"
@@ -250,7 +250,7 @@ function ApartadoRow({ ap }: { ap: Apartado }) {
         className="flex w-full items-start gap-3 p-4 text-left"
         aria-expanded={expanded}
       >
-        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-blue/10">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-blue/10">
           <Package size={16} strokeWidth={1.5} className="text-brand-blue" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
@@ -293,7 +293,7 @@ function ApartadoRow({ ap }: { ap: Apartado }) {
             )}
           </div>
           {ap.notes && (
-            <p className="mb-3 text-xs text-text-muted italic rounded-lg bg-border/30 px-3 py-2">
+            <p className="mb-3 text-xs text-text-muted italic rounded-xl bg-border/30 px-3 py-2">
               {ap.notes}
             </p>
           )}
@@ -322,7 +322,7 @@ function ApartadoRow({ ap }: { ap: Apartado }) {
             <>
               <AddPaymentForm apartadoId={ap.id} onSuccess={setLastPaid} />
               {lastPaid !== null && (
-                <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-brand-success/[0.06] px-3 py-2 text-xs text-text-secondary">
+                <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl bg-brand-success/[0.06] px-3 py-2 text-xs text-text-secondary">
                   <span className="mr-auto">Abono de {formatColones(lastPaid)} registrado.</span>
                   <WhatsAppNotify
                     event="abono"
@@ -346,7 +346,7 @@ function ApartadoRow({ ap }: { ap: Apartado }) {
                       type="button"
                       onClick={() => cancelMutation.mutate()}
                       disabled={cancelMutation.isPending}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-error/10 text-brand-error hover:bg-brand-error/20 transition-colors"
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-error/10 text-brand-error hover:bg-brand-error/20 transition-colors"
                       aria-label="Confirmar cancelación"
                     >
                       {cancelMutation.isPending ? (
@@ -358,7 +358,7 @@ function ApartadoRow({ ap }: { ap: Apartado }) {
                     <button
                       type="button"
                       onClick={() => setConfirmCancel(false)}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-text-muted hover:bg-border/50 transition-colors"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-text-muted hover:bg-border/50 transition-colors"
                       aria-label="No cancelar"
                     >
                       <X size={13} strokeWidth={1.5} aria-hidden />
@@ -463,7 +463,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:bg-border/50 transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-text-muted hover:bg-border/50 transition-colors"
             aria-label="Cerrar"
           >
             <X size={16} strokeWidth={1.5} aria-hidden />
@@ -617,14 +617,14 @@ function CreateModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 items-center rounded-lg border border-border px-4 text-sm text-text-secondary hover:bg-border/50 transition-colors"
+              className="flex h-9 items-center rounded-full border border-border px-4 text-sm text-text-secondary hover:bg-border/50 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={mutation.isPending}
-              className="flex h-9 items-center gap-2 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 disabled:opacity-60"
+              className="flex h-9 items-center gap-2 rounded-full bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 disabled:opacity-60"
             >
               {mutation.isPending ? (
                 <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />
@@ -662,13 +662,15 @@ export function ApartadosPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-text-primary">Apartados</h1>
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
+            Apartados
+          </h1>
           <p className="mt-0.5 text-sm text-text-muted">Layaway y reservas con abonos parciales.</p>
         </div>
         <button
           type="button"
           onClick={() => setShowCreate(true)}
-          className="flex h-9 items-center gap-1.5 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
+          className="flex h-9 items-center gap-1.5 rounded-full bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98]"
         >
           <Plus size={15} strokeWidth={1.5} aria-hidden />
           Nuevo
@@ -720,7 +722,7 @@ export function ApartadosPage() {
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="h-28 rounded-xl border border-border bg-surface-card animate-pulse"
+              className="h-28 rounded-2xl border border-border bg-surface-card animate-pulse"
             />
           ))}
         </div>

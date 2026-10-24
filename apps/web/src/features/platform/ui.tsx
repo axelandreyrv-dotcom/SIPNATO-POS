@@ -8,13 +8,13 @@ import { ApiError } from '@/lib/api-client';
 export { FieldLabel, inputClass, textareaClass } from '../settings/ui';
 
 export const primaryButton =
-  'inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-[filter] duration-150 hover:brightness-110 active:brightness-95 disabled:opacity-50 disabled:hover:brightness-100';
+  'inline-flex h-9 items-center justify-center gap-2 rounded-full bg-brand-blue px-4 text-sm font-medium text-white transition-[filter] duration-150 hover:brightness-110 active:brightness-95 disabled:opacity-50 disabled:hover:brightness-100';
 
 export const secondaryButton =
-  'inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border px-4 text-sm font-medium text-text-primary transition-colors duration-150 hover:bg-brand-blue/5 disabled:opacity-50';
+  'inline-flex h-9 items-center justify-center gap-2 rounded-full border border-border px-4 text-sm font-medium text-text-primary transition-colors duration-150 hover:bg-brand-blue/5 disabled:opacity-50';
 
 export const dangerButton =
-  'inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-brand-error px-4 text-sm font-medium text-white transition-[filter] duration-150 hover:brightness-110 disabled:opacity-50';
+  'inline-flex h-9 items-center justify-center gap-2 rounded-full bg-brand-error px-4 text-sm font-medium text-white transition-[filter] duration-150 hover:brightness-110 disabled:opacity-50';
 
 export function errorText(err: unknown): string {
   return err instanceof ApiError ? err.message : 'No se pudo conectar con el servidor.';

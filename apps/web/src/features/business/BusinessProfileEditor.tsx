@@ -19,9 +19,9 @@ import { useBusiness } from '../auth/useCurrentUser';
 import { businessApi } from './api';
 
 const inputCls =
-  'h-9 w-full rounded-lg border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20';
+  'h-9 w-full rounded-full border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20';
 const iconBtn =
-  'flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary disabled:opacity-30 disabled:hover:bg-transparent';
+  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-bg hover:text-text-primary disabled:opacity-30 disabled:hover:bg-transparent';
 
 function Block({
   title,
@@ -35,7 +35,7 @@ function Block({
   return (
     <div className="py-8 sm:grid sm:grid-cols-3 sm:gap-8">
       <div>
-        <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
+        <h2 className="text-base font-semibold text-text-primary">{title}</h2>
         <p className="mt-1 text-sm leading-relaxed text-text-muted">{description}</p>
       </div>
       <div className="mt-6 space-y-4 sm:col-span-2 sm:mt-0">{children}</div>
@@ -224,7 +224,7 @@ export function BusinessProfileEditor() {
         title="Tipo de negocio y módulos"
         description="Los asigna Dosuxsoft según tu plan. Si necesitas otro tipo o un módulo más, escríbenos."
       >
-        <div className="rounded-xl border border-border bg-surface-card px-4 py-3">
+        <div className="rounded-2xl border border-border bg-surface-card px-4 py-3">
           <div className="flex items-start gap-3">
             <Lock
               size={16}
@@ -305,7 +305,7 @@ export function BusinessProfileEditor() {
           {draft.fields.length > 0 ? (
             <ul
               key={revision}
-              className="m-0 list-none overflow-hidden rounded-xl border border-border bg-surface-card p-0"
+              className="m-0 list-none overflow-hidden rounded-2xl border border-border bg-surface-card p-0"
             >
               {draft.fields.map((f, i) => (
                 <FieldRow
@@ -320,7 +320,7 @@ export function BusinessProfileEditor() {
               ))}
             </ul>
           ) : (
-            <p className="rounded-xl border border-dashed border-border px-4 py-5 text-center text-sm text-text-muted">
+            <p className="rounded-2xl border border-dashed border-border px-4 py-5 text-center text-sm text-text-muted">
               Solo se piden {draft.itemLabel.toLowerCase() || 'el artículo'} y la descripción.
             </p>
           )}
@@ -328,7 +328,7 @@ export function BusinessProfileEditor() {
             type="button"
             onClick={addField}
             disabled={draft.fields.length >= 15}
-            className="mt-2 flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-brand-blue transition-colors hover:bg-brand-blue/10 disabled:opacity-40"
+            className="mt-2 flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-brand-blue transition-colors hover:bg-brand-blue/10 disabled:opacity-40"
           >
             <Plus size={14} strokeWidth={1.5} aria-hidden />
             Agregar campo
@@ -355,7 +355,7 @@ export function BusinessProfileEditor() {
               setRevision((r) => r + 1);
               setError(null);
             }}
-            className="h-10 rounded-lg px-4 text-sm text-text-secondary hover:bg-surface-bg"
+            className="h-10 rounded-full px-4 text-sm text-text-secondary hover:bg-surface-bg"
           >
             Descartar cambios
           </button>
@@ -364,7 +364,7 @@ export function BusinessProfileEditor() {
           type="button"
           onClick={() => mutation.mutate()}
           disabled={!dirty || mutation.isPending}
-          className="flex h-10 items-center gap-1.5 rounded-lg bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+          className="flex h-10 items-center gap-1.5 rounded-full bg-brand-blue px-4 text-sm font-medium text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
         >
           {mutation.isPending && (
             <Loader2 size={14} strokeWidth={1.5} className="animate-spin" aria-hidden />

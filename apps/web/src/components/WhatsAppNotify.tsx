@@ -70,7 +70,7 @@ export function WhatsAppNotify({
     <button
       type="button"
       onClick={send}
-      className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm text-text-secondary transition-colors hover:border-brand-success/50 hover:bg-brand-success/[0.06] hover:text-brand-success"
+      className="flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-sm text-text-secondary transition-colors hover:border-brand-success/50 hover:bg-brand-success/[0.06] hover:text-brand-success"
     >
       <MessageCircle size={15} strokeWidth={1.5} aria-hidden />
       {label ?? NOTIFICATION_LABELS[event]}
