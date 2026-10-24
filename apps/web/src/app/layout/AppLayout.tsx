@@ -91,58 +91,100 @@ async function logout() {
   window.location.href = '/login';
 }
 
-const railRow =
-  'flex h-10 w-full shrink-0 items-center gap-3 rounded-full px-3.5 text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue';
-const railIdle = 'text-text-secondary hover:bg-surface-bg hover:text-text-primary';
-const railActive = 'bg-brand-navy font-medium text-white dark:bg-brand-blue';
+const railButton =
+  'flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue';
+const railIdle = 'text-text-muted hover:bg-surface-bg hover:text-text-primary';
+const railActive = 'bg-brand-navy text-white dark:bg-brand-blue';
 
-function SideRail() {
+// El nombre del módulo aparece al pasar el mouse o con el teclado. Se dibuja con posición fija
+// (no dentro de la barra) para que no lo recorte la barra cuando se desplaza.
+type Tip = { label: string; top: number; left: number } | null;
+
+function tipHandlers(label: string, setTip: (t: Tip) => void) {
+  const show = (el: HTMLElement) => {
+    const r = el.getBoundingClientRect();
+    setTip({ label, top: r.top + r.height / 2, left: r.right + 12 });
+  };
+  return {
+    onMouseEnter: (e: React.MouseEvent<HTMLElement>) => show(e.currentTarget),
+    onFocus: (e: React.FocusEvent<HTMLElement>) => show(e.currentTarget),
+    onMouseLeave: () => setTip(null),
+    onBlur: () => setTip(null),
+  };
+}
+
+function IconRail() {
   const items = useNavItems();
   const isActive = useIsActive();
   const { isDark, toggle } = useDarkMode();
+  const [tip, setTip] = useState<Tip>(null);
 
   return (
-    <aside
-      className="hidden min-h-0 w-52 shrink-0 flex-col gap-0.5 self-center overflow-y-auto rounded-3xl border border-border bg-surface-card p-2 [scrollbar-width:none] sm:flex sm:-translate-y-9"
-      // Centrada respecto a la pantalla completa (sube la mitad del encabezado); el límite deja
-      // margen para que, con muchos módulos, no se monte sobre el encabezado.
-      style={{ maxHeight: 'calc(100dvh - 10rem)' }}
-      aria-label="Navegación principal"
-    >
-      <button type="button" onClick={toggle} className={`${railRow} ${railIdle}`}>
-        {isDark ? (
-          <Sun size={18} strokeWidth={1.6} className="shrink-0" aria-hidden />
-        ) : (
-          <Moon size={18} strokeWidth={1.6} className="shrink-0" aria-hidden />
-        )}
-        {isDark ? 'Modo claro' : 'Modo oscuro'}
-      </button>
-      <span className="mx-3 my-1 h-px shrink-0 bg-border" aria-hidden />
+    <>
+      <aside
+        className="hidden min-h-0 shrink-0 flex-col items-center gap-0.5 self-center overflow-y-auto rounded-full border border-border bg-surface-card px-1.5 py-2.5 sm:-translate-y-9 [scrollbar-width:none] sm:flex"
+        // Centrada respecto a la pantalla completa (sube la mitad del encabezado); el límite deja
+        // margen para que, con muchos módulos, no se monte sobre el encabezado.
+        style={{ maxHeight: 'calc(100dvh - 10rem)' }}
+        aria-label="Navegación principal"
+        onScroll={() => setTip(null)}
+      >
+        <button
+          type="button"
+          onClick={toggle}
+          className={`${railButton} ${railIdle} shrink-0`}
+          aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          {...tipHandlers(isDark ? 'Modo claro' : 'Modo oscuro', setTip)}
+        >
+          {isDark ? (
+            <Sun size={19} strokeWidth={1.6} aria-hidden />
+          ) : (
+            <Moon size={19} strokeWidth={1.6} aria-hidden />
+          )}
+        </button>
+        <span className="my-1 h-px w-7 shrink-0 bg-border" aria-hidden />
 
-      <nav className="flex flex-col gap-0.5">
-        {items.map(({ to, label, icon: Icon, exact }) => {
-          const active = isActive(to, exact);
-          return (
-            <Link
-              key={to}
-              to={to as never}
-              viewTransition
-              aria-current={active ? 'page' : undefined}
-              className={`${railRow} ${active ? railActive : railIdle}`}
-            >
-              <Icon size={18} strokeWidth={1.6} className="shrink-0" aria-hidden />
-              <span className="truncate">{label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+        <nav className="flex flex-col items-center gap-1">
+          {items.map(({ to, label, icon: Icon, exact }) => {
+            const active = isActive(to, exact);
+            return (
+              <Link
+                key={to}
+                to={to as never}
+                viewTransition
+                aria-label={label}
+                aria-current={active ? 'page' : undefined}
+                className={`${railButton} ${active ? railActive : railIdle} shrink-0`}
+                {...tipHandlers(label, setTip)}
+              >
+                <Icon size={19} strokeWidth={1.6} aria-hidden />
+              </Link>
+            );
+          })}
+        </nav>
 
-      <span className="mx-3 my-1 h-px shrink-0 bg-border" aria-hidden />
-      <button type="button" onClick={() => void logout()} className={`${railRow} ${railIdle}`}>
-        <LogOut size={18} strokeWidth={1.6} className="shrink-0" aria-hidden />
-        Cerrar sesión
-      </button>
-    </aside>
+        <span className="my-1 h-px w-7 shrink-0 bg-border" aria-hidden />
+        <button
+          type="button"
+          onClick={() => void logout()}
+          className={`${railButton} ${railIdle} shrink-0`}
+          aria-label="Cerrar sesión"
+          {...tipHandlers('Cerrar sesión', setTip)}
+        >
+          <LogOut size={19} strokeWidth={1.6} aria-hidden />
+        </button>
+      </aside>
+
+      {tip && (
+        <div
+          role="tooltip"
+          className="pointer-events-none fixed z-50 -translate-y-1/2 rounded-full bg-text-primary px-3 py-1.5 text-xs font-medium whitespace-nowrap text-surface-card shadow-[0_4px_14px_-2px_oklch(0%_0_0/0.25)]"
+          style={{ top: tip.top, left: tip.left }}
+        >
+          {tip.label}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -313,7 +355,7 @@ export function AppLayout() {
       )}
 
       <div className="flex min-h-0 flex-1 gap-2 sm:pl-4" inert={drawerOpen || undefined}>
-        <SideRail />
+        <IconRail />
         <main className="vt-page relative min-w-0 flex-1 overflow-auto">
           <SubscriptionNotice />
           <Outlet />
