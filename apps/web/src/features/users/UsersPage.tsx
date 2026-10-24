@@ -341,7 +341,7 @@ export function UsersPage() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">

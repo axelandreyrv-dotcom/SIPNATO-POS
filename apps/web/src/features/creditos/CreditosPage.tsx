@@ -593,7 +593,7 @@ export function CreditosPage() {
   const overdueCount = tab === 'activo' ? creditos.filter(isOverdue).length : 0;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 sm:px-8">
+    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-8">
       {/* Header */}
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>

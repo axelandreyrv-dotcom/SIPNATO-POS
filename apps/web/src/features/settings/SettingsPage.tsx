@@ -183,7 +183,7 @@ export function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">
         <div className="mb-2">
           <div className="h-5 w-32 animate-pulse rounded bg-border" />
           <div className="mt-2 h-3 w-48 animate-pulse rounded bg-border" />
@@ -224,7 +224,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">
       {/* Header */}
       <div className="mb-2">
         <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">

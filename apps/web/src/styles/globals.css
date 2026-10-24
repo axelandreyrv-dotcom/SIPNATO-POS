@@ -4,6 +4,10 @@
 /* Dark mode via clase .dark — togglable desde localStorage */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Pantallas bajas (laptops de 13–14" con la barra del navegador): la barra de íconos se compacta */
+@custom-variant short-screen (@media (max-height: 56.25rem));
+@custom-variant shorter-screen (@media (max-height: 47.5rem));
+
 /* Paleta Dosuxsoft — disponible como bg-brand-navy, text-brand-blue, etc. */
 @theme {
   --color-brand-navy: #0a2947;
