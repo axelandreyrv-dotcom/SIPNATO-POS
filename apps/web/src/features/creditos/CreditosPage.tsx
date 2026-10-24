@@ -94,7 +94,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-surface-bg"
           >
             <X size={15} strokeWidth={1.5} aria-hidden />
           </button>
@@ -166,7 +166,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={onClose}
-              className="h-9 flex-1 rounded-full border border-border text-sm text-text-secondary transition-all hover:bg-surface-hover"
+              className="h-9 flex-1 rounded-full border border-border text-sm text-text-secondary transition-all hover:bg-surface-bg"
             >
               Cancelar
             </button>
@@ -273,7 +273,7 @@ function PaymentModal({ credito, onClose }: { credito: Credito; onClose: () => v
           <button
             type="button"
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-surface-bg"
           >
             <X size={15} strokeWidth={1.5} aria-hidden />
           </button>
@@ -322,7 +322,7 @@ function PaymentModal({ credito, onClose }: { credito: Credito; onClose: () => v
             <button
               type="button"
               onClick={onClose}
-              className="h-9 flex-1 rounded-full border border-border text-sm text-text-secondary transition-all hover:bg-surface-hover"
+              className="h-9 flex-1 rounded-full border border-border text-sm text-text-secondary transition-all hover:bg-surface-bg"
             >
               Cancelar
             </button>
@@ -546,7 +546,7 @@ function CreditoRow({ credito, onAbono }: { credito: Credito; onAbono: (c: Credi
                   <button
                     type="button"
                     onClick={() => setConfirmCancel(false)}
-                    className="flex h-8 items-center justify-center rounded-full border border-border px-3 text-xs text-text-muted hover:bg-surface-hover"
+                    className="flex h-8 items-center justify-center rounded-full border border-border px-3 text-xs text-text-muted hover:bg-surface-bg"
                   >
                     No
                   </button>

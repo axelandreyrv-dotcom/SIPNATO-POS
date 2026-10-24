@@ -31,7 +31,7 @@ function ExpenseRow({
       <span className="min-w-0 flex-1 truncate text-sm text-text-primary">
         {expense.description}
       </span>
-      <span className="shrink-0 text-sm font-semibold tabular-nums text-brand-error">
+      <span className="shrink-0 text-sm font-semibold tabular-nums text-text-primary">
         −{formatColones(expense.amount)}
       </span>
       <span className="shrink-0 w-10 text-right text-xs text-text-muted">
@@ -87,42 +87,23 @@ function BalanceCard({
   amount: number;
   variant: 'income' | 'expense' | 'balance';
 }) {
-  const styles = {
-    income: {
-      bg: 'bg-brand-success/[0.07] border-brand-success/20',
-      text: 'text-brand-success',
-      icon: <TrendingUp size={16} strokeWidth={1.5} className="text-brand-success" aria-hidden />,
-    },
-    expense: {
-      bg: 'bg-brand-error/[0.07] border-brand-error/20',
-      text: 'text-brand-error',
-      icon: <TrendingDown size={16} strokeWidth={1.5} className="text-brand-error" aria-hidden />,
-    },
-    balance: {
-      bg:
-        amount >= 0
-          ? 'bg-brand-success/[0.07] border-brand-success/20'
-          : 'bg-brand-error/[0.07] border-brand-error/20',
-      text: amount >= 0 ? 'text-brand-success' : 'text-brand-error',
-      icon:
-        amount >= 0 ? (
-          <TrendingUp size={16} strokeWidth={1.5} className="text-brand-success" aria-hidden />
-        ) : (
-          <TrendingDown size={16} strokeWidth={1.5} className="text-brand-error" aria-hidden />
-        ),
-    },
-  };
-
-  const s = styles[variant];
+  // Un solo color para los montos, como en Caja y Reportes: el signo y el ícono dicen el tipo.
+  const icon =
+    variant === 'income' || (variant === 'balance' && amount >= 0) ? (
+      <TrendingUp size={16} strokeWidth={1.5} className="text-text-muted" aria-hidden />
+    ) : (
+      <TrendingDown size={16} strokeWidth={1.5} className="text-text-muted" aria-hidden />
+    );
+  const sign = variant === 'expense' || (variant === 'balance' && amount < 0) ? '−' : '';
 
   return (
-    <div className={`flex flex-col gap-1 rounded-2xl border p-4 ${s.bg}`}>
+    <div className="flex flex-col gap-1 rounded-2xl border border-border bg-surface-card p-4">
       <div className="flex items-center justify-between">
         <span className="text-xs text-text-muted">{label}</span>
-        {s.icon}
+        {icon}
       </div>
-      <span className={`text-lg font-semibold tabular-nums ${s.text}`}>
-        {variant === 'expense' ? '−' : ''}
+      <span className="text-lg font-semibold tabular-nums text-text-primary">
+        {sign}
         {formatColones(Math.abs(amount))}
       </span>
     </div>
@@ -307,7 +288,7 @@ export function ExpensesPage() {
           <button
             type="submit"
             disabled={!canSubmit || noRegister || createMutation.isPending}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand-error text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-brand-blue text-sm font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createMutation.isPending ? (
               <>
@@ -343,7 +324,7 @@ export function ExpensesPage() {
           {(expensesData?.totalAmount ?? 0) > 0 && (
             <span className="text-xs text-text-muted">
               Total:{' '}
-              <span className="font-medium text-brand-error tabular-nums">
+              <span className="font-medium text-text-primary tabular-nums">
                 −{formatColones(expensesData?.totalAmount ?? 0)}
               </span>
             </span>

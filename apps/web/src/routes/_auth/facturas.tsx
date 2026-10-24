@@ -44,7 +44,7 @@ function FacturaRow({
     >
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-bg transition-colors"
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -54,44 +54,39 @@ function FacturaRow({
                 Anulada
               </span>
             )}
-            <span className="text-muted-foreground text-xs">{factura.date}</span>
+            <span className="text-text-muted text-xs">{factura.date}</span>
           </div>
-          <p className="text-sm text-muted-foreground truncate mt-0.5">{factura.clientName}</p>
+          <p className="text-sm text-text-muted truncate mt-0.5">{factura.clientName}</p>
         </div>
         <div className="text-right shrink-0">
           <div className="font-semibold text-sm">{formatColones(factura.total)}</div>
           {factura.ivaPercent > 0 && (
-            <div className="text-xs text-muted-foreground">IVA {factura.ivaPercent}%</div>
+            <div className="text-xs text-text-muted">IVA {factura.ivaPercent}%</div>
           )}
         </div>
         {expanded ? (
-          <ChevronUp
-            size={16}
-            strokeWidth={1.5}
-            className="text-muted-foreground shrink-0"
-            aria-hidden
-          />
+          <ChevronUp size={16} strokeWidth={1.5} className="text-text-muted shrink-0" aria-hidden />
         ) : (
           <ChevronDown
             size={16}
             strokeWidth={1.5}
-            className="text-muted-foreground shrink-0"
+            className="text-text-muted shrink-0"
             aria-hidden
           />
         )}
       </button>
 
       {expanded && (
-        <div className="border-t border-border px-4 py-3 bg-muted/10">
-          {detailQuery.isLoading && <p className="text-sm text-muted-foreground">Cargando...</p>}
+        <div className="border-t border-border px-4 py-3 bg-surface-bg">
+          {detailQuery.isLoading && <p className="text-sm text-text-muted">Cargando...</p>}
           {detailQuery.data && (
             <>
               {factura.clientCedula && (
-                <p className="text-xs text-muted-foreground mb-2">Cédula: {factura.clientCedula}</p>
+                <p className="text-xs text-text-muted mb-2">Cédula: {factura.clientCedula}</p>
               )}
               <table className="w-full text-sm mb-3">
                 <thead>
-                  <tr className="text-xs text-muted-foreground border-b border-border">
+                  <tr className="text-xs text-text-muted border-b border-border">
                     <th className="text-left py-1">Cant.</th>
                     <th className="text-left py-1">Descripción</th>
                     <th className="text-right py-1">P. Unit</th>
@@ -111,12 +106,12 @@ function FacturaRow({
               </table>
               <div className="flex justify-end">
                 <div className="w-48 space-y-0.5 text-sm">
-                  <div className="flex justify-between text-muted-foreground">
+                  <div className="flex justify-between text-text-muted">
                     <span>Subtotal:</span>
                     <span>{formatColones(factura.subtotal)}</span>
                   </div>
                   {factura.ivaPercent > 0 && (
-                    <div className="flex justify-between text-muted-foreground">
+                    <div className="flex justify-between text-text-muted">
                       <span>IVA ({factura.ivaPercent}%):</span>
                       <span>{formatColones(factura.ivaAmount)}</span>
                     </div>
@@ -142,7 +137,7 @@ function FacturaRow({
             {canAnular && !isAnulada && !confirmAnular && (
               <button
                 onClick={() => setConfirmAnular(true)}
-                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-red-500 ml-auto"
+                className="flex items-center gap-1.5 text-sm text-text-muted hover:text-red-500 ml-auto"
               >
                 <XCircle size={15} strokeWidth={1.5} aria-hidden />
                 Anular
@@ -150,7 +145,7 @@ function FacturaRow({
             )}
             {canAnular && !isAnulada && confirmAnular && (
               <div className="flex items-center gap-2 ml-auto">
-                <span className="text-xs text-muted-foreground">¿Confirmar anulación?</span>
+                <span className="text-xs text-text-muted">¿Confirmar anulación?</span>
                 <button
                   onClick={() => {
                     onAnular(factura.id);
@@ -163,7 +158,7 @@ function FacturaRow({
                 </button>
                 <button
                   onClick={() => setConfirmAnular(false)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted/50"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-text-muted hover:bg-surface-bg"
                   aria-label="Cancelar"
                 >
                   ✕
@@ -223,11 +218,11 @@ function FacturasPage() {
       <div className="print:hidden">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-foreground">
+            <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
               Facturas
             </h1>
             {data && (
-              <p className="text-sm text-muted-foreground mt-0.5">
+              <p className="text-sm text-text-muted mt-0.5">
                 {data.total} factura{data.total !== 1 ? 's' : ''}
               </p>
             )}
@@ -245,7 +240,7 @@ function FacturasPage() {
           <Search
             size={16}
             strokeWidth={1.5}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
             aria-hidden
           />
           <input
@@ -253,20 +248,20 @@ function FacturasPage() {
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Buscar por cliente, cédula o número..."
-            className="w-full rounded-2xl border border-border bg-background pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+            className="w-full rounded-2xl border border-border bg-surface-input pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
           />
         </div>
 
         {isLoading && (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 rounded-xl bg-muted/40 animate-pulse" />
+              <div key={i} className="h-16 rounded-xl bg-surface-bg animate-pulse" />
             ))}
           </div>
         )}
 
         {!isLoading && data?.data.length === 0 && (
-          <div className="text-center py-16 text-muted-foreground">
+          <div className="text-center py-16 text-text-muted">
             <p className="text-lg mb-1">No hay facturas</p>
             <p className="text-sm">Creá la primera con el botón "Nueva".</p>
           </div>
@@ -290,17 +285,17 @@ function FacturasPage() {
             <button
               disabled={page === 1}
               onClick={() => setPage((p) => p - 1)}
-              className="rounded-full border border-border px-3 py-1.5 text-sm disabled:opacity-40 hover:bg-muted/50"
+              className="rounded-full border border-border px-3 py-1.5 text-sm disabled:opacity-40 hover:bg-surface-bg"
             >
               ← Anterior
             </button>
-            <span className="px-3 py-1.5 text-sm text-muted-foreground">
+            <span className="px-3 py-1.5 text-sm text-text-muted">
               {page} / {totalPages}
             </span>
             <button
               disabled={page === totalPages}
               onClick={() => setPage((p) => p + 1)}
-              className="rounded-full border border-border px-3 py-1.5 text-sm disabled:opacity-40 hover:bg-muted/50"
+              className="rounded-full border border-border px-3 py-1.5 text-sm disabled:opacity-40 hover:bg-surface-bg"
             >
               Siguiente →
             </button>

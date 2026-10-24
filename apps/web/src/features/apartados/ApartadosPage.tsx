@@ -56,10 +56,7 @@ function ProgressBar({ paid, total }: { paid: number; total: number }) {
     <div className="flex items-center gap-2">
       <div className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
         <div
-          className={[
-            'h-full rounded-full transition-all duration-300',
-            pct >= 100 ? 'bg-brand-success' : 'bg-brand-blue',
-          ].join(' ')}
+          className={['h-full rounded-full transition-all duration-300', 'bg-brand-blue'].join(' ')}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -322,7 +319,7 @@ function ApartadoRow({ ap }: { ap: Apartado }) {
             <>
               <AddPaymentForm apartadoId={ap.id} onSuccess={setLastPaid} />
               {lastPaid !== null && (
-                <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl bg-brand-success/[0.06] px-3 py-2 text-xs text-text-secondary">
+                <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl bg-surface-bg px-3 py-2 text-xs text-text-secondary">
                   <span className="mr-auto">Abono de {formatColones(lastPaid)} registrado.</span>
                   <WhatsAppNotify
                     event="abono"

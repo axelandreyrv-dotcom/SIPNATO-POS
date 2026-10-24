@@ -97,12 +97,12 @@ function NuevaFacturaPage() {
       {printPortal}
 
       <div className="flex items-center justify-between mb-6 print:hidden">
-        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-foreground">
+        <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
           Nueva Factura
         </h1>
         <button
           onClick={() => void navigate({ to: '/facturas' as string })}
-          className="text-sm text-muted-foreground hover:text-foreground"
+          className="text-sm text-text-muted hover:text-text-primary"
         >
           ← Volver
         </button>
@@ -126,52 +126,50 @@ function NuevaFacturaPage() {
         {/* Encabezado */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">FECHA</label>
+            <label className="block text-xs font-medium text-text-muted mb-1">FECHA</label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full rounded-full border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              className="w-full rounded-full border border-border bg-surface-input px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
-              CLIENTE *
-            </label>
+            <label className="block text-xs font-medium text-text-muted mb-1">CLIENTE *</label>
             <input
               type="text"
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
               placeholder="Nombre del cliente"
-              className="w-full rounded-full border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              className="w-full rounded-full border border-border bg-surface-input px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">CÉDULA</label>
+            <label className="block text-xs font-medium text-text-muted mb-1">CÉDULA</label>
             <input
               type="text"
               value={clientCedula}
               onChange={(e) => setClientCedula(e.target.value)}
               placeholder="0-0000-0000"
-              className="w-full rounded-full border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              className="w-full rounded-full border border-border bg-surface-input px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">IVA %</label>
+            <label className="block text-xs font-medium text-text-muted mb-1">IVA %</label>
             <input
               type="number"
               min={0}
               max={100}
               value={ivaPercent}
               onChange={(e) => setIvaPercent(parseInt(e.target.value, 10) || 0)}
-              className="w-full rounded-full border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              className="w-full rounded-full border border-border bg-surface-input px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
             />
           </div>
         </div>
 
         {/* Ítems */}
         <div>
-          <div className="grid grid-cols-[40px_1fr_90px_90px_36px] gap-2 text-xs font-medium text-muted-foreground mb-2 px-1">
+          <div className="grid grid-cols-[40px_1fr_90px_90px_36px] gap-2 text-xs font-medium text-text-muted mb-2 px-1">
             <span>CANT.</span>
             <span>DESCRIPCIÓN</span>
             <span className="text-right">P. UNIT ₡</span>
@@ -193,14 +191,14 @@ function NuevaFacturaPage() {
                     onChange={(e) =>
                       updateItem(i, 'quantity', Math.max(1, parseInt(e.target.value, 10) || 1))
                     }
-                    className="w-full rounded-full border border-border bg-background px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    className="w-full rounded-full border border-border bg-surface-input px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   />
                   <input
                     type="text"
                     value={item.description}
                     onChange={(e) => updateItem(i, 'description', e.target.value)}
                     placeholder="Descripción"
-                    className="w-full rounded-full border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    className="w-full rounded-full border border-border bg-surface-input px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   />
                   <input
                     type="number"
@@ -208,16 +206,16 @@ function NuevaFacturaPage() {
                     value={item.unitPrice}
                     onChange={(e) => updateItem(i, 'unitPrice', e.target.value)}
                     placeholder="0"
-                    className="w-full rounded-full border border-border bg-background px-2 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    className="w-full rounded-full border border-border bg-surface-input px-2 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   />
-                  <div className="text-sm text-right text-foreground pr-1">
+                  <div className="text-sm text-right text-text-primary pr-1">
                     {formatColones(lineTotal)}
                   </div>
                   <button
                     onClick={() => removeItem(i)}
                     disabled={items.length === 1}
                     aria-label="Eliminar ítem"
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-red-500 disabled:opacity-30"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-text-muted hover:text-red-500 disabled:opacity-30"
                   >
                     <Trash2 size={15} strokeWidth={1.5} aria-hidden />
                   </button>
@@ -237,11 +235,11 @@ function NuevaFacturaPage() {
         {/* Totales */}
         <div className="flex justify-end">
           <div className="w-64 space-y-1 text-sm">
-            <div className="flex justify-between text-muted-foreground">
+            <div className="flex justify-between text-text-muted">
               <span>Subtotal:</span>
               <span>{formatColones(subtotal)}</span>
             </div>
-            <div className="flex justify-between text-muted-foreground">
+            <div className="flex justify-between text-text-muted">
               <span>Impuestos ({ivaPercent}%):</span>
               <span>{formatColones(ivaAmount)}</span>
             </div>
@@ -258,14 +256,14 @@ function NuevaFacturaPage() {
         <div className="flex justify-end gap-3 pt-2">
           <button
             onClick={() => void navigate({ to: '/facturas' as string })}
-            className="rounded-full border border-border px-4 py-2 text-sm hover:bg-muted/50"
+            className="rounded-full border border-border px-4 py-2 text-sm hover:bg-surface-bg"
           >
             Cancelar
           </button>
           <button
             onClick={() => void handleSave(false)}
             disabled={saving}
-            className="rounded-full bg-brand-success px-4 py-2 text-sm font-medium text-white hover:bg-brand-success/90 disabled:opacity-60"
+            className="rounded-full border border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-surface-bg disabled:opacity-60"
           >
             Solo guardar
           </button>

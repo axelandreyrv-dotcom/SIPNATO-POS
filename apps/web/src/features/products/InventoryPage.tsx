@@ -380,12 +380,7 @@ function StockMovementForm({ product }: { product: Product }) {
               className={`${inputCls} tabular-nums`}
             />
             {diff !== null && diff !== 0 && (
-              <p
-                className={[
-                  'mt-1 text-xs tabular-nums',
-                  diff < 0 ? 'text-brand-error' : 'text-brand-success',
-                ].join(' ')}
-              >
+              <p className={['mt-1 text-xs tabular-nums', 'text-text-secondary'].join(' ')}>
                 {diff > 0 ? `+${diff}` : diff} respecto al sistema
               </p>
             )}
@@ -435,7 +430,7 @@ function MovementHistory({ productId }: { productId: number }) {
           <span
             className={[
               'w-12 shrink-0 text-right font-medium tabular-nums',
-              m.quantity < 0 ? 'text-brand-error' : 'text-brand-success',
+              'text-text-primary',
             ].join(' ')}
           >
             {m.quantity > 0 ? `+${m.quantity}` : m.quantity}
