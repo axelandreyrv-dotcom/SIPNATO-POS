@@ -655,7 +655,7 @@ export function ApartadosPage() {
   });
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 sm:px-8 sm:py-8">
+    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-8 sm:py-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

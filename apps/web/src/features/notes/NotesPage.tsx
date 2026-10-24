@@ -257,7 +257,7 @@ export function NotesPage() {
   });
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-8">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
@@ -292,7 +292,7 @@ export function NotesPage() {
 
       {/* Notes grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {Array.from({ length: 6 }, (_, i) => (
             <div
               key={i}
@@ -322,7 +322,7 @@ export function NotesPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {notes.map((note) => (
             <NoteCard
               key={note.id}

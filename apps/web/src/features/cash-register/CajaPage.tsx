@@ -408,7 +408,7 @@ export function CajaPage() {
   const closeError = closeMutation.error?.message;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-8">
+    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-8 lg:max-w-6xl">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
@@ -419,67 +419,74 @@ export function CajaPage() {
         </p>
       </div>
 
-      {/* Status section */}
-      {isLoading ? (
-        <div className="animate-pulse rounded-3xl border border-border bg-surface-card p-5">
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <div className="space-y-2">
-              <div className="h-6 w-28 rounded-full bg-border" />
-              <div className="h-3 w-44 rounded bg-border" />
-              <div className="h-3 w-32 rounded bg-border" />
-            </div>
-            <div className="h-8 w-24 rounded-full bg-border" />
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {Array.from({ length: 6 }, (_, i) => (
-              <div key={i} className="rounded-xl border border-border bg-surface-bg p-3">
-                <div className="h-2.5 w-14 rounded bg-border" />
-                <div className="mt-2 h-4 w-20 rounded bg-border" />
+      {/* En laptop y escritorio: caja actual a la izquierda, historial a la derecha */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start lg:gap-8">
+        {/* Status section */}
+        <div>
+          {isLoading ? (
+            <div className="animate-pulse rounded-3xl border border-border bg-surface-card p-5">
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="h-6 w-28 rounded-full bg-border" />
+                  <div className="h-3 w-44 rounded bg-border" />
+                  <div className="h-3 w-32 rounded bg-border" />
+                </div>
+                <div className="h-8 w-24 rounded-full bg-border" />
               </div>
-            ))}
-          </div>
-        </div>
-      ) : current ? (
-        <OpenRegisterCard register={current} onClose={() => setShowCloseModal(true)} />
-      ) : (
-        <EmptyState onOpen={() => setShowOpenModal(true)} />
-      )}
-
-      {/* History */}
-      {(history?.registers.length ?? 0) > 0 && (
-        <div className="mt-8">
-          <h2 className="mb-3 text-base font-semibold text-text-primary">Historial</h2>
-          <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
-            {history!.registers.map((r) => (
-              <HistoryRow key={r.id} register={r} />
-            ))}
-          </div>
-
-          {history!.totalPages > 1 && (
-            <p className="mt-3 text-center text-xs text-text-muted">
-              Página 1 de {history!.totalPages} ·{' '}
-              <Link to="/caja" className="text-brand-blue hover:underline">
-                Ver todas
-              </Link>
-            </p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <div key={i} className="rounded-xl border border-border bg-surface-bg p-3">
+                    <div className="h-2.5 w-14 rounded bg-border" />
+                    <div className="mt-2 h-4 w-20 rounded bg-border" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : current ? (
+            <OpenRegisterCard register={current} onClose={() => setShowCloseModal(true)} />
+          ) : (
+            <EmptyState onOpen={() => setShowOpenModal(true)} />
           )}
         </div>
-      )}
 
-      {/* Warning if there are closed registers but none open */}
-      {!isLoading && !current && (history?.registers.length ?? 0) > 0 && (
-        <div className="mt-4 flex items-start gap-2 rounded-xl border border-brand-warning/20 bg-brand-warning/[0.06] px-4 py-3">
-          <AlertTriangle
-            size={14}
-            strokeWidth={1.5}
-            className="mt-0.5 shrink-0 text-brand-warning"
-            aria-hidden
-          />
-          <p className="text-xs text-text-secondary">
-            Recuerda abrir la caja antes de registrar ventas o gastos del día.
-          </p>
+        <div>
+          {/* History */}
+          {(history?.registers.length ?? 0) > 0 && (
+            <div className="mt-8 lg:mt-0">
+              <h2 className="mb-3 text-base font-semibold text-text-primary">Historial</h2>
+              <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
+                {history!.registers.map((r) => (
+                  <HistoryRow key={r.id} register={r} />
+                ))}
+              </div>
+
+              {history!.totalPages > 1 && (
+                <p className="mt-3 text-center text-xs text-text-muted">
+                  Página 1 de {history!.totalPages} ·{' '}
+                  <Link to="/caja" className="text-brand-blue hover:underline">
+                    Ver todas
+                  </Link>
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Warning if there are closed registers but none open */}
+          {!isLoading && !current && (history?.registers.length ?? 0) > 0 && (
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-brand-warning/20 bg-brand-warning/[0.06] px-4 py-3">
+              <AlertTriangle
+                size={14}
+                strokeWidth={1.5}
+                className="mt-0.5 shrink-0 text-brand-warning"
+                aria-hidden
+              />
+              <p className="text-xs text-text-secondary">
+                Recuerda abrir la caja antes de registrar ventas o gastos del día.
+              </p>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Modals */}
       {showOpenModal && (

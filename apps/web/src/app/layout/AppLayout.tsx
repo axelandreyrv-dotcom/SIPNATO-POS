@@ -92,7 +92,7 @@ async function logout() {
 }
 
 const railButton =
-  'flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue';
+  'flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue short-screen:h-9 short-screen:w-9 shorter-screen:h-8 shorter-screen:w-8';
 const railIdle = 'text-text-muted hover:bg-surface-bg hover:text-text-primary';
 const railActive = 'bg-brand-navy text-white dark:bg-brand-blue';
 
@@ -122,10 +122,11 @@ function IconRail() {
   return (
     <>
       <aside
-        className="hidden min-h-0 shrink-0 flex-col items-center gap-0.5 self-center overflow-y-auto rounded-full border border-border bg-surface-card px-1.5 py-2.5 sm:-translate-y-9 [scrollbar-width:none] sm:flex"
         // Centrada respecto a la pantalla completa (sube la mitad del encabezado); el límite deja
-        // margen para que, con muchos módulos, no se monte sobre el encabezado.
-        style={{ maxHeight: 'calc(100dvh - 10rem)' }}
+        // margen para que, con muchos módulos, no se monte sobre el encabezado. En pantallas bajas
+        // (laptops de 13–14") los botones se achican y se centra en el área del contenido, para que
+        // todos los módulos quepan sin desplazar la barra.
+        className="hidden max-h-[calc(100dvh-10rem)] min-h-0 shrink-0 flex-col items-center gap-0.5 self-center overflow-y-auto rounded-full border border-border bg-surface-card px-1.5 py-2.5 sm:-translate-y-9 [scrollbar-width:none] sm:flex short-screen:max-h-[calc(100dvh-6rem)] short-screen:translate-y-0 shorter-screen:gap-0 shorter-screen:py-1.5"
         aria-label="Navegación principal"
         onScroll={() => setTip(null)}
       >
@@ -142,9 +143,9 @@ function IconRail() {
             <Moon size={19} strokeWidth={1.6} aria-hidden />
           )}
         </button>
-        <span className="my-1 h-px w-7 shrink-0 bg-border" aria-hidden />
+        <span className="my-1 h-px w-7 shrink-0 bg-border shorter-screen:my-0.5" aria-hidden />
 
-        <nav className="flex flex-col items-center gap-1">
+        <nav className="flex flex-col items-center gap-1 shorter-screen:gap-0">
           {items.map(({ to, label, icon: Icon, exact }) => {
             const active = isActive(to, exact);
             return (
@@ -163,7 +164,7 @@ function IconRail() {
           })}
         </nav>
 
-        <span className="my-1 h-px w-7 shrink-0 bg-border" aria-hidden />
+        <span className="my-1 h-px w-7 shrink-0 bg-border shorter-screen:my-0.5" aria-hidden />
         <button
           type="button"
           onClick={() => void logout()}

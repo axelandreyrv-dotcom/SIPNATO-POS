@@ -94,7 +94,7 @@ export function EditarCotizacionPage() {
 
   if (isError || !quote) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-8">
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
         <p className="text-sm text-brand-error">No se encontró la cotización.</p>
         <Link
           to="/cotizaciones"
@@ -107,7 +107,7 @@ export function EditarCotizacionPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-8">
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
       <Link
         to="/cotizaciones"
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-text-muted transition-colors hover:text-text-primary"

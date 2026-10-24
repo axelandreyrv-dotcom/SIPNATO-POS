@@ -59,7 +59,7 @@ export function NuevaCotizacionPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-8">
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
       {/* Back */}
       <Link
         to="/cotizaciones"

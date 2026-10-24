@@ -228,7 +228,7 @@ export function ReportesPage() {
   const summary = summaryQuery.data;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-8">
       {/* Page header */}
       <div className="mb-6">
         <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">

@@ -605,7 +605,7 @@ export function POSPage() {
   const totalSales = salesData?.sales.length ?? 0;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8 xl:max-w-6xl">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.02em] text-text-primary">
@@ -635,198 +635,201 @@ export function POSPage() {
         </div>
       )}
 
-      {/* POS Form */}
-      <form onSubmit={handleSubmit} className="mb-8">
-        <fieldset
-          disabled={noRegister || createMutation.isPending}
-          className="space-y-4 disabled:opacity-60"
-        >
-          {/* Catálogo: buscar / escanear y carrito (solo con el módulo de inventario activo) */}
-          {inventoryEnabled && (
-            <ProductSearch onAdd={addToCart} disabled={noRegister || createMutation.isPending} />
-          )}
-          <CartLines
-            lines={cart}
-            onChangeQty={(id, quantity) =>
-              setCart((prev) => prev.map((l) => (l.product.id === id ? { ...l, quantity } : l)))
-            }
-            onRemove={(id) => setCart((prev) => prev.filter((l) => l.product.id !== id))}
-          />
-
-          {cart.length > 0 && (
-            <p className="pt-1 text-xs font-medium uppercase tracking-wide text-text-muted">
-              Monto libre{' '}
-              <span className="normal-case tracking-normal font-normal">
-                (opcional: mano de obra, instalación…)
-              </span>
-            </p>
-          )}
-
-          {/* Description */}
-          <div>
-            <label
-              htmlFor="description"
-              className="mb-1.5 block text-sm font-medium text-text-secondary"
-            >
-              Descripción <span className="font-normal text-text-muted">(opcional)</span>
-            </label>
-            <input
-              id="description"
-              type="text"
-              maxLength={500}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Ej. Cambio de pantalla, Cargador Samsung..."
-              className="h-9 w-full rounded-full border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  amountInputRef.current?.focus();
-                }
-              }}
+      {/* En laptop y escritorio: cobro a la izquierda, ventas de la caja a la derecha */}
+      <div className="xl:grid xl:grid-cols-2 xl:items-start xl:gap-8">
+        {/* POS Form */}
+        <form onSubmit={handleSubmit} className="mb-8 xl:mb-0">
+          <fieldset
+            disabled={noRegister || createMutation.isPending}
+            className="space-y-4 disabled:opacity-60"
+          >
+            {/* Catálogo: buscar / escanear y carrito (solo con el módulo de inventario activo) */}
+            {inventoryEnabled && (
+              <ProductSearch onAdd={addToCart} disabled={noRegister || createMutation.isPending} />
+            )}
+            <CartLines
+              lines={cart}
+              onChangeQty={(id, quantity) =>
+                setCart((prev) => prev.map((l) => (l.product.id === id ? { ...l, quantity } : l)))
+              }
+              onRemove={(id) => setCart((prev) => prev.filter((l) => l.product.id !== id))}
             />
-          </div>
 
-          {/* Amount */}
-          <div>
-            <label
-              htmlFor="pos-amount"
-              className="mb-1.5 block text-sm font-medium text-text-secondary"
-            >
-              Monto
-            </label>
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">
-                ₡
-              </span>
+            {cart.length > 0 && (
+              <p className="pt-1 text-xs font-medium uppercase tracking-wide text-text-muted">
+                Monto libre{' '}
+                <span className="normal-case tracking-normal font-normal">
+                  (opcional: mano de obra, instalación…)
+                </span>
+              </p>
+            )}
+
+            {/* Description */}
+            <div>
+              <label
+                htmlFor="description"
+                className="mb-1.5 block text-sm font-medium text-text-secondary"
+              >
+                Descripción <span className="font-normal text-text-muted">(opcional)</span>
+              </label>
               <input
-                id="pos-amount"
-                ref={amountInputRef}
-                type="number"
-                min={1}
-                step={1}
-                value={amountStr}
-                onChange={(e) => setAmountStr(e.target.value)}
-                placeholder="0"
-                className="h-11 w-full rounded-full border border-border bg-surface-input pl-7 pr-3 text-lg font-medium tabular-nums text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted placeholder:font-normal placeholder:text-base"
+                id="description"
+                type="text"
+                maxLength={500}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Ej. Cambio de pantalla, Cargador Samsung..."
+                className="h-9 w-full rounded-full border border-border bg-surface-input px-3 text-sm text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    amountInputRef.current?.focus();
+                  }
+                }}
               />
             </div>
+
+            {/* Amount */}
+            <div>
+              <label
+                htmlFor="pos-amount"
+                className="mb-1.5 block text-sm font-medium text-text-secondary"
+              >
+                Monto
+              </label>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">
+                  ₡
+                </span>
+                <input
+                  id="pos-amount"
+                  ref={amountInputRef}
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={amountStr}
+                  onChange={(e) => setAmountStr(e.target.value)}
+                  placeholder="0"
+                  className="h-11 w-full rounded-full border border-border bg-surface-input pl-7 pr-3 text-lg font-medium tabular-nums text-text-primary outline-none transition-all focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/20 placeholder:text-text-muted placeholder:font-normal placeholder:text-base"
+                />
+              </div>
+            </div>
+
+            {/* Payment method */}
+            <div>
+              <p id="method-label" className="mb-2 text-sm font-medium text-text-secondary">
+                Método de pago
+              </p>
+              <div
+                className="grid grid-cols-3 gap-2 sm:grid-cols-5"
+                role="radiogroup"
+                aria-labelledby="method-label"
+              >
+                {METHODS.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={method === value}
+                    tabIndex={method === value ? 0 : -1}
+                    onClick={() => setMethod(value)}
+                    onKeyDown={(e) => handleMethodKey(e, value)}
+                    className={[
+                      'h-11 rounded-full border text-sm font-medium transition-all',
+                      method === value
+                        ? 'border-brand-blue bg-brand-blue text-white shadow-sm'
+                        : 'border-border bg-surface-card text-text-secondary hover:border-brand-blue/40 hover:text-text-primary',
+                    ].join(' ')}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={!canSubmit || noRegister || createMutation.isPending}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-brand-blue text-base font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {createMutation.isPending ? (
+                <>
+                  <Loader2 size={18} strokeWidth={1.5} className="animate-spin" aria-hidden />{' '}
+                  Procesando...
+                </>
+              ) : total >= 1 ? (
+                `Cobrar ${formatColones(total)}`
+              ) : (
+                'Cobrar'
+              )}
+            </button>
+
+            {createMutation.isError && (
+              <p className="text-center text-xs text-brand-error" role="alert">
+                {createMutation.error?.message ?? 'Error al registrar la venta'}
+              </p>
+            )}
+          </fieldset>
+        </form>
+
+        {/* Sales list */}
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-text-primary">
+              Ventas de la caja
+              {totalSales > 0 && (
+                <span className="ml-2 text-xs font-normal text-text-muted">({totalSales})</span>
+              )}
+            </h2>
+            {salesData && salesData.total > 0 && (
+              <span className="text-xs text-text-muted">
+                Total:{' '}
+                <span className="font-medium text-text-primary tabular-nums">
+                  {formatColones(salesData.sales.reduce((sum, s) => sum + s.amount, 0))}
+                </span>
+              </span>
+            )}
           </div>
 
-          {/* Payment method */}
-          <div>
-            <p id="method-label" className="mb-2 text-sm font-medium text-text-secondary">
-              Método de pago
-            </p>
-            <div
-              className="grid grid-cols-3 gap-2 sm:grid-cols-5"
-              role="radiogroup"
-              aria-labelledby="method-label"
-            >
-              {METHODS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="radio"
-                  aria-checked={method === value}
-                  tabIndex={method === value ? 0 : -1}
-                  onClick={() => setMethod(value)}
-                  onKeyDown={(e) => handleMethodKey(e, value)}
-                  className={[
-                    'h-11 rounded-full border text-sm font-medium transition-all',
-                    method === value
-                      ? 'border-brand-blue bg-brand-blue text-white shadow-sm'
-                      : 'border-border bg-surface-card text-text-secondary hover:border-brand-blue/40 hover:text-text-primary',
-                  ].join(' ')}
+          {salesLoading ? (
+            <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
+              {Array.from({ length: 4 }, (_, i) => (
+                <div
+                  key={i}
+                  className="flex animate-pulse items-center gap-3 border-b border-border px-4 py-2.5 last:border-0"
                 >
-                  {label}
-                </button>
+                  <div className="h-3 w-6 rounded bg-border" />
+                  <div className="h-3 flex-1 rounded bg-border" />
+                  <div className="h-5 w-16 rounded-full bg-border/60" />
+                  <div className="h-3 w-14 rounded bg-border" />
+                  <div className="h-3 w-8 rounded bg-border" />
+                </div>
               ))}
             </div>
-          </div>
-
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={!canSubmit || noRegister || createMutation.isPending}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-brand-blue text-base font-semibold text-white transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {createMutation.isPending ? (
-              <>
-                <Loader2 size={18} strokeWidth={1.5} className="animate-spin" aria-hidden />{' '}
-                Procesando...
-              </>
-            ) : total >= 1 ? (
-              `Cobrar ${formatColones(total)}`
-            ) : (
-              'Cobrar'
-            )}
-          </button>
-
-          {createMutation.isError && (
-            <p className="text-center text-xs text-brand-error" role="alert">
-              {createMutation.error?.message ?? 'Error al registrar la venta'}
-            </p>
-          )}
-        </fieldset>
-      </form>
-
-      {/* Sales list */}
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-text-primary">
-            Ventas de la caja
-            {totalSales > 0 && (
-              <span className="ml-2 text-xs font-normal text-text-muted">({totalSales})</span>
-            )}
-          </h2>
-          {salesData && salesData.total > 0 && (
-            <span className="text-xs text-text-muted">
-              Total:{' '}
-              <span className="font-medium text-text-primary tabular-nums">
-                {formatColones(salesData.sales.reduce((sum, s) => sum + s.amount, 0))}
-              </span>
-            </span>
+          ) : !salesData?.sales.length ? (
+            <div className="flex h-20 items-center justify-center rounded-2xl border border-dashed border-border">
+              <p className="text-sm text-text-muted">
+                {noRegister ? 'Abre la caja para ver las ventas' : 'Sin ventas registradas aún'}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
+              {salesData.sales.map((sale) => (
+                <SaleRow
+                  key={sale.id}
+                  sale={sale}
+                  onDelete={handleDeleteRequest}
+                  isDeleting={
+                    deleteMutation.isPending &&
+                    (deleteMutation.variables as { id: number } | undefined)?.id === sale.id
+                  }
+                  onPrint={handlePrint}
+                />
+              ))}
+            </div>
           )}
         </div>
-
-        {salesLoading ? (
-          <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
-            {Array.from({ length: 4 }, (_, i) => (
-              <div
-                key={i}
-                className="flex animate-pulse items-center gap-3 border-b border-border px-4 py-2.5 last:border-0"
-              >
-                <div className="h-3 w-6 rounded bg-border" />
-                <div className="h-3 flex-1 rounded bg-border" />
-                <div className="h-5 w-16 rounded-full bg-border/60" />
-                <div className="h-3 w-14 rounded bg-border" />
-                <div className="h-3 w-8 rounded bg-border" />
-              </div>
-            ))}
-          </div>
-        ) : !salesData?.sales.length ? (
-          <div className="flex h-20 items-center justify-center rounded-2xl border border-dashed border-border">
-            <p className="text-sm text-text-muted">
-              {noRegister ? 'Abre la caja para ver las ventas' : 'Sin ventas registradas aún'}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-2xl border border-border bg-surface-card">
-            {salesData.sales.map((sale) => (
-              <SaleRow
-                key={sale.id}
-                sale={sale}
-                onDelete={handleDeleteRequest}
-                isDeleting={
-                  deleteMutation.isPending &&
-                  (deleteMutation.variables as { id: number } | undefined)?.id === sale.id
-                }
-                onPrint={handlePrint}
-              />
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Autorización de supervisor (cajeros) */}
