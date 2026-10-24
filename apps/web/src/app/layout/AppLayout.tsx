@@ -92,7 +92,7 @@ async function logout() {
 }
 
 const railButton =
-  'flex h-11 w-11 items-center justify-center rounded-full transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue';
+  'flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue';
 const railIdle = 'text-text-muted hover:bg-surface-bg hover:text-text-primary';
 const railActive = 'bg-brand-navy text-white dark:bg-brand-blue';
 
@@ -122,8 +122,10 @@ function IconRail() {
   return (
     <>
       <aside
-        className="hidden min-h-0 shrink-0 flex-col items-center gap-1 self-start overflow-y-auto rounded-full border border-border bg-surface-card px-2 py-3 [scrollbar-width:none] sm:flex"
-        style={{ maxHeight: 'calc(100dvh - 5.5rem)' }}
+        className="hidden min-h-0 shrink-0 flex-col items-center gap-0.5 self-center overflow-y-auto rounded-full border border-border bg-surface-card px-1.5 py-2.5 sm:-translate-y-9 [scrollbar-width:none] sm:flex"
+        // Centrada respecto a la pantalla completa (sube la mitad del encabezado); el límite deja
+        // margen para que, con muchos módulos, no se monte sobre el encabezado.
+        style={{ maxHeight: 'calc(100dvh - 10rem)' }}
         aria-label="Navegación principal"
         onScroll={() => setTip(null)}
       >
