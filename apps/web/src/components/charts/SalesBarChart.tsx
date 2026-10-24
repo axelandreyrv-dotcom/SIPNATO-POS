@@ -27,6 +27,8 @@ interface Props {
   // Resalta una barra (hoy, en el dashboard) y atenúa las demás.
   highlightDate?: string;
   yAxisWidth?: number;
+  // Barras redondeadas en las cuatro esquinas (dashboard); sin esto, solo arriba.
+  barRadius?: number;
 }
 
 function axisColones(v: number): string {
@@ -67,6 +69,7 @@ export default function SalesBarChart({
   tooltipLabel,
   highlightDate,
   yAxisWidth = 48,
+  barRadius,
 }: Props) {
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -94,7 +97,8 @@ export default function SalesBarChart({
         <Bar
           dataKey="total"
           fill="var(--color-brand-blue)"
-          radius={[3, 3, 0, 0]}
+          radius={barRadius ? [barRadius, barRadius, barRadius, barRadius] : [3, 3, 0, 0]}
+          {...(barRadius ? { maxBarSize: 44 } : {})}
           {...(highlightDate
             ? {}
             : { activeBar: { fill: 'var(--color-brand-blue)', opacity: 0.8 } })}
