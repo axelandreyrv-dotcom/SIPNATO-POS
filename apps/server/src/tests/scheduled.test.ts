@@ -16,6 +16,7 @@ import { openCashRegister } from '../modules/cash-registers/service.js';
 import { setAllSettings } from '../modules/settings/repository.js';
 import { AUTO_CLOSE_KEY, nextAutoCloseAt } from '../lib/auto-close.js';
 import { todayCR } from '../lib/cr-time.js';
+import type { Env } from '../env.js';
 import worker from '../worker.js';
 import {
   call,
@@ -414,6 +415,36 @@ describe('cron diario: mantenimiento y respaldos en R2', () => {
     );
     expect(platformSessions.map((s) => s.id)).not.toContain('p-vencida');
     expect(platformSessions.length).toBeGreaterThan(0);
+  });
+
+  it('con R2_BACKUPS en off hace la limpieza pero no escribe en R2', async () => {
+    await env.BACKUPS.delete([tenantKey('diario-a'), `_control/${today()}.json`]);
+    type WithEnv = { env: Env };
+    const paused = { ...env, R2_BACKUPS: 'off' } as Env;
+
+    await runInDurableObject(tenantStub('diario-a'), async (instance) => {
+      const target = instance as unknown as WithEnv;
+      const original = target.env;
+      target.env = paused;
+      try {
+        await instance.dailyMaintenance();
+      } finally {
+        target.env = original;
+      }
+    });
+    await runInDurableObject(platformStub(), async (instance) => {
+      const target = instance as unknown as WithEnv;
+      const original = target.env;
+      target.env = paused;
+      try {
+        await instance.dailyMaintenance();
+      } finally {
+        target.env = original;
+      }
+    });
+
+    expect(await env.BACKUPS.head(tenantKey('diario-a'))).toBeNull();
+    expect(await env.BACKUPS.head(`_control/${today()}.json`)).toBeNull();
   });
 
   it('un negocio registrado cuyo DO nunca se inicializó no se respalda ni se crea', async () => {

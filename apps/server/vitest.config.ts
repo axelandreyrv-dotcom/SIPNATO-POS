@@ -15,6 +15,8 @@ export default defineConfig({
         // operaciones solo existe aquí.
         bindings: {
           ENVIRONMENT: 'test',
+          // Producción la tiene pausada; los tests cubren la copia activa (y la pausa, aparte).
+          R2_BACKUPS: 'on',
           BCCR_API_TOKEN: 'token-de-prueba',
           OPS_TOKEN: 'token-de-operaciones-solo-para-tests-0123456789',
         },

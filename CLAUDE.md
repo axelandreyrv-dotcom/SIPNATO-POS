@@ -103,7 +103,7 @@
 | Base de datos | Durable Objects con SQLite: uno por negocio (`TenantDO`, `idFromName(slug)`) y uno de plataforma (`PlatformDO`, `idFromName('platform-enam')`), todos pedidos con `locationHint: 'enam'` (este de Norteamérica) |
 | Frontend | Static Assets del mismo Worker (`apps/web/dist`, SPA) · headers en `apps/web/public/_headers` |
 | Tareas programadas | Cron Triggers (tipo de cambio y mantenimiento diario) + alarma por negocio (cierre automático de caja) |
-| Respaldo | Point-in-Time Recovery de cada DO (30 días) + exportación JSON diaria a R2 (`dosuxsoft-backups`, regla de vida de 30 días) + descarga JSON del dueño |
+| Respaldo | Point-in-Time Recovery de cada DO (30 días) + descarga JSON del dueño. La exportación JSON diaria a R2 (`dosuxsoft-backups`, regla de vida de 30 días) está **pausada** desde el 2026-11-23 (`R2_BACKUPS: "off"` en `wrangler.jsonc`; con `"on"` vuelve) |
 | HTTPS | Universal SSL de Cloudflare cubre `*.dosuxsoft.com` (registro DNS `*` Proxied → `AAAA 100::`) |
 | Logs | Workers Observability (`wrangler tail` para verlos en vivo) |
 
@@ -235,7 +235,7 @@ Agregar un módulo nuevo = crear esas carpetas. **Nada existente se modifica.**
 - Respuesta con `Content-Disposition: attachment` — nunca inline. Queda en el `audit_log` (`BACKUP_DOWNLOADED`).
 - Es un GET con efectos (bitácora y cupo): `sameOriginOnly` lo rechaza con 403 `ORIGEN_NO_PERMITIDO` si viene de otro origen (misma regla que `sameOriginWrites`).
 - Rate limit: máximo **5 descargas por hora** por sesión.
-- La copia diaria automática de cada negocio y de la plataforma va a R2 con el mismo formato (ver §3 Infraestructura).
+- La copia diaria automática de cada negocio y de la plataforma va a R2 con el mismo formato (ver §3 Infraestructura); está pausada desde el 2026-11-23 (`R2_BACKUPS`).
 
 ### 6.4 Rate limiting
 Por **negocio + IP**; la IP sale de `CF-Connecting-IP`. El límite general vive **en memoria** de la instancia del DO (`memoryRateLimit`, ventana fija, máximo 10 000 claves): solo frena ráfagas y no merece una escritura durable por petición; se reinicia si el DO se reinicia. Los demás (login, recover, setup, cambio de secreto, backup, ops) viven en el `kv` síncrono del DO (`ctx.storage.kv`) y sobreviven a reinicios; el mantenimiento diario borra los vencidos.
@@ -457,6 +457,7 @@ No hay secretos de sesión que generar: las sesiones son tokens aleatorios con h
 | `ENVIRONMENT` | var | `production` o `development`. Solo `development` acepta `X-Forwarded-Host` y deja la cookie sin `Secure` |
 | `DEV_TENANT` | var | Solo desarrollo: negocio para `localhost` sin subdominio |
 | `BCCR_API_TOKEN` | secreto | Token Bearer del API SDDE del BCCR para el tipo de cambio (opcional; sin él rige el respaldo manual de cada negocio) |
+| `R2_BACKUPS` | var | `"off"` pausa la exportación diaria a R2 (producción, desde el 2026-11-23); sin la variable o con `"on"`, activa. El mantenimiento diario (limpieza, estado) sigue igual |
 | `OPS_TOKEN` | secreto | Token de 256 bits de la consola de operaciones (`/internal/ops`, `pnpm ops`). `openssl rand -hex 32`; con menos de 32 caracteres el endpoint queda apagado |
 
 ---
@@ -568,3 +569,4 @@ El spec original (`docs/superpowers/specs/2026-06-09-sipnato-pos-design.md`) es 
 | 2026-10-24 | Diseño | **Vuelve la barra de solo íconos centrada** (decisión del usuario, tras probar la versión con nombres): se revierte el PR #20; el nombre del módulo aparece en el tooltip al pasar el mouse o con el teclado. |
 | 2026-10-24 | Diseño | **Revisión visual de formularios y ventanas** (Caja, POS efectivo y dólares, Gastos, Nueva orden, Inventario, Créditos, Apartados, Usuarios, Facturas; claro, oscuro y celular). Corregido: (1) **colores inexistentes** en Facturas y Créditos (`bg-background`, `text-foreground`, `text-muted-foreground`, `bg-muted`, `bg-surface-hover`: no existen en el tema y no seguían el modo oscuro) → tokens del tema; (2) Gastos con tarjetas y montos verdes/rojos y botón rojo → un solo color y botón azul; (3) botones principales verdes (confirmar cobro en efectivo y en dólares, guardar orden, guardar factura) → azul, y "Solo guardar" de factura como secundario; (4) vuelto suficiente en gris (insuficiente sigue en rojo), movimientos de stock y apartados completos sin verde. Errores, avisos y botones peligrosos conservan su color. |
 | 2026-10-24 | Diseño | **La app se acomoda al tamaño de la pantalla** (pedido del usuario, revisado en su MacBook Pro de 1512×982 y en 1280, 1024, 1920 y celular). (1) La barra de íconos no cabía a 1512×860 (con todos los módulos se escondían los últimos): variantes `short-screen`/`shorter-screen` por alto de pantalla que achican los botones (40 → 36 → 32 px), los espacios y la centran en el área del contenido; ahora cabe completa hasta ~690 px de alto. (2) Los módulos eran columnas angostas (672–896 px) con mucho espacio vacío en laptop: anchos nuevos por tipo de pantalla (ver §5); POS en dos columnas desde `xl` (cobro a la izquierda, ventas de la caja a la derecha) y Caja desde `lg` (caja actual e historial); Notas con 4 columnas en `2xl`. Celular sin cambios. Sin cambios en el servidor. |
+| 2026-11-23 | Infraestructura | **Respaldos diarios a R2 pausados** (pedido del usuario). Variable nueva `R2_BACKUPS` (`"off"` en producción): el mantenimiento diario de cada negocio y de la plataforma sigue (estado, sesiones, contadores) pero ya no escribe en R2. Siguen el PITR de cada Durable Object (30 días, incluido en Durable Objects y no se puede apagar) y la descarga del dueño. No se borró el bucket ni las copias que ya estaban (vencen solas a los 30 días). Para reactivar: `"on"` en `wrangler.jsonc` y desplegar. Test nuevo en `scheduled.test.ts`; los tests corren con `R2_BACKUPS: 'on'`. 240 tests. |
