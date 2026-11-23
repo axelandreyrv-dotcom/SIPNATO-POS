@@ -171,6 +171,7 @@ export class TenantDO extends DurableObject<Env> {
       return exportTenant(this.ctx.storage);
     });
     sweepRateLimits(this.ctx.storage.kv);
+    if (this.env.R2_BACKUPS === 'off') return;
     await this.env.BACKUPS.put(`tenants/${slug}/${todayCR()}.json`, JSON.stringify(backup), {
       httpMetadata: { contentType: 'application/json' },
     });

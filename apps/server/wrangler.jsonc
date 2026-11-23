@@ -21,7 +21,13 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TenantDO", "PlatformDO"] }],
   "r2_buckets": [{ "binding": "BACKUPS", "bucket_name": "dosuxsoft-backups" }],
   "triggers": { "crons": ["15 * * * *", "0 9 * * *"] },
-  "vars": { "TENANT_BASE_DOMAIN": "dosuxsoft.com", "ENVIRONMENT": "production" },
+  // R2_BACKUPS "off": copia diaria a R2 pausada (decisión del usuario, 2026-11-23). Siguen el PITR de
+  // cada Durable Object (30 días) y la descarga del dueño. Para reactivarla: "on" y desplegar.
+  "vars": {
+    "TENANT_BASE_DOMAIN": "dosuxsoft.com",
+    "ENVIRONMENT": "production",
+    "R2_BACKUPS": "off",
+  },
   "rules": [{ "type": "Text", "globs": ["**/*.sql"], "fallthrough": true }],
   "observability": { "enabled": true },
   "env": {

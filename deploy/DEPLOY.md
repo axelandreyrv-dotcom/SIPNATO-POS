@@ -208,7 +208,7 @@ producción con un negocio de prueba antes de depender de ella (ver el checklist
 | Copia | Qué contiene | Dónde | Retención |
 |---|---|---|---|
 | PITR | Todo el estado de cada Durable Object | Cloudflare (automático) | 30 días |
-| Exportación diaria | JSON de cada negocio activo o suspendido y de la plataforma, a las 03:00 hora de CR (`0 9 * * *` UTC) | R2, bucket `dosuxsoft-backups`: `tenants/<slug>/<fecha>.json` y `_control/<fecha>.json` | 30 días (regla de vida) |
+| Exportación diaria (**pausada** desde el 2026-11-23: `R2_BACKUPS` en `"off"` en `wrangler.jsonc`; para reactivarla, `"on"` y desplegar) | JSON de cada negocio activo o suspendido y de la plataforma, a las 03:00 hora de CR (`0 9 * * *` UTC) | R2, bucket `dosuxsoft-backups`: `tenants/<slug>/<fecha>.json` y `_control/<fecha>.json` | 30 días (regla de vida) |
 | Descarga del dueño | JSON de su negocio, desde **Configuración → Respaldo** (5 por hora) | El navegador del dueño | La que él decida |
 
 Los JSON excluyen las sesiones pero **contienen datos confidenciales** (hashes de usuarios, contraseñas de

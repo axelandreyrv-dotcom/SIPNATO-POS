@@ -126,6 +126,7 @@ export class PlatformDO extends DurableObject<Env> {
       deleteExpiredPlatformSessions(new Date(Date.now() - INACTIVITY_TIMEOUT_MS).toISOString()),
     );
     sweepRateLimits(this.ctx.storage.kv);
+    if (this.env.R2_BACKUPS === 'off') return;
     await this.env.BACKUPS.put(`_control/${todayCR()}.json`, JSON.stringify(this.exportControl()), {
       httpMetadata: { contentType: 'application/json' },
     });

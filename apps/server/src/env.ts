@@ -6,6 +6,8 @@ export interface Env {
   PLATFORM: DurableObjectNamespace<PlatformDO>;
   ASSETS: Fetcher;
   BACKUPS: R2Bucket;
+  // 'off' pausa la copia diaria a R2 (negocios y plataforma); sin la variable, sigue activa.
+  R2_BACKUPS?: 'on' | 'off';
   TENANT_BASE_DOMAIN: string;
   ENVIRONMENT: 'production' | 'development' | 'test';
   DEV_TENANT?: string;
